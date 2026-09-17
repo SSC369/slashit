@@ -175,7 +175,13 @@ const VerifyEmailController = (): ReactElement => {
         </div>
       )}
 
-      <OtpInput value={code} onChange={handleChange} error={hasError} disabled={isLoading} />
+      <OtpInput
+        value={code}
+        onChange={handleChange}
+        error={hasError}
+        disabled={isLoading}
+        autoFocus
+      />
 
       <div className={Styles.resendRowStyles} aria-live="polite">
         {isResendAvailable ? (
