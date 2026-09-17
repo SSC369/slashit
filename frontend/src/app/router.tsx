@@ -1,5 +1,7 @@
 import { createBrowserRouter } from "react-router";
 
+import ForgotPasswordController from "../features/auth/controllers/ForgotPasswordController/ForgotPasswordController";
+import ResetPasswordController from "../features/auth/controllers/ResetPasswordController/ResetPasswordController";
 import SignInController from "../features/auth/controllers/SignInController/SignInController";
 import SignUpController from "../features/auth/controllers/SignUpController/SignUpController";
 import VerifyEmailController from "../features/auth/controllers/VerifyEmailController/VerifyEmailController";
@@ -14,6 +16,8 @@ export const router = createBrowserRouter([
   { path: "/sign-up", element: <SignUpController /> },
   { path: "/verify-email", element: <VerifyEmailController /> },
   { path: "/sign-in", element: <SignInController /> },
+  { path: "/forgot-password", element: <ForgotPasswordController /> },
+  { path: "/reset-password", element: <ResetPasswordController /> },
   {
     element: <RequireAuth />,
     children: [

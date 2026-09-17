@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type { ChangeEvent, ClipboardEvent, KeyboardEvent, ReactElement } from "react";
 
 import { cn } from "../../../utils/cn";
@@ -12,10 +12,13 @@ interface OtpInputProps {
   onChange: (value: string) => void;
   error?: boolean;
   disabled?: boolean;
+  // 02-design.md §7, Focus order: "On entering Verify email or Reset
+  // password's code step, focus starts in the first code box."
+  autoFocus?: boolean;
 }
 
 const OtpInput = (props: OtpInputProps): ReactElement => {
-  const { value, onChange, error = false, disabled = false } = props;
+  const { value, onChange, error = false, disabled = false, autoFocus = false } = props;
   const boxRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const digits = OTP_INDICES.map((index) => value[index] ?? "");
@@ -24,6 +27,14 @@ const OtpInput = (props: OtpInputProps): ReactElement => {
     const box = boxRefs.current[index];
     if (box !== null && box !== undefined) box.focus();
   };
+
+  // On mount only: the design says focus starts in the first box on ENTERING
+  // the screen. Re-running this when `disabled` flips back after a failed
+  // verify would yank focus mid-retype, which is not what it asks for.
+  useEffect(() => {
+    if (autoFocus) focusBox(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange =
     (index: number) =>
