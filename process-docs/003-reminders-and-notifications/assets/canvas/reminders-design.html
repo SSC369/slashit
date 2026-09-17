@@ -201,6 +201,58 @@ body{margin:0;background:#efeae1;color:var(--ink);
 .tgl i{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;
   box-shadow:0 1px 2px rgba(0,0,0,.2)}
 .tgl.on i{left:19px}
+.dark{--paper:#1c1917;--surface:#24211e;--ink:#ece6dc;--ink2:#a89f93;--ink3:#7c7368;
+ --line:#35302b;--line2:#443d36;--rail:#191614;--blue:#7ea6e8;--blueWash:#22303f;
+ --amber:#d9a441;--amberWash:#332a1b;--red:#e08c82;--redWash:#3a2320;--green:#6fbf95;--greenWash:#1e3128;
+ --hov:#201d1a;--hair:#2b2724;color:#ece6dc}
+.dark a{color:#7ea6e8}
+.dark a:hover{color:#a3c1f0}
+/* 001's approved dark patches, taken unchanged from DarkCommandPalette.dc.html */
+.dark .navitem.on{background:var(--surface);box-shadow:0 0 0 1px var(--line2)}
+.dark .input{box-shadow:none}
+.dark .input.focus{border-color:#7ea6e8;box-shadow:0 0 0 3px rgba(126,166,232,.16)}
+.dark .palette{box-shadow:0 14px 36px rgba(0,0,0,.55)}
+.dark .skel{background:linear-gradient(90deg,#2b2724 25%,#35302b 37%,#2b2724 63%);background-size:400% 100%}
+.dark .pill.pend{border-color:#4a3a20}
+.dark .pill.done{border-color:#274536}
+.dark .pill.wait{border-color:#2c3f56}
+.dark .pill.err{border-color:#4d2f2b}
+.dark .note.info{border-color:#2c3f56}
+.dark .note.warn{border-color:#4a3a20}
+.dark .note.err{border-color:#4d2f2b}
+.dark .btn.pri{background:#7ea6e8;border-color:#7ea6e8;color:#1c1917}
+.dark .btn.dan{background:#e08c82;border-color:#e08c82;color:#1c1917}
+.dark .kbd{background:#2b2724;border-color:var(--line2)}
+.dark .cardfoot{background:var(--hov)}
+/* 003-011's own components, following 001's inverted-primary rule: a light
+   field takes dark ink, never white. */
+.dark .seg div.on{color:#1c1917}
+.dark .day.on{color:#1c1917}
+.dark .navcount.alert{color:#1c1917}
+.dark .box.done{border-color:var(--green)}
+/* Shadows go black on a dark ground; warm-ink shadows read as brown haze. */
+.dark .modalbg{background:rgba(0,0,0,.62)}
+.dark .modal{box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.dark .toast{box-shadow:0 14px 38px rgba(0,0,0,.55)}
+.dark .sheetpanel{box-shadow:-12px 0 32px rgba(0,0,0,.5)}
+/* DEFECT 1, found by drawing dark. 005's match highlight was a hardcoded
+   light tint that set no text colour, so on dark it rendered light-on-light
+   and the matched word vanished. 005 §9 Q4 flagged the tint as unmeasured;
+   dark is what turned that into a defect. */
+.dark .hl{background:#4a3a20;color:#f0d9a8}
+/* DEFECT 2, same. 009's note-card excerpt faded to a hardcoded #fff, which
+   painted a white bar across the foot of every card on a dark ground. */
+.dark .notecard .fade{background:linear-gradient(to bottom,rgba(36,33,30,0),#24211e)}
+/* DECISION: email stays light in every theme. 003's 02-design.md §6 already
+   says email has no trustworthy dark mode — clients rewrite colours, and a
+   dark template that half-applies is worse than one that never changes.
+   Re-declaring the tokens on .email scopes the light palette to its subtree,
+   so every child inherits light values without a second set of rules. */
+.dark .email{--paper:#faf8f4;--surface:#ffffff;--ink:#2f2823;--ink2:#6b625a;--ink3:#9c9389;
+ --line:#e7e0d5;--line2:#d6ccbc;--rail:#f5f1ea;--blue:#2f5ea8;--amber:#8a5a2b;
+ --hov:#fbf8f3;--hair:#f2ece2;color:#2f2823;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.dark{background:#121010;padding:20px;border-radius:12px}
+.dark .frame{box-shadow:none}
 
 </style>
 </head>
@@ -527,6 +579,155 @@ body{margin:0;background:#efeae1;color:var(--ink);
       </div>
     </div>
   </div>
+</div>
+
+<!-- DARK -->
+<div class="dark">
+<div class="board"><div class="boardhead"><span class="boardname">Dark theme</span><span class="boardwhat">001's approved dark palette, unchanged. This epic adds no colour token.</span><span class="boardsrc">values from 001 DarkTokens &middot; frontend/src/design-system/tokens.css</span></div></div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Dark &middot; Capture</span>
+    <span class="boardwhat">/remind resolves date, time and recurrence, and confirms before anything is scheduled</span>
+    <span class="boardsrc">intake §21, §35</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav">
+          <div class="navitem on"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 6h16M4 18h10"/></svg>Capture</div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Records</div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>Reminders<span class="navcount alert">2</span></div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+        </div>
+        <div class="railfoot"><div class="avatar">J</div><div style="min-width:0"><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">2</span></div>
+            <div class="btn sm">History</div>
+          </div></div>
+        <div class="stream">
+          <div class="turn">
+            <div class="said"><div class="saidbox">/remind Call Mom every Sunday at 7pm</div></div>
+            <div class="card">
+              <div class="cardhead"><span class="dot"></span><span style="font-weight:600;font-size:14.5px">Reminder created</span><span class="pill wait">Scheduled</span></div>
+              <div class="fields f4">
+                <div class="field"><span class="label">What</span><span class="fval">Call Mom</span></div>
+                <div class="field"><span class="label">Next</span><span class="fval">Sun 21 Sep, 7:00 PM</span></div>
+                <div class="field"><span class="label">Repeats</span><span class="fval">Weekly on Sunday</span></div>
+                <div class="field"><span class="label">Notify</span><span class="fval">In-app + email</span></div>
+              </div>
+              <div class="cardfoot"><span>Times shown in Asia/Kolkata · from <span class="mono">/remind Call Mom every Sunday at 7pm</span></span><span style="display:flex;gap:8px"><span class="btn sm">Edit</span><span class="btn sm">Undo</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="dock"><div class="inputwrap">
+          <div class="input focus"><div class="slash">/</div><span class="mono dim">Type a command<span class="caret"></span></span></div>
+          <div class="hint"><span><span class="kbd">/</span> commands</span><span><span class="kbd">↵</span> capture</span><span><span class="kbd">esc</span> clear</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Dark &middot; InAppDelivery</span>
+    <span class="boardwhat">A reminder arriving while the app is open. Actionable in place, never a dead-end banner</span>
+    <span class="boardsrc">intake §21</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav">
+          <div class="navitem on">Capture</div><div class="navitem">Records</div>
+          <div class="navitem">Reminders<span class="navcount alert">3</span></div><div class="navitem">Settings</div>
+        </div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div>
+          <div class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">3</span></div></div>
+        <div class="stream">
+          <div class="turn"><div class="said"><div class="saidbox">/add-task Draft the Q4 plan</div></div>
+            <div class="card"><div class="cardhead"><span class="dot"></span><span style="font-weight:600;font-size:14.5px">Task created</span><span class="pill pend">Pending</span></div>
+              <div class="fields"><div class="field"><span class="label">Title</span><span class="fval">Draft the Q4 plan</span></div><div class="field"><span class="label">Due</span><span class="fval">—</span></div><div class="field"><span class="label">Status</span><span class="fval">Pending</span></div></div>
+            </div></div>
+        </div>
+        <div class="dock"><div class="inputwrap"><div class="input"><div class="slash">/</div><span class="mono dim">Type a command</span></div></div></div>
+      </div>
+    </div>
+    <div class="toast">
+      <div class="toasttop">
+        <div class="toastmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></div>
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber);margin-bottom:3px">Reminder · 7:00 PM</div>
+          <div style="font-weight:500;font-size:14.5px;margin-bottom:2px">Call Mom</div>
+          <div class="dim" style="font-size:12.5px">Repeats weekly on Sunday</div>
+        </div>
+      </div>
+      <div class="toastacts"><div class="btn sm pri">Done</div><div class="btn sm">Snooze 1h</div><div class="btn sm">Dismiss</div></div>
+    </div>
+  </div>
+</div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Dark &middot; NotificationInbox</span>
+    <span class="boardwhat">Where a reminder goes when nobody was watching. Answers "what did I miss"</span>
+    <span class="boardsrc">intake §21</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem">Capture</div><div class="navitem">Records</div><div class="navitem on">Reminders<span class="navcount alert">3</span></div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Reminders</div>
+          <div style="display:flex;gap:10px;align-items:center"><div class="tabs"><div class="tab on">Unread</div><div class="tab">All</div><div class="tab">Scheduled</div></div><div class="btn sm">Mark all read</div></div></div>
+        <div style="flex:1;overflow:hidden">
+          <div class="ninbox">
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Call Mom</div><div class="dim" style="font-size:12px">7:00 PM</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Delivered in-app and by email · repeats weekly</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Pay the electricity bill</div><div class="dim" style="font-size:12px">9:00 AM</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Delivered in-app and by email</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Check passport renewal requirements</div><div class="dim" style="font-size:12px">Yesterday</div></div><div class="dim" style="font-size:12.5px;margin-top:2px"><span class="pill err" style="height:20px">Email failed</span> <span style="margin-left:6px">Retried 3 times · shown here instead</span></div></div></div>
+            <div class="nrow"><div class="ndot read"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="muted" style="font-weight:500">Gym at 7</div><div class="dim" style="font-size:12px">Mon</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Marked done</div></div></div>
+            <div class="nrow"><div class="ndot read"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="muted" style="font-weight:500">Submit the expense report</div><div class="dim" style="font-size:12px">Sun</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Snoozed to tomorrow 9:00 AM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Dark &middot; ReminderEmail</span>
+    <span class="boardwhat">First email Slashit ever sends by design. Establishes the email language 002's OTP mail also needs</span>
+    <span class="boardsrc">intake §21 · see 02-design.md §6</span></div>
+  <div class="row">
+    <div class="email">
+      <div class="emailchrome"><span style="font-weight:600;color:var(--ink2)">Slashit</span><span>&lt;reminders@slash.it&gt;</span><span style="margin-left:auto">to jordan@example.com</span></div>
+      <div class="emailbody">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:22px">
+          <div style="width:26px;height:26px;border-radius:7px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 48 48" width="20" height="20"><path d="M31.5 6 L40 6 L18.5 42 L10 42 Z" fill="currentColor"/></svg></div>
+          <span class="mono" style="font-size:18px;font-weight:500">slash<span style="color:var(--amber)">.</span>it</span>
+        </div>
+        <div class="emailcard">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber);margin-bottom:10px">Reminder · Sunday 7:00 PM</div>
+          <div class="serif" style="font-size:27px;line-height:1.25;margin-bottom:10px">Call Mom</div>
+          <div class="muted" style="font-size:14px;margin-bottom:22px">Repeats weekly on Sunday. Next after this one: Sun 28 Sep.</div>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:9px"><div style="background:var(--blue);color:#fff;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Mark done</div></td>
+            <td style="padding-right:9px"><div style="background:#fff;border:1px solid var(--line2);border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Snooze 1 hour</div></td>
+            <td><div style="background:#fff;border:1px solid var(--line2);border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Open in Slashit</div></td>
+          </tr></table>
+        </div>
+      </div>
+      <div class="emailfoot">You are getting this because you asked Slashit to remind you.<br>
+        <span style="color:var(--blue)">Turn off reminder emails</span> · <span style="color:var(--blue)">Notification settings</span></div>
+    </div>
+    <div style="width:420px">
+      <div class="note info" style="margin-bottom:14px"><div><strong>Why this is a design-system event.</strong> Email cannot use the app's tokens as CSS variables, has no dark mode worth trusting, and needs table layout for older clients. The values here are the same hex the tokens resolve to, inlined. That is the delta 02-design.md §6 records.</div></div>
+      <div class="note warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>This unblocks 002.</strong> The OTP email template (T-1.13) is still unowned and has no design. It is the same language: mark, card, one action, one footer line. Drawn once here, used by both.</div></div>
+    </div>
+  </div>
+</div>
 </div>
 
 </div>

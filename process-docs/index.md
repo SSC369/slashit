@@ -47,7 +47,7 @@ user's direction, per [`CLAUDE.md`](./CLAUDE.md) §2 — a starting point for
 review, not an approved design, and not buildable. Stages 0 and 1 still have to
 be written and approved, and each design re-checked against them. None of these
 designs cites an FR, because no FRs exist yet; they cite the V1 intake's
-numbered sections instead.
+numbered sections instead. Each carries a **dark theme** (§6a) reusing 001's approved palette unchanged; no epic adds a colour token.
 
 | # | Epic | Priority | Depends on | Design drawn | New design work |
 |---|---|---|---|---|---|
@@ -71,6 +71,8 @@ numbered sections instead.
 | 4 | **004 and 005 overlap at `/search`.** A question routes to prose, a term routes to a list. Where the seam sits is an epic-stage decision, not a design one | user, at 004's epic |
 | 5 | **006 reuses semantic colour tokens as categorical ones.** Amber means "command" in 001, not "food". Either add a categorical ramp or accept the overlap deliberately | user, at design review |
 | 6 | **007's past-event dimming fails contrast as drawn** (62% opacity). Use a token, not opacity. A real defect in the drawing, recorded rather than quietly fixed | user, at design review |
+| 7 | **Dark theme found two more hardcoded-colour defects.** 005's match highlight rendered light-on-light and the matched word vanished; 009's note-card excerpt faded to a white bar across every card. Both fixed in dark, both recorded in their §6a. Same class as finding 6 | fixed; light-mode halves still open |
+| 8 | **Email does not go dark, in any theme.** Clients rewrite colours and a half-applied dark template is worse than none. The reminder email keeps its light palette on a dark page; whoever owns 002's OTP template inherits the rule | 002 and 003 |
 
 ## Shipped
 

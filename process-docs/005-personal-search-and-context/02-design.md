@@ -97,6 +97,28 @@ a connection you cannot trust.
 | Related list | added | component | Compact rows inside record detail, distinct from the tree |
 | Type filter tabs with counts | changed | `.tabs` | 001's tabs carry no count |
 
+## 6a. Dark theme
+
+Added 2026-09-17, alongside the rest of this design. Dark reuses **001's
+approved palette unchanged** — the eighteen token pairs in its `DarkTokens`
+artboard, which the shipped `frontend/src/design-system/tokens.css` already
+carries byte-for-byte. **This epic adds no colour token**, and it inherits
+001's one dark-specific rule: a primary button inverts to a light blue field
+with dark ink on it, never white.
+
+Dark artboards on the canvas: `Results`, `Relationships`. States and mobile panels are not
+redrawn in dark — they are the same components on the same tokens, and 001
+took the same representative-subset approach rather than doubling its canvas.
+
+### Defect found by drawing dark
+
+**The match highlight was broken.** `.hl` was a hardcoded light tint that set
+no text colour, so on dark it rendered near-white text on pale yellow and the
+matched word disappeared — the exact thing the highlight exists to do. Q4
+already flagged the tint as unmeasured for contrast; dark is what turned that
+into a defect rather than a question. Fixed to a dark amber field with light
+amber text. **Q4 stays open for the light theme**, which is still unmeasured.
+
 ## 7. Accessibility
 
 | Area | Decision |
@@ -125,7 +147,7 @@ a connection you cannot trust.
 | Q1 | Is search literal, semantic, or both? The drawn highlight assumes a literal match exists to highlight; a semantic result may have none | user, at epic | Open |
 | Q2 | Does `/search <question>` route to 004's prose answer and `/search <term>` to this list, or is there one surface? They overlap by design and this is the seam | user, at epic | Open |
 | Q3 | Who creates relationships — the model at capture, a background pass, or the user only? Drawn as both inferred and manual | user, at epic | Open |
-| Q4 | The match-highlight tint is new and unmeasured for contrast | user, at design review | Open |
+| Q4 | The match-highlight tint is new and unmeasured for contrast **in light**. The dark value was fixed on sight (§6a) because dark made it a visible defect; the light one is still only assumed to pass | user, at design review | Open |
 | Q5 | Ranking across types. A task and a memory both matching — which leads? Drawn ungrouped, which makes ranking visible and therefore arguable | user, at build plan | Open |
 
 ## Change log
@@ -133,3 +155,4 @@ a connection you cannot trust.
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-17 | Created, ahead of the epic and PRD gates | User asked for designs of all upcoming slices, to review later | pending |
+| 2026-09-17 | Dark theme added (§6a), reusing 001's approved palette unchanged | User asked for dark designs alongside the light ones | pending |

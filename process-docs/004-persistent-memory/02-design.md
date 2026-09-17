@@ -116,6 +116,19 @@ flowchart LR
 | Memory row | added | component | Single line of text plus category. Lighter than a record row; a memory has no date or status |
 | Forget confirmation | changed | `DeleteConfirm` | Same modal shape as 001, different mark, and it quotes the memory in a block rather than naming it inline |
 
+## 6a. Dark theme
+
+Added 2026-09-17, alongside the rest of this design. Dark reuses **001's
+approved palette unchanged** — the eighteen token pairs in its `DarkTokens`
+artboard, which the shipped `frontend/src/design-system/tokens.css` already
+carries byte-for-byte. **This epic adds no colour token**, and it inherits
+001's one dark-specific rule: a primary button inverts to a light blue field
+with dark ink on it, never white.
+
+Dark artboards on the canvas: `Recall`, `Memories`. States and mobile panels are not
+redrawn in dark — they are the same components on the same tokens, and 001
+took the same representative-subset approach rather than doubling its canvas.
+
 ## 7. Accessibility
 
 | Area | Decision |
@@ -152,3 +165,4 @@ flowchart LR
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-17 | Created, ahead of the epic and PRD gates | User asked for designs of all upcoming slices, to review later | pending |
+| 2026-09-17 | Dark theme added (§6a), reusing 001's approved palette unchanged | User asked for dark designs alongside the light ones | pending |

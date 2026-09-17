@@ -195,6 +195,58 @@ body{margin:0;background:#efeae1;color:var(--ink);
 .because{font-size:11.5px;color:var(--ink3);margin-top:7px;padding-top:7px;border-top:1px solid var(--hair)}
 .suggacts{display:flex;gap:7px;margin-top:11px}
 .freq{display:flex;flex-direction:column;gap:2px}
+.dark{--paper:#1c1917;--surface:#24211e;--ink:#ece6dc;--ink2:#a89f93;--ink3:#7c7368;
+ --line:#35302b;--line2:#443d36;--rail:#191614;--blue:#7ea6e8;--blueWash:#22303f;
+ --amber:#d9a441;--amberWash:#332a1b;--red:#e08c82;--redWash:#3a2320;--green:#6fbf95;--greenWash:#1e3128;
+ --hov:#201d1a;--hair:#2b2724;color:#ece6dc}
+.dark a{color:#7ea6e8}
+.dark a:hover{color:#a3c1f0}
+/* 001's approved dark patches, taken unchanged from DarkCommandPalette.dc.html */
+.dark .navitem.on{background:var(--surface);box-shadow:0 0 0 1px var(--line2)}
+.dark .input{box-shadow:none}
+.dark .input.focus{border-color:#7ea6e8;box-shadow:0 0 0 3px rgba(126,166,232,.16)}
+.dark .palette{box-shadow:0 14px 36px rgba(0,0,0,.55)}
+.dark .skel{background:linear-gradient(90deg,#2b2724 25%,#35302b 37%,#2b2724 63%);background-size:400% 100%}
+.dark .pill.pend{border-color:#4a3a20}
+.dark .pill.done{border-color:#274536}
+.dark .pill.wait{border-color:#2c3f56}
+.dark .pill.err{border-color:#4d2f2b}
+.dark .note.info{border-color:#2c3f56}
+.dark .note.warn{border-color:#4a3a20}
+.dark .note.err{border-color:#4d2f2b}
+.dark .btn.pri{background:#7ea6e8;border-color:#7ea6e8;color:#1c1917}
+.dark .btn.dan{background:#e08c82;border-color:#e08c82;color:#1c1917}
+.dark .kbd{background:#2b2724;border-color:var(--line2)}
+.dark .cardfoot{background:var(--hov)}
+/* 003-011's own components, following 001's inverted-primary rule: a light
+   field takes dark ink, never white. */
+.dark .seg div.on{color:#1c1917}
+.dark .day.on{color:#1c1917}
+.dark .navcount.alert{color:#1c1917}
+.dark .box.done{border-color:var(--green)}
+/* Shadows go black on a dark ground; warm-ink shadows read as brown haze. */
+.dark .modalbg{background:rgba(0,0,0,.62)}
+.dark .modal{box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.dark .toast{box-shadow:0 14px 38px rgba(0,0,0,.55)}
+.dark .sheetpanel{box-shadow:-12px 0 32px rgba(0,0,0,.5)}
+/* DEFECT 1, found by drawing dark. 005's match highlight was a hardcoded
+   light tint that set no text colour, so on dark it rendered light-on-light
+   and the matched word vanished. 005 §9 Q4 flagged the tint as unmeasured;
+   dark is what turned that into a defect. */
+.dark .hl{background:#4a3a20;color:#f0d9a8}
+/* DEFECT 2, same. 009's note-card excerpt faded to a hardcoded #fff, which
+   painted a white bar across the foot of every card on a dark ground. */
+.dark .notecard .fade{background:linear-gradient(to bottom,rgba(36,33,30,0),#24211e)}
+/* DECISION: email stays light in every theme. 003's 02-design.md §6 already
+   says email has no trustworthy dark mode — clients rewrite colours, and a
+   dark template that half-applies is worse than one that never changes.
+   Re-declaring the tokens on .email scopes the light palette to its subtree,
+   so every child inherits light values without a second set of rules. */
+.dark .email{--paper:#faf8f4;--surface:#ffffff;--ink:#2f2823;--ink2:#6b625a;--ink3:#9c9389;
+ --line:#e7e0d5;--line2:#d6ccbc;--rail:#f5f1ea;--blue:#2f5ea8;--amber:#8a5a2b;
+ --hov:#fbf8f3;--hair:#f2ece2;color:#2f2823;box-shadow:0 2px 10px rgba(0,0,0,.5)}
+.dark{background:#121010;padding:20px;border-radius:12px}
+.dark .frame{box-shadow:none}
 
 </style>
 </head>
@@ -300,6 +352,48 @@ body{margin:0;background:#efeae1;color:var(--ink);
       <div class="dim" style="font-size:13px">Not reachable. Suggestions are computed per account behind sign-in, and are never shown for records the user cannot see.</div>
     </div></div>
   </div>
+</div>
+
+<!-- DARK -->
+<div class="dark">
+<div class="board"><div class="boardhead"><span class="boardname">Dark theme</span><span class="boardwhat">001's approved dark palette, unchanged. This epic adds no colour token.</span><span class="boardsrc">values from 001 DarkTokens &middot; frontend/src/design-system/tokens.css</span></div></div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Dark &middot; Suggestions</span><span class="boardwhat">Slashit speaking first. Every suggestion says why it is being made, and never acts on its own</span><span class="boardsrc">intake §31</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav"><div class="navitem on">Home</div><div class="navitem">Capture</div>
+        <div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem">Upcoming</div>
+        <div class="railgrp">Records</div><div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div></div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Home</div><div class="dim" style="font-size:13px">Wednesday, 17 September</div></div>
+      <div class="pane"><div style="max-width:760px">
+        <div class="greet" style="font-size:30px">Good evening, Jordan.</div>
+        <div class="dim" style="font-size:14px;margin-bottom:22px">Two tasks left, one event at 7.</div>
+        <div class="secthead" style="margin-bottom:11px"><span class="sectname">Slashit noticed</span><span class="sectline"></span><span class="dim" style="font-size:12px">3 · <span style="text-decoration:underline">turn these off</span></span></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px">Your insurance renews in 10 days and there is no task for it. Add one?</div>
+            <div class="because">Because you told me <span class="mono">Insurance renews 27 September</span> on 8 Sep, and nothing references it.</div>
+            <div class="suggacts"><span class="btn sm pri">Add the task</span><span class="btn sm">Not now</span><span class="btn sm">Never for renewals</span></div></div></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px"><strong>Build a REST API</strong> has been pending for 3 weeks. It is the last task under Backend Learning.</div>
+            <div class="because">Because the project is at 3 of 4 and this task has not moved since 27 Aug.</div>
+            <div class="suggacts"><span class="btn sm pri">Open it</span><span class="btn sm">Not now</span><span class="btn sm">Never for stale tasks</span></div></div></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px">Every task under <strong>Run a half marathon</strong> is done. Mark the goal achieved?</div>
+            <div class="because">Because 6 of 6 tasks are complete and the goal is still active.</div>
+            <div class="suggacts"><span class="btn sm pri">Mark achieved</span><span class="btn sm">Not now</span></div></div></div>
+        <div class="note info" style="margin-top:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>Slashit never creates, edits or deletes a record from a suggestion. Every one needs your click.</div></div>
+      </div></div>
+    </div></div></div>
+</div>
 </div>
 
 </div>

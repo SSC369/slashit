@@ -91,6 +91,27 @@ can lose, every failure state here protects what they typed.
 | Character count | added | component | Quiet, right-aligned under the editor |
 | Unsaved-changes guard | added | component | **New interaction class: the first place in Slashit where leaving a screen can lose work** |
 
+## 6a. Dark theme
+
+Added 2026-09-17, alongside the rest of this design. Dark reuses **001's
+approved palette unchanged** — the eighteen token pairs in its `DarkTokens`
+artboard, which the shipped `frontend/src/design-system/tokens.css` already
+carries byte-for-byte. **This epic adds no colour token**, and it inherits
+001's one dark-specific rule: a primary button inverts to a light blue field
+with dark ink on it, never white.
+
+Dark artboards on the canvas: `List`, `Reading and editing`. States and mobile panels are not
+redrawn in dark — they are the same components on the same tokens, and 001
+took the same representative-subset approach rather than doubling its canvas.
+
+### Defect found by drawing dark
+
+**The note-card excerpt faded to white.** The gradient at the foot of each card
+ended in a hardcoded `#fff`, which painted a white bar across the bottom of
+every card on a dark ground. Fixed to fade to `--surface`'s dark value. It is
+the same class of bug as 005's highlight: a hardcoded colour that light mode
+never exposed.
+
 ## 7. Accessibility
 
 | Area | Decision |
@@ -119,9 +140,11 @@ can lose, every failure state here protects what they typed.
 | Q2 | Is there a length limit, and what does exceeding it look like? 001's quota-refusal pattern could be reused | user, at PRD | Open |
 | Q3 | Should the editor auto-save as a draft? Drawn as explicit save only, with a guard. Auto-save removes the guard but adds a version question | user, at epic | Open |
 | Q4 | `/add-note` splits title from body on the first line. What happens to a one-line note — is the title also the body? | user, at PRD | Open |
+| Q5 | The card excerpt fade assumes a solid card background. It will break again on any surface that is not `--surface` — a selected or hovered card, for instance. Worth replacing with a mask rather than a colour-matched gradient | user, at build plan | Open |
 
 ## Change log
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-17 | Created, ahead of the epic and PRD gates | User asked for designs of all upcoming slices, to review later | pending |
+| 2026-09-17 | Dark theme added (§6a), reusing 001's approved palette unchanged | User asked for dark designs alongside the light ones | pending |

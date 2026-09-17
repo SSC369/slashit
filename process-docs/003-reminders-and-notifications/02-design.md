@@ -129,6 +129,29 @@ undesigned, and it needs the same language this epic invents: mark, card, one
 primary action, one footer line. Drawn once here for both. If 002's SMTP work
 lands first it should use this, not invent a second style.
 
+## 6a. Dark theme
+
+Added 2026-09-17, alongside the rest of this design. Dark reuses **001's
+approved palette unchanged** — the eighteen token pairs in its `DarkTokens`
+artboard, which the shipped `frontend/src/design-system/tokens.css` already
+carries byte-for-byte. **This epic adds no colour token**, and it inherits
+001's one dark-specific rule: a primary button inverts to a light blue field
+with dark ink on it, never white.
+
+Dark artboards on the canvas: `Capture`, `InAppDelivery`, `NotificationInbox`, `ReminderEmail`. States and mobile panels are not
+redrawn in dark — they are the same components on the same tokens, and 001
+took the same representative-subset approach rather than doubling its canvas.
+
+**The email does not go dark, in any theme.** §6 already says email has no
+trustworthy dark mode: clients rewrite colours unpredictably, and a dark
+template that half-applies is worse than one that never changes. The reminder
+email keeps its light palette on a dark page, drawn that way in
+`Dark · ReminderEmail`. Whoever owns 002's OTP template inherits this rule.
+
+Shadows are the other dark-specific change: the toast and modal shadows swap
+from warm ink to black, since a warm shadow on a near-black ground reads as
+brown haze rather than depth.
+
 ## 7. Accessibility
 
 | Area | Decision |
@@ -167,3 +190,4 @@ lands first it should use this, not invent a second style.
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-17 | Created, ahead of the epic and PRD gates | User asked for designs of all upcoming slices, to review later | pending |
+| 2026-09-17 | Dark theme added (§6a), reusing 001's approved palette unchanged | User asked for dark designs alongside the light ones | pending |
