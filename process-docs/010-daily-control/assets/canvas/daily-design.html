@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Control — Slashit design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+/* Slashit design system, light + dark.
+   Tokens and components taken unchanged from
+   001-capture-and-records-foundation/assets/canvas/ (Records.dc.html,
+   CommandPalette.dc.html, DarkTokens.dc.html) and
+   002-authentication/assets/canvas/. Nothing here is new; additions made by a
+   later epic are declared in that epic's own "Design system deltas" table and
+   appear below its own comment banner. */
+:root{
+  --paper:#faf8f4; --surface:#ffffff; --ink:#2f2823; --ink2:#6b625a; --ink3:#9c9389;
+  --line:#e7e0d5; --line2:#d6ccbc; --rail:#f5f1ea; --hov:#fbf8f3; --hair:#f2ece2;
+  --blue:#2f5ea8; --blueWash:#eef3fb; --blueLine:#d7e2f3;
+  --amber:#8a5a2b; --amberWash:#f8f1e6; --amberLine:#ecdcc6;
+  --red:#a83f36; --redWash:#fbf0ee; --redLine:#f0d7d3;
+  --green:#2f7a52; --greenWash:#edf6f1; --greenLine:#d3e7dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efeae1;color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-wrap:pretty}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+
+/* ---- sheet chrome (not part of the product: it frames the artboards) ---- */
+.sheet{max-width:1560px;margin:0 auto;padding:40px 24px 80px}
+.sheethead{padding:24px 4px 8px}
+.sheettitle{font-family:'Instrument Serif',Georgia,serif;font-size:40px;line-height:1.1;margin:0 0 8px}
+.sheetsub{color:var(--ink2);font-size:15px;max-width:760px;margin:0 0 4px}
+.sheetnote{color:var(--ink3);font-size:12.5px;max-width:760px;margin:10px 0 0}
+.board{margin:46px 0 0}
+.boardhead{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.boardname{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line2);border-radius:5px;padding:3px 8px}
+.boardwhat{color:var(--ink2);font-size:13.5px}
+.boardsrc{color:var(--ink3);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.frame{width:1440px;height:900px;overflow:hidden;background:var(--paper);border:1px solid var(--line2);
+  border-radius:10px;box-shadow:0 2px 10px rgba(47,40,35,.08);position:relative}
+.frame.phone{width:390px;height:844px}
+.frame.half{height:560px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.scale{transform-origin:top left}
+
+/* ---- app shell ---- */
+.app{display:flex;height:100%}
+.rail{width:236px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--line);
+  padding:26px 16px 20px;display:flex;flex-direction:column;gap:26px}
+.wordmark{font-family:'Instrument Serif',Georgia,serif;font-size:26px;letter-spacing:.01em;padding:0 10px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.navitem{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:7px;
+  color:var(--ink2);font-weight:500;font-size:14px}
+.navitem.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(47,40,35,.04),0 0 0 1px var(--line)}
+.navitem svg{flex-shrink:0}
+.navcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--ink3)}
+.navcount.alert{background:var(--red);color:#fff;border-radius:9px;padding:1px 6px}
+.railfoot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;background:var(--paper)}
+.h1{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.muted{color:var(--ink2)} .dim{color:var(--ink3)}
+.pane{padding:28px 40px;overflow:hidden;flex:1}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px}
+.col{width:100%;max-width:760px;margin:0 auto}
+
+/* ---- capture ---- */
+.stream{flex:1;overflow:hidden;padding:32px 40px 8px;display:flex;flex-direction:column;gap:20px}
+.dock{flex-shrink:0;padding:14px 40px 26px;position:relative}
+.inputwrap{position:relative;max-width:760px;margin:0 auto}
+.input{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:11px;box-shadow:0 1px 2px rgba(47,40,35,.05)}
+.input.focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blueWash)}
+.slash{width:26px;height:26px;border-radius:6px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.caret{display:inline-block;width:1.5px;height:18px;background:var(--blue);vertical-align:-3px;margin-left:1px}
+.hint{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--ink3)}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;color:var(--ink2);background:var(--surface)}
+.palette{position:absolute;left:0;right:0;bottom:70px;background:var(--surface);border:1px solid var(--line2);
+  border-radius:11px;box-shadow:0 12px 32px rgba(47,40,35,.13),0 2px 6px rgba(47,40,35,.06);overflow:hidden}
+.paletop{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line)}
+.cmd{display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.cmd:last-child{border-bottom:0}
+.cmd.on{background:var(--blueWash)}
+.cmdname{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:500;width:158px;flex-shrink:0}
+.palefoot{display:flex;gap:16px;padding:9px 14px;background:var(--hov);border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.turn{display:flex;flex-direction:column;gap:10px}
+.said{display:flex;justify-content:flex-end}
+.saidbox{background:var(--surface);border:1px solid var(--line);border-radius:10px 10px 3px 10px;
+  padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;max-width:560px}
+
+/* ---- card + fields ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.cardhead{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fields{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:1px;background:var(--line)}
+.fields.f2{grid-template-columns:repeat(2, minmax(0,1fr))}
+.fields.f4{grid-template-columns:repeat(4, minmax(0,1fr))}
+.field{background:var(--surface);padding:13px 16px;display:flex;flex-direction:column;gap:3px}
+.fval{font-size:14.5px;font-weight:500}
+.cardfoot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  border-top:1px solid var(--line);background:#fcfaf6;font-size:12px;color:var(--ink3)}
+
+/* ---- controls ---- */
+.btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;border-radius:8px;
+  border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:500;
+  font-family:inherit;cursor:default}
+.btn.sm{height:32px;padding:0 11px;font-size:12.5px}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.dan{background:var(--red);border-color:var(--red);color:#fff}
+.btn.full{width:100%;justify-content:center;height:44px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:23px;padding:0 9px;border-radius:20px;
+  font-size:11.5px;font-weight:500;border:1px solid transparent}
+.pill.pend{background:var(--amberWash);color:var(--amber);border-color:var(--amberLine)}
+.pill.done{background:var(--greenWash);color:var(--green);border-color:var(--greenLine)}
+.pill.wait{background:var(--blueWash);color:var(--blue);border-color:var(--blueLine)}
+.pill.err{background:var(--redWash);color:var(--red);border-color:var(--redLine)}
+.note{display:flex;gap:11px;padding:14px 16px;border-radius:10px;border:1px solid;font-size:13.5px;line-height:1.5}
+.note.info{background:var(--blueWash);border-color:var(--blueLine)}
+.note.warn{background:var(--amberWash);border-color:var(--amberLine);color:var(--amber)}
+.note.err{background:var(--redWash);border-color:var(--redLine);color:var(--red)}
+.note svg{flex-shrink:0;margin-top:1px}
+.tabs{display:flex;gap:6px}
+.tab{height:32px;padding:0 13px;border-radius:7px;display:flex;align-items:center;font-size:13px;
+  font-weight:500;color:var(--ink2);border:1px solid transparent}
+.tab.on{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.search{display:flex;align-items:center;gap:9px;height:36px;width:280px;padding:0 12px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:13.5px;color:var(--ink3)}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface)}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);padding:11px 16px;border-bottom:1px solid var(--line2);background:var(--hov)}
+.tbl td{padding:0 16px;height:52px;border-bottom:1px solid var(--hair);font-size:14px;vertical-align:middle}
+.tbl tr.hov td{background:var(--hov)}
+.typetag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+.dot{width:7px;height:7px;border-radius:2px;background:var(--amber);flex-shrink:0}
+.dot.blue{background:var(--blue)} .dot.green{background:var(--green)} .dot.red{background:var(--red)}
+.dot.ink{background:var(--ink3)}
+.skel{background:linear-gradient(90deg,#efe9de 25%,#f6f1e9 37%,#efe9de 63%);background-size:400% 100%;
+  animation:sh 1.4s ease infinite;border-radius:5px;height:11px}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.modalbg{position:absolute;inset:0;background:rgba(47,40,35,.34)}
+.modal{position:absolute;top:220px;left:50%;transform:translateX(-50%);width:460px;background:var(--surface);
+  border-radius:13px;box-shadow:0 24px 60px rgba(47,40,35,.28);overflow:hidden}
+.formrow{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.fieldlabel{font-size:12.5px;font-weight:500;color:var(--ink2)}
+.control{height:42px;display:flex;align-items:center;padding:0 13px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:14px}
+.control.area{height:auto;min-height:96px;align-items:flex-start;padding:11px 13px;line-height:1.6}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;width:fit-content}
+.seg div{height:40px;display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;color:var(--ink2)}
+.seg div.on{background:var(--blue);color:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--surface);font-size:12.5px;color:var(--ink2)}
+.chip.on{background:var(--blueWash);border-color:var(--blueLine);color:var(--blue);font-weight:500}
+.sheetpanel{position:absolute;top:0;right:0;bottom:0;width:420px;background:var(--surface);
+  border-left:1px solid var(--line2);box-shadow:-12px 0 32px rgba(47,40,35,.10);display:flex;flex-direction:column}
+.panelhead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+
+/* ---- 010 additions ---- */
+.sect{margin-bottom:26px}
+.secthead{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.sectname{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.sectline{flex:1;height:1px;background:var(--line)}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--surface);
+  border:1px solid var(--line);border-radius:9px;margin-bottom:6px}
+.box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line2);flex-shrink:0}
+.box.done{background:var(--green);border-color:var(--green)}
+.tline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink2);width:70px;flex-shrink:0;
+  font-variant-numeric:tabular-nums}
+.greet{font-family:'Instrument Serif',Georgia,serif;font-size:34px;line-height:1.15;margin-bottom:5px}
+.dash{display:grid;grid-template-columns:1.35fr 1fr;gap:20px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:17px 19px}
+.tilehead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.big{font-family:'Instrument Serif',Georgia,serif;font-size:30px;line-height:1}
+.railgrp{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);
+  padding:0 10px;margin:14px 0 5px}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line2)}
+.tdot{position:absolute;left:1.5px;width:8px;height:8px;border-radius:50%;background:var(--line2);margin-top:14px}
+.tdot.now{background:var(--blue)}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="sheethead">
+  <h1 class="sheettitle">Daily Control</h1>
+  <p class="sheetsub">Epic 010. Today, Upcoming and Home — and the navigation change that reopens 001's approved design.</p>
+  <p class="sheetnote">Gate skipped. Drawn ahead of this epic's own Epic (stage 0) and PRD (stage 1), at the user's explicit direction on 2026-09-17, per process-docs/CLAUDE.md §2. Screens cite the V1 intake's numbered sections because no FR numbers exist yet — they are assigned when the PRD is written, and this sheet must be re-checked against them then. Nothing here is approved.</p>
+</div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Today</span><span class="boardwhat">/today. One answer to "what is my situation", assembled from every record type</span><span class="boardsrc">intake §29</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav">
+        <div class="navitem">Capture</div>
+        <div class="railgrp">Views</div>
+        <div class="navitem on">Today</div><div class="navitem">Upcoming</div>
+        <div class="railgrp">Records</div>
+        <div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div>
+        <div class="railgrp" style="margin-top:14px"></div>
+        <div class="navitem">Settings</div>
+      </div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Today</div><div class="dim" style="font-size:13px">Wednesday, 17 September</div></div>
+      <div class="pane"><div style="max-width:720px">
+        <div class="sect"><div class="secthead"><span class="sectname">Tasks</span><span class="sectline"></span><span class="dim" style="font-size:12px">2 of 3 left</span></div>
+          <div class="item"><span class="box"></span><span style="flex:1">Finish the project proposal</span><span class="pill pend" style="height:20px">Due today</span></div>
+          <div class="item"><span class="box"></span><span style="flex:1">Pay the electricity bill</span></div>
+          <div class="item" style="opacity:.55"><span class="box done"></span><span style="flex:1;text-decoration:line-through">Reply to the recruiter</span></div></div>
+        <div class="sect"><div class="secthead"><span class="sectname">Events</span><span class="sectline"></span></div>
+          <div class="item"><span class="tline">7:00 PM</span><span style="flex:1">Gym</span><span class="dim" style="font-size:12px">in 2 hours</span></div></div>
+        <div class="sect"><div class="secthead"><span class="sectname">Reminders</span><span class="sectline"></span></div>
+          <div class="item"><span class="tline">7:00 PM</span><span style="flex:1">Call Mom</span><span class="dim" style="font-size:12px">repeats weekly</span></div></div>
+        <div class="sect"><div class="secthead"><span class="sectname">Worth knowing</span><span class="sectline"></span></div>
+          <div class="item" style="background:var(--amberWash);border-color:var(--amberLine)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><span style="flex:1;color:var(--amber)">Insurance renewal in 10 days</span><span class="dim" style="font-size:12px">from a memory</span></div></div>
+      </div></div>
+    </div></div></div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">Upcoming</span><span class="boardwhat">/upcoming. A timeline, not a calendar grid. <strong>Supersedes 007's Upcoming events — one surface, not two</strong></span><span class="boardsrc">intake §30</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav"><div class="navitem">Capture</div><div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem on">Upcoming</div>
+        <div class="railgrp">Records</div><div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div></div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Upcoming</div><div class="tabs"><div class="tab on">Next 30 days</div><div class="tab">90 days</div><div class="tab">All</div></div></div>
+      <div class="pane"><div style="max-width:700px"><div class="timeline">
+        <div style="position:relative;margin-bottom:16px"><span class="tdot now"></span>
+          <div class="label" style="margin-bottom:7px;color:var(--blue)">Tomorrow · 18 Sep</div>
+          <div class="item"><span class="dot ink"></span><span style="flex:1">Submit the project proposal</span><span class="dim" style="font-size:12px">Task</span></div></div>
+        <div style="position:relative;margin-bottom:16px"><span class="tdot"></span>
+          <div class="label" style="margin-bottom:7px">Sat 20 Sep</div>
+          <div class="item"><span class="dot"></span><span style="flex:1">Check passport renewal requirements</span><span class="dim" style="font-size:12px">Reminder</span></div></div>
+        <div style="position:relative;margin-bottom:16px"><span class="tdot"></span>
+          <div class="label" style="margin-bottom:7px">Wed 24 Sep</div>
+          <div class="item"><span class="dot blue"></span><span style="flex:1">Dentist · 4:00 PM</span><span class="dim" style="font-size:12px">Event</span></div></div>
+        <div style="position:relative;margin-bottom:16px"><span class="tdot"></span>
+          <div class="label" style="margin-bottom:7px">Sun 27 Sep</div>
+          <div class="item" style="background:var(--amberWash);border-color:var(--amberLine)"><span class="dot"></span><span style="flex:1;color:var(--amber)">Insurance renewal</span><span class="dim" style="font-size:12px">Memory</span></div></div>
+        <div style="position:relative"><span class="tdot"></span>
+          <div class="label" style="margin-bottom:7px">Sun 12 Oct</div>
+          <div class="item"><span class="dot blue"></span><span style="flex:1">Mom's birthday</span><span class="dim" style="font-size:12px">Event</span></div></div>
+      </div></div></div>
+    </div></div></div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">Home</span><span class="boardwhat">The dashboard. <strong>This is the change that reopens 001: Capture stops being the landing screen</strong></span><span class="boardsrc">intake §32, §33 · change record against 001 required</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav"><div class="navitem on">Home</div><div class="navitem">Capture</div>
+        <div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem">Upcoming</div>
+        <div class="railgrp">Records</div><div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div></div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Home</div><div class="dim" style="font-size:13px">Wednesday, 17 September</div></div>
+      <div class="pane"><div style="max-width:940px">
+        <div style="margin-bottom:22px"><div class="greet">Good evening, Jordan.</div>
+          <div class="dim" style="font-size:14px">Two tasks left, one event at 7, and a renewal coming up in ten days.</div></div>
+        <div class="input" style="max-width:100%;margin-bottom:24px"><div class="slash">/</div><span class="mono dim">Type a command<span class="caret"></span></span></div>
+        <div class="dash">
+          <div class="tile"><div class="tilehead"><span class="sectname">Today</span><span class="dim" style="font-size:12px">2 of 3 left</span></div>
+            <div class="item" style="margin-bottom:6px"><span class="box"></span><span style="flex:1;font-size:13.5px">Finish the project proposal</span><span class="pill pend" style="height:19px">Due</span></div>
+            <div class="item" style="margin-bottom:6px"><span class="box"></span><span style="flex:1;font-size:13.5px">Pay the electricity bill</span></div>
+            <div class="item"><span class="tline" style="width:62px">7:00 PM</span><span style="flex:1;font-size:13.5px">Gym</span></div></div>
+          <div style="display:flex;flex-direction:column;gap:20px">
+            <div class="tile"><div class="tilehead"><span class="sectname">This month</span></div>
+              <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:6px"><span class="big">₹18,420</span><span class="dim" style="font-size:12.5px">23 expenses</span></div>
+              <div class="bar" style="height:7px;border-radius:4px;background:var(--line);overflow:hidden;display:flex"><i style="display:block;height:100%;width:38%;background:var(--amber)"></i><i style="display:block;height:100%;width:26%;background:var(--blue)"></i><i style="display:block;height:100%;width:36%;background:var(--ink3)"></i></div></div>
+            <div class="tile"><div class="tilehead"><span class="sectname">Goals</span><span class="dim" style="font-size:12px">1 active</span></div>
+              <div style="display:flex;align-items:center;gap:12px"><div class="ring" style="--p:62%;width:40px;height:40px;font-size:11.5px;border-radius:50%;background:conic-gradient(var(--green) 62%,var(--line) 0);display:flex;align-items:center;justify-content:center;color:var(--green);font-weight:600"><span style="width:31px;height:31px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center">62%</span></div>
+                <div><div style="font-size:13.5px;font-weight:500">Become a Backend Engineer</div><div class="dim" style="font-size:11.5px">5 of 8 tasks done</div></div></div></div>
+          </div>
+        </div>
+      </div></div>
+    </div></div></div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">NavigationChange</span><span class="boardwhat">Before and after. 001's approved rail is on the left; what 010 needs is on the right</span><span class="boardsrc">intake §33 · reopens 001's design under CLAUDE.md §7</span></div>
+  <div class="row">
+    <div class="frame" style="width:300px;height:620px">
+      <div class="rail" style="width:100%;height:100%">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem on">Capture</div><div class="navitem">Records</div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div>
+      </div>
+    </div>
+    <div class="frame" style="width:300px;height:620px">
+      <div class="rail" style="width:100%;height:100%">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem on">Home</div><div class="navitem">Capture</div>
+          <div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem">Upcoming</div>
+          <div class="railgrp">Records</div><div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div><div class="navitem">Expenses</div>
+          <div class="railgrp" style="margin-top:10px"></div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div>
+      </div>
+    </div>
+    <div style="width:560px">
+      <div class="note warn" style="margin-bottom:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div><strong>Three flat items become nine in two groups, and the landing screen changes.</strong> 001's design is approved and locked. Under <span class="mono">process-docs/CLAUDE.md</span> §7 this needs a change record against 001's <span class="mono">02-design.md</span>, and it re-opens what depends on it.</div></div>
+      <div class="note info" style="margin-bottom:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div><strong>Grouping is the cheapest fix that survives the epic list.</strong> Ungrouped, the rail reaches eleven flat items by 011 and stops being scannable. Views and Records is the split the intake's own §29 to §33 already implies.</div></div>
+      <div class="note err"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div><strong>The open question this design cannot settle.</strong> 001's whole intent is that capture is the product and the command bar is the front door. Home displaces it. That is a product decision, not a design one — it belongs in 010's epic, and it is Q1 below.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">States</span><span class="boardwhat">Five required states. A dashboard's empty and partial states are the ones that decide whether it is trusted</span><span class="boardsrc">process-docs/CLAUDE.md §6</span></div>
+  <div class="row">
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Empty · a clear day is not a broken day</div>
+      <div style="padding:22px 0"><div class="greet" style="font-size:26px">Good evening, Jordan.</div>
+        <div class="dim" style="font-size:13.5px;margin-bottom:18px">Nothing is due today, and nothing is coming up this week.</div>
+        <div class="input" style="height:46px"><div class="slash">/</div><span class="mono dim" style="font-size:13px">Type a command</span></div></div>
+      <div class="dim" style="font-size:12.5px">No empty illustration, no "get started". An empty day is a good day, and the dashboard says so plainly.</div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Loading · per tile, not per page</div>
+      <div class="tile" style="margin-bottom:12px"><div class="tilehead"><span class="sectname">Today</span></div>
+        <div class="skel" style="height:34px;margin-bottom:6px"></div><div class="skel" style="height:34px"></div></div>
+      <div class="tile"><div class="tilehead"><span class="sectname">This month</span></div><div class="skel" style="height:30px;width:52%"></div></div>
+      <div class="dim" style="font-size:12.5px;margin-top:14px">Tiles resolve independently. One slow source never holds the whole page.</div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Partial · one tile failed, the rest stand</div>
+      <div class="tile" style="margin-bottom:12px"><div class="tilehead"><span class="sectname">Today</span><span class="dim" style="font-size:12px">2 of 3 left</span></div>
+        <div class="item"><span class="box"></span><span style="flex:1;font-size:13.5px">Finish the project proposal</span></div></div>
+      <div class="tile"><div class="tilehead"><span class="sectname">This month</span></div>
+        <div class="note err" style="padding:10px 12px;font-size:12.5px"><div>Expenses could not be loaded. <span style="text-decoration:underline">Retry</span></div></div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Error · whole page</div>
+      <div class="note err" style="margin-bottom:18px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div>Home could not be assembled. Your records are unaffected — <span style="text-decoration:underline">go to Capture</span>.</div></div>
+      <div class="label" style="margin-bottom:10px">No permission</div>
+      <div class="dim" style="font-size:13px">Not reachable. Home is per-account behind sign-in; a signed-out user is redirected to sign-in, which is 002's surface.</div>
+    </div></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

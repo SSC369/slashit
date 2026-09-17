@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reminders and Notifications — Slashit design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+/* Slashit design system, light + dark.
+   Tokens and components taken unchanged from
+   001-capture-and-records-foundation/assets/canvas/ (Records.dc.html,
+   CommandPalette.dc.html, DarkTokens.dc.html) and
+   002-authentication/assets/canvas/. Nothing here is new; additions made by a
+   later epic are declared in that epic's own "Design system deltas" table and
+   appear below its own comment banner. */
+:root{
+  --paper:#faf8f4; --surface:#ffffff; --ink:#2f2823; --ink2:#6b625a; --ink3:#9c9389;
+  --line:#e7e0d5; --line2:#d6ccbc; --rail:#f5f1ea; --hov:#fbf8f3; --hair:#f2ece2;
+  --blue:#2f5ea8; --blueWash:#eef3fb; --blueLine:#d7e2f3;
+  --amber:#8a5a2b; --amberWash:#f8f1e6; --amberLine:#ecdcc6;
+  --red:#a83f36; --redWash:#fbf0ee; --redLine:#f0d7d3;
+  --green:#2f7a52; --greenWash:#edf6f1; --greenLine:#d3e7dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efeae1;color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-wrap:pretty}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+
+/* ---- sheet chrome (not part of the product: it frames the artboards) ---- */
+.sheet{max-width:1560px;margin:0 auto;padding:40px 24px 80px}
+.sheethead{padding:24px 4px 8px}
+.sheettitle{font-family:'Instrument Serif',Georgia,serif;font-size:40px;line-height:1.1;margin:0 0 8px}
+.sheetsub{color:var(--ink2);font-size:15px;max-width:760px;margin:0 0 4px}
+.sheetnote{color:var(--ink3);font-size:12.5px;max-width:760px;margin:10px 0 0}
+.board{margin:46px 0 0}
+.boardhead{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.boardname{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line2);border-radius:5px;padding:3px 8px}
+.boardwhat{color:var(--ink2);font-size:13.5px}
+.boardsrc{color:var(--ink3);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.frame{width:1440px;height:900px;overflow:hidden;background:var(--paper);border:1px solid var(--line2);
+  border-radius:10px;box-shadow:0 2px 10px rgba(47,40,35,.08);position:relative}
+.frame.phone{width:390px;height:844px}
+.frame.half{height:560px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.scale{transform-origin:top left}
+
+/* ---- app shell ---- */
+.app{display:flex;height:100%}
+.rail{width:236px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--line);
+  padding:26px 16px 20px;display:flex;flex-direction:column;gap:26px}
+.wordmark{font-family:'Instrument Serif',Georgia,serif;font-size:26px;letter-spacing:.01em;padding:0 10px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.navitem{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:7px;
+  color:var(--ink2);font-weight:500;font-size:14px}
+.navitem.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(47,40,35,.04),0 0 0 1px var(--line)}
+.navitem svg{flex-shrink:0}
+.navcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--ink3)}
+.navcount.alert{background:var(--red);color:#fff;border-radius:9px;padding:1px 6px}
+.railfoot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;background:var(--paper)}
+.h1{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.muted{color:var(--ink2)} .dim{color:var(--ink3)}
+.pane{padding:28px 40px;overflow:hidden;flex:1}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px}
+.col{width:100%;max-width:760px;margin:0 auto}
+
+/* ---- capture ---- */
+.stream{flex:1;overflow:hidden;padding:32px 40px 8px;display:flex;flex-direction:column;gap:20px}
+.dock{flex-shrink:0;padding:14px 40px 26px;position:relative}
+.inputwrap{position:relative;max-width:760px;margin:0 auto}
+.input{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:11px;box-shadow:0 1px 2px rgba(47,40,35,.05)}
+.input.focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blueWash)}
+.slash{width:26px;height:26px;border-radius:6px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.caret{display:inline-block;width:1.5px;height:18px;background:var(--blue);vertical-align:-3px;margin-left:1px}
+.hint{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--ink3)}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;color:var(--ink2);background:var(--surface)}
+.palette{position:absolute;left:0;right:0;bottom:70px;background:var(--surface);border:1px solid var(--line2);
+  border-radius:11px;box-shadow:0 12px 32px rgba(47,40,35,.13),0 2px 6px rgba(47,40,35,.06);overflow:hidden}
+.paletop{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line)}
+.cmd{display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.cmd:last-child{border-bottom:0}
+.cmd.on{background:var(--blueWash)}
+.cmdname{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:500;width:158px;flex-shrink:0}
+.palefoot{display:flex;gap:16px;padding:9px 14px;background:var(--hov);border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.turn{display:flex;flex-direction:column;gap:10px}
+.said{display:flex;justify-content:flex-end}
+.saidbox{background:var(--surface);border:1px solid var(--line);border-radius:10px 10px 3px 10px;
+  padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;max-width:560px}
+
+/* ---- card + fields ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.cardhead{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fields{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:1px;background:var(--line)}
+.fields.f2{grid-template-columns:repeat(2, minmax(0,1fr))}
+.fields.f4{grid-template-columns:repeat(4, minmax(0,1fr))}
+.field{background:var(--surface);padding:13px 16px;display:flex;flex-direction:column;gap:3px}
+.fval{font-size:14.5px;font-weight:500}
+.cardfoot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  border-top:1px solid var(--line);background:#fcfaf6;font-size:12px;color:var(--ink3)}
+
+/* ---- controls ---- */
+.btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;border-radius:8px;
+  border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:500;
+  font-family:inherit;cursor:default}
+.btn.sm{height:32px;padding:0 11px;font-size:12.5px}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.dan{background:var(--red);border-color:var(--red);color:#fff}
+.btn.full{width:100%;justify-content:center;height:44px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:23px;padding:0 9px;border-radius:20px;
+  font-size:11.5px;font-weight:500;border:1px solid transparent}
+.pill.pend{background:var(--amberWash);color:var(--amber);border-color:var(--amberLine)}
+.pill.done{background:var(--greenWash);color:var(--green);border-color:var(--greenLine)}
+.pill.wait{background:var(--blueWash);color:var(--blue);border-color:var(--blueLine)}
+.pill.err{background:var(--redWash);color:var(--red);border-color:var(--redLine)}
+.note{display:flex;gap:11px;padding:14px 16px;border-radius:10px;border:1px solid;font-size:13.5px;line-height:1.5}
+.note.info{background:var(--blueWash);border-color:var(--blueLine)}
+.note.warn{background:var(--amberWash);border-color:var(--amberLine);color:var(--amber)}
+.note.err{background:var(--redWash);border-color:var(--redLine);color:var(--red)}
+.note svg{flex-shrink:0;margin-top:1px}
+.tabs{display:flex;gap:6px}
+.tab{height:32px;padding:0 13px;border-radius:7px;display:flex;align-items:center;font-size:13px;
+  font-weight:500;color:var(--ink2);border:1px solid transparent}
+.tab.on{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.search{display:flex;align-items:center;gap:9px;height:36px;width:280px;padding:0 12px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:13.5px;color:var(--ink3)}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface)}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);padding:11px 16px;border-bottom:1px solid var(--line2);background:var(--hov)}
+.tbl td{padding:0 16px;height:52px;border-bottom:1px solid var(--hair);font-size:14px;vertical-align:middle}
+.tbl tr.hov td{background:var(--hov)}
+.typetag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+.dot{width:7px;height:7px;border-radius:2px;background:var(--amber);flex-shrink:0}
+.dot.blue{background:var(--blue)} .dot.green{background:var(--green)} .dot.red{background:var(--red)}
+.dot.ink{background:var(--ink3)}
+.skel{background:linear-gradient(90deg,#efe9de 25%,#f6f1e9 37%,#efe9de 63%);background-size:400% 100%;
+  animation:sh 1.4s ease infinite;border-radius:5px;height:11px}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.modalbg{position:absolute;inset:0;background:rgba(47,40,35,.34)}
+.modal{position:absolute;top:220px;left:50%;transform:translateX(-50%);width:460px;background:var(--surface);
+  border-radius:13px;box-shadow:0 24px 60px rgba(47,40,35,.28);overflow:hidden}
+.formrow{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.fieldlabel{font-size:12.5px;font-weight:500;color:var(--ink2)}
+.control{height:42px;display:flex;align-items:center;padding:0 13px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:14px}
+.control.area{height:auto;min-height:96px;align-items:flex-start;padding:11px 13px;line-height:1.6}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;width:fit-content}
+.seg div{height:40px;display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;color:var(--ink2)}
+.seg div.on{background:var(--blue);color:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--surface);font-size:12.5px;color:var(--ink2)}
+.chip.on{background:var(--blueWash);border-color:var(--blueLine);color:var(--blue);font-weight:500}
+.sheetpanel{position:absolute;top:0;right:0;bottom:0;width:420px;background:var(--surface);
+  border-left:1px solid var(--line2);box-shadow:-12px 0 32px rgba(47,40,35,.10);display:flex;flex-direction:column}
+.panelhead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+
+/* ---- 003 additions: see "Design system deltas" in 02-design.md ---- */
+.recur{display:flex;flex-direction:column;gap:10px}
+.recurgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{height:36px;border:1px solid var(--line2);border-radius:7px;background:var(--surface);
+  display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:500;color:var(--ink2)}
+.day.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.recursum{display:flex;align-items:center;gap:8px;padding:11px 14px;border-radius:9px;
+  background:var(--blueWash);border:1px solid var(--blueLine);color:var(--blue);font-size:13px}
+.toast{position:absolute;right:24px;bottom:24px;width:360px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:11px;box-shadow:0 14px 38px rgba(47,40,35,.18);overflow:hidden}
+.toasttop{display:flex;gap:11px;padding:14px 16px 12px}
+.toastmark{width:30px;height:30px;border-radius:8px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.toastacts{display:flex;gap:8px;padding:0 16px 14px}
+.bell{position:relative;width:34px;height:34px;border-radius:8px;border:1px solid var(--line2);
+  background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--ink2)}
+.bell .badge{position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;border-radius:9px;
+  background:var(--red);color:#fff;font-size:10.5px;font-weight:600;display:flex;align-items:center;
+  justify-content:center;padding:0 4px;border:2px solid var(--paper)}
+.ninbox{display:flex;flex-direction:column}
+.nrow{display:flex;gap:12px;padding:14px 20px;border-bottom:1px solid var(--hair)}
+.nrow.unread{background:var(--blueWash)}
+.ndot{width:7px;height:7px;border-radius:50%;background:var(--blue);margin-top:7px;flex-shrink:0}
+.ndot.read{background:transparent}
+.email{width:600px;background:#fff;border:1px solid var(--line2);border-radius:10px;overflow:hidden;
+  box-shadow:0 2px 10px rgba(47,40,35,.08)}
+.emailchrome{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--hov);
+  border-bottom:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.emailbody{padding:34px 40px 40px;background:var(--paper)}
+.emailcard{background:#fff;border:1px solid var(--line);border-radius:11px;padding:26px 28px}
+.emailfoot{padding:20px 40px 30px;font-size:11.5px;color:var(--ink3);line-height:1.6;background:var(--paper)}
+.qh{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--hair)}
+.tgl{width:40px;height:23px;border-radius:12px;background:var(--line2);position:relative;flex-shrink:0}
+.tgl.on{background:var(--blue)}
+.tgl i{position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.tgl.on i{left:19px}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="sheethead">
+  <h1 class="sheettitle">Reminders and Notifications</h1>
+  <p class="sheetsub">Epic 003. Slashit brings something back to your attention at the right moment, through a channel you chose, and never loses one it was asked to keep.</p>
+  <p class="sheetnote">Gate skipped. Drawn ahead of this epic's own Epic (stage 0) and PRD (stage 1), at the user's explicit direction on 2026-09-17, per process-docs/CLAUDE.md §2. Screens cite the V1 intake's numbered sections because no FR numbers exist yet — they are assigned when the PRD is written, and this sheet must be re-checked against them then. Nothing here is approved.</p>
+</div>
+<!-- ============ 1. Capture ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Capture</span>
+    <span class="boardwhat">/remind resolves date, time and recurrence, and confirms before anything is scheduled</span>
+    <span class="boardsrc">intake §21, §35</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav">
+          <div class="navitem on"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16M4 6h16M4 18h10"/></svg>Capture</div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>Records</div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>Reminders<span class="navcount alert">2</span></div>
+          <div class="navitem"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Settings</div>
+        </div>
+        <div class="railfoot"><div class="avatar">J</div><div style="min-width:0"><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <div class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">2</span></div>
+            <div class="btn sm">History</div>
+          </div></div>
+        <div class="stream">
+          <div class="turn">
+            <div class="said"><div class="saidbox">/remind Call Mom every Sunday at 7pm</div></div>
+            <div class="card">
+              <div class="cardhead"><span class="dot"></span><span style="font-weight:600;font-size:14.5px">Reminder created</span><span class="pill wait">Scheduled</span></div>
+              <div class="fields f4">
+                <div class="field"><span class="label">What</span><span class="fval">Call Mom</span></div>
+                <div class="field"><span class="label">Next</span><span class="fval">Sun 21 Sep, 7:00 PM</span></div>
+                <div class="field"><span class="label">Repeats</span><span class="fval">Weekly on Sunday</span></div>
+                <div class="field"><span class="label">Notify</span><span class="fval">In-app + email</span></div>
+              </div>
+              <div class="cardfoot"><span>Times shown in Asia/Kolkata · from <span class="mono">/remind Call Mom every Sunday at 7pm</span></span><span style="display:flex;gap:8px"><span class="btn sm">Edit</span><span class="btn sm">Undo</span></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="dock"><div class="inputwrap">
+          <div class="input focus"><div class="slash">/</div><span class="mono dim">Type a command<span class="caret"></span></span></div>
+          <div class="hint"><span><span class="kbd">/</span> commands</span><span><span class="kbd">↵</span> capture</span><span><span class="kbd">esc</span> clear</span></div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 2. Recurrence editor ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">RecurrenceEditor</span>
+    <span class="boardwhat">The one genuinely new control in this epic. Never blocks capture: it edits what the model already resolved</span>
+    <span class="boardsrc">intake §21</span></div>
+  <div class="row">
+    <div class="frame half" style="width:520px">
+      <div style="padding:26px 28px">
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Repeat</div>
+        <div class="dim" style="font-size:13px;margin-bottom:20px">Slashit read <span class="mono">every Sunday</span> from what you typed. Change it if that is wrong.</div>
+        <div class="recur">
+          <div class="seg" style="width:100%"><div>Once</div><div class="on">Weekly</div><div>Monthly</div><div>Yearly</div></div>
+          <div style="margin-top:6px"><div class="fieldlabel" style="margin-bottom:8px">On these days</div>
+            <div class="recurgrid">
+              <div class="day">M</div><div class="day">T</div><div class="day">W</div><div class="day">T</div><div class="day">F</div><div class="day">S</div><div class="day on">S</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">At</div><div class="control">7:00 PM</div></div>
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">Ends</div><div class="control">Never</div></div>
+          </div>
+          <div class="recursum" style="margin-top:4px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+            <span>Every Sunday at 7:00 PM. Next on <strong>Sun 21 Sep</strong>.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:22px;justify-content:flex-end"><div class="btn">Cancel</div><div class="btn pri">Save</div></div>
+      </div>
+    </div>
+    <div class="frame half" style="width:520px">
+      <div style="padding:26px 28px">
+        <div style="font-size:16px;font-weight:600;margin-bottom:4px">Repeat</div>
+        <div class="dim" style="font-size:13px;margin-bottom:20px">Monthly, with the day-of-month edge case named rather than silently shifted.</div>
+        <div class="recur">
+          <div class="seg" style="width:100%"><div>Once</div><div>Weekly</div><div class="on">Monthly</div><div>Yearly</div></div>
+          <div style="display:flex;gap:12px;margin-top:6px">
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">Day of month</div><div class="control">31</div></div>
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">At</div><div class="control">9:00 AM</div></div>
+          </div>
+          <div class="note warn" style="margin-top:14px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            <div>Not every month has a 31st. On those months this runs on the last day instead.</div>
+          </div>
+          <div class="recursum" style="margin-top:14px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v5h5"/></svg>
+            <span>Monthly on the 31st at 9:00 AM. Next on <strong>Fri 31 Oct</strong>.</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:9px;margin-top:22px;justify-content:flex-end"><div class="btn">Cancel</div><div class="btn pri">Save</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 3. In-app delivery ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">InAppDelivery</span>
+    <span class="boardwhat">A reminder arriving while the app is open. Actionable in place, never a dead-end banner</span>
+    <span class="boardsrc">intake §21</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav">
+          <div class="navitem on">Capture</div><div class="navitem">Records</div>
+          <div class="navitem">Reminders<span class="navcount alert">3</span></div><div class="navitem">Settings</div>
+        </div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div>
+          <div class="bell"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg><span class="badge">3</span></div></div>
+        <div class="stream">
+          <div class="turn"><div class="said"><div class="saidbox">/add-task Draft the Q4 plan</div></div>
+            <div class="card"><div class="cardhead"><span class="dot"></span><span style="font-weight:600;font-size:14.5px">Task created</span><span class="pill pend">Pending</span></div>
+              <div class="fields"><div class="field"><span class="label">Title</span><span class="fval">Draft the Q4 plan</span></div><div class="field"><span class="label">Due</span><span class="fval">—</span></div><div class="field"><span class="label">Status</span><span class="fval">Pending</span></div></div>
+            </div></div>
+        </div>
+        <div class="dock"><div class="inputwrap"><div class="input"><div class="slash">/</div><span class="mono dim">Type a command</span></div></div></div>
+      </div>
+    </div>
+    <div class="toast">
+      <div class="toasttop">
+        <div class="toastmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></div>
+        <div style="min-width:0">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber);margin-bottom:3px">Reminder · 7:00 PM</div>
+          <div style="font-weight:500;font-size:14.5px;margin-bottom:2px">Call Mom</div>
+          <div class="dim" style="font-size:12.5px">Repeats weekly on Sunday</div>
+        </div>
+      </div>
+      <div class="toastacts"><div class="btn sm pri">Done</div><div class="btn sm">Snooze 1h</div><div class="btn sm">Dismiss</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 4. Notification inbox ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">NotificationInbox</span>
+    <span class="boardwhat">Where a reminder goes when nobody was watching. Answers "what did I miss"</span>
+    <span class="boardsrc">intake §21</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail">
+        <div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem">Capture</div><div class="navitem">Records</div><div class="navitem on">Reminders<span class="navcount alert">3</span></div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div>
+      </div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Reminders</div>
+          <div style="display:flex;gap:10px;align-items:center"><div class="tabs"><div class="tab on">Unread</div><div class="tab">All</div><div class="tab">Scheduled</div></div><div class="btn sm">Mark all read</div></div></div>
+        <div style="flex:1;overflow:hidden">
+          <div class="ninbox">
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Call Mom</div><div class="dim" style="font-size:12px">7:00 PM</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Delivered in-app and by email · repeats weekly</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Pay the electricity bill</div><div class="dim" style="font-size:12px">9:00 AM</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Delivered in-app and by email</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+            <div class="nrow unread"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500">Check passport renewal requirements</div><div class="dim" style="font-size:12px">Yesterday</div></div><div class="dim" style="font-size:12.5px;margin-top:2px"><span class="pill err" style="height:20px">Email failed</span> <span style="margin-left:6px">Retried 3 times · shown here instead</span></div></div></div>
+            <div class="nrow"><div class="ndot read"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="muted" style="font-weight:500">Gym at 7</div><div class="dim" style="font-size:12px">Mon</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Marked done</div></div></div>
+            <div class="nrow"><div class="ndot read"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="muted" style="font-weight:500">Submit the expense report</div><div class="dim" style="font-size:12px">Sun</div></div><div class="dim" style="font-size:12.5px;margin-top:2px">Snoozed to tomorrow 9:00 AM</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 5. Email ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">ReminderEmail</span>
+    <span class="boardwhat">First email Slashit ever sends by design. Establishes the email language 002's OTP mail also needs</span>
+    <span class="boardsrc">intake §21 · see 02-design.md §6</span></div>
+  <div class="row">
+    <div class="email">
+      <div class="emailchrome"><span style="font-weight:600;color:var(--ink2)">Slashit</span><span>&lt;reminders@slash.it&gt;</span><span style="margin-left:auto">to jordan@example.com</span></div>
+      <div class="emailbody">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:22px">
+          <div style="width:26px;height:26px;border-radius:7px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:center">
+            <svg viewBox="0 0 48 48" width="20" height="20"><path d="M31.5 6 L40 6 L18.5 42 L10 42 Z" fill="currentColor"/></svg></div>
+          <span class="mono" style="font-size:18px;font-weight:500">slash<span style="color:var(--amber)">.</span>it</span>
+        </div>
+        <div class="emailcard">
+          <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber);margin-bottom:10px">Reminder · Sunday 7:00 PM</div>
+          <div class="serif" style="font-size:27px;line-height:1.25;margin-bottom:10px">Call Mom</div>
+          <div class="muted" style="font-size:14px;margin-bottom:22px">Repeats weekly on Sunday. Next after this one: Sun 28 Sep.</div>
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:9px"><div style="background:var(--blue);color:#fff;border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Mark done</div></td>
+            <td style="padding-right:9px"><div style="background:#fff;border:1px solid var(--line2);border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Snooze 1 hour</div></td>
+            <td><div style="background:#fff;border:1px solid var(--line2);border-radius:8px;padding:11px 18px;font-size:14px;font-weight:500">Open in Slashit</div></td>
+          </tr></table>
+        </div>
+      </div>
+      <div class="emailfoot">You are getting this because you asked Slashit to remind you.<br>
+        <span style="color:var(--blue)">Turn off reminder emails</span> · <span style="color:var(--blue)">Notification settings</span></div>
+    </div>
+    <div style="width:420px">
+      <div class="note info" style="margin-bottom:14px"><div><strong>Why this is a design-system event.</strong> Email cannot use the app's tokens as CSS variables, has no dark mode worth trusting, and needs table layout for older clients. The values here are the same hex the tokens resolve to, inlined. That is the delta 02-design.md §6 records.</div></div>
+      <div class="note warn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>This unblocks 002.</strong> The OTP email template (T-1.13) is still unowned and has no design. It is the same language: mark, card, one action, one footer line. Drawn once here, used by both.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 6. Notification settings ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">NotificationSettings</span>
+    <span class="boardwhat">Per-channel control and quiet hours, added to the existing Settings screen</span>
+    <span class="boardsrc">intake §21 · extends 001 Settings</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem">Capture</div><div class="navitem">Records</div><div class="navitem">Reminders</div><div class="navitem on">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Settings</div></div>
+        <div class="pane"><div style="max-width:620px">
+          <div class="label" style="margin-bottom:14px">Notifications</div>
+          <div class="qh"><div><div style="font-weight:500">In-app</div><div class="dim" style="font-size:12.5px">Shown while Slashit is open, and kept in Reminders</div></div><div class="tgl on"><i></i></div></div>
+          <div class="qh"><div><div style="font-weight:500">Email</div><div class="dim" style="font-size:12.5px">Sent to jordan@example.com</div></div><div class="tgl on"><i></i></div></div>
+          <div class="qh"><div><div style="font-weight:500">Quiet hours</div><div class="dim" style="font-size:12.5px">Reminders due in this window arrive when it ends</div></div><div class="tgl on"><i></i></div></div>
+          <div style="display:flex;gap:12px;margin:16px 0 26px">
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">From</div><div class="control">10:00 PM</div></div>
+            <div style="flex:1"><div class="fieldlabel" style="margin-bottom:7px">Until</div><div class="control">7:00 AM</div></div>
+          </div>
+          <div class="note info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <div>With both channels off, reminders still appear in <strong>Reminders</strong>. Slashit never silently drops one it was asked to keep.</div></div>
+          <div class="label" style="margin:30px 0 14px">Timezone</div>
+          <div class="control" style="max-width:340px">Asia/Kolkata · detected</div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 7. States ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">States</span>
+    <span class="boardwhat">The five required states for the Reminders surface, plus the two failure modes unique to scheduled delivery</span>
+    <span class="boardsrc">process-docs/CLAUDE.md §6</span></div>
+  <div class="row">
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Empty</div>
+      <div class="center" style="padding:40px 0">
+        <div style="text-align:center"><div style="width:46px;height:46px;border-radius:50%;background:var(--amberWash);color:var(--amber);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></div>
+        <div class="serif" style="font-size:22px;margin-bottom:6px">Nothing to bring back yet</div>
+        <div class="dim" style="font-size:13px;max-width:290px;margin:0 auto">Try <span class="mono" style="color:var(--amber)">/remind Call Mom tomorrow at 7pm</span></div></div>
+      </div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Loading</div>
+      <div style="display:flex;flex-direction:column;gap:16px;padding:8px 0">
+        <div style="display:flex;gap:12px"><div class="skel" style="width:7px;height:7px;border-radius:50%"></div><div style="flex:1"><div class="skel" style="width:52%;margin-bottom:8px"></div><div class="skel" style="width:76%;height:9px"></div></div></div>
+        <div style="display:flex;gap:12px"><div class="skel" style="width:7px;height:7px;border-radius:50%"></div><div style="flex:1"><div class="skel" style="width:64%;margin-bottom:8px"></div><div class="skel" style="width:44%;height:9px"></div></div></div>
+        <div style="display:flex;gap:12px"><div class="skel" style="width:7px;height:7px;border-radius:50%"></div><div style="flex:1"><div class="skel" style="width:40%;margin-bottom:8px"></div><div class="skel" style="width:68%;height:9px"></div></div></div>
+      </div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Error · list could not load</div>
+      <div class="note err" style="margin-bottom:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div>Reminders could not be loaded. Scheduled ones are unaffected and will still arrive.</div></div>
+      <div class="btn sm">Try again</div>
+      <div class="label" style="margin:26px 0 12px">No permission</div>
+      <div class="dim" style="font-size:13px">Not reachable. Reminders are per-account and the route sits behind sign-in, so a signed-out user is redirected, never refused in place.</div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Delivery failed · the state 001 has no precedent for</div>
+      <div class="note warn" style="margin-bottom:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div><strong>One reminder could not be emailed.</strong> Slashit tried three times. It is in your list here so it is not lost.</div></div>
+      <div class="label" style="margin:22px 0 12px">Past due while the app was closed</div>
+      <div class="note info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><div>Two reminders came due while you were away. They are at the top, marked unread, not replayed as pop-ups.</div></div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ============ 8. Mobile ============ -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Mobile</span>
+    <span class="boardwhat">390 × 844. Reminders becomes a tab; delivery is a top sheet, not a corner toast</span>
+    <span class="boardsrc">001 §5 responsive rules</span></div>
+  <div class="row">
+    <div class="frame phone">
+      <div style="display:flex;flex-direction:column;height:100%">
+        <div style="height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 18px"><div class="h1">Reminders</div><div class="dim" style="font-size:12.5px">Mark all read</div></div>
+        <div style="padding:12px 0 0;flex:1;overflow:hidden">
+          <div style="padding:0 18px 10px"><div class="tabs"><div class="tab on">Unread</div><div class="tab">All</div><div class="tab">Scheduled</div></div></div>
+          <div class="nrow unread" style="padding:13px 18px"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500;font-size:14px">Call Mom</div><div class="dim" style="font-size:11.5px">7:00 PM</div></div><div class="dim" style="font-size:12px;margin-top:2px">Repeats weekly</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+          <div class="nrow unread" style="padding:13px 18px"><div class="ndot"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div style="font-weight:500;font-size:14px">Pay the electricity bill</div><div class="dim" style="font-size:11.5px">9:00 AM</div></div><div class="dim" style="font-size:12px;margin-top:2px">One-off</div><div style="display:flex;gap:7px;margin-top:9px"><div class="btn sm pri">Done</div><div class="btn sm">Snooze</div></div></div></div>
+          <div class="nrow" style="padding:13px 18px"><div class="ndot read"></div><div style="flex:1"><div style="display:flex;justify-content:space-between"><div class="muted" style="font-weight:500;font-size:14px">Gym at 7</div><div class="dim" style="font-size:11.5px">Mon</div></div><div class="dim" style="font-size:12px;margin-top:2px">Marked done</div></div></div>
+        </div>
+        <div style="height:62px;border-top:1px solid var(--line);background:var(--rail);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px">
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">≡</div>Capture</div>
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">▤</div>Records</div>
+          <div style="text-align:center;color:var(--ink);font-size:10.5px;font-weight:600;position:relative"><div style="height:20px">◔</div>Reminders<span style="position:absolute;top:-2px;right:2px;width:15px;height:15px;border-radius:8px;background:var(--red);color:#fff;font-size:9.5px;display:flex;align-items:center;justify-content:center">3</span></div>
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">⚙</div>Settings</div>
+        </div>
+      </div>
+    </div>
+    <div class="frame phone">
+      <div style="display:flex;flex-direction:column;height:100%;position:relative">
+        <div style="height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px"><div class="h1">Capture</div></div>
+        <div style="flex:1"></div>
+        <div style="position:absolute;top:10px;left:10px;right:10px;background:var(--surface);border:1px solid var(--line2);border-radius:13px;box-shadow:0 12px 30px rgba(47,40,35,.2);overflow:hidden">
+          <div class="toasttop"><div class="toastmark"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></div>
+            <div><div style="font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--amber);margin-bottom:3px">Reminder · 7:00 PM</div><div style="font-weight:500;font-size:14.5px">Call Mom</div><div class="dim" style="font-size:12px;margin-top:2px">Repeats weekly on Sunday</div></div></div>
+          <div class="toastacts"><div class="btn sm pri">Done</div><div class="btn sm">Snooze 1h</div><div class="btn sm">Dismiss</div></div>
+        </div>
+        <div style="height:62px;border-top:1px solid var(--line);background:var(--rail);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px">
+          <div style="text-align:center;color:var(--ink);font-size:10.5px;font-weight:600"><div style="height:20px">≡</div>Capture</div>
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">▤</div>Records</div>
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">◔</div>Reminders</div>
+          <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">⚙</div>Settings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

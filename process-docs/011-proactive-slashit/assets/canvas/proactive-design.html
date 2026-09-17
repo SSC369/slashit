@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proactive Slashit — Slashit design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+/* Slashit design system, light + dark.
+   Tokens and components taken unchanged from
+   001-capture-and-records-foundation/assets/canvas/ (Records.dc.html,
+   CommandPalette.dc.html, DarkTokens.dc.html) and
+   002-authentication/assets/canvas/. Nothing here is new; additions made by a
+   later epic are declared in that epic's own "Design system deltas" table and
+   appear below its own comment banner. */
+:root{
+  --paper:#faf8f4; --surface:#ffffff; --ink:#2f2823; --ink2:#6b625a; --ink3:#9c9389;
+  --line:#e7e0d5; --line2:#d6ccbc; --rail:#f5f1ea; --hov:#fbf8f3; --hair:#f2ece2;
+  --blue:#2f5ea8; --blueWash:#eef3fb; --blueLine:#d7e2f3;
+  --amber:#8a5a2b; --amberWash:#f8f1e6; --amberLine:#ecdcc6;
+  --red:#a83f36; --redWash:#fbf0ee; --redLine:#f0d7d3;
+  --green:#2f7a52; --greenWash:#edf6f1; --greenLine:#d3e7dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efeae1;color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-wrap:pretty}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+
+/* ---- sheet chrome (not part of the product: it frames the artboards) ---- */
+.sheet{max-width:1560px;margin:0 auto;padding:40px 24px 80px}
+.sheethead{padding:24px 4px 8px}
+.sheettitle{font-family:'Instrument Serif',Georgia,serif;font-size:40px;line-height:1.1;margin:0 0 8px}
+.sheetsub{color:var(--ink2);font-size:15px;max-width:760px;margin:0 0 4px}
+.sheetnote{color:var(--ink3);font-size:12.5px;max-width:760px;margin:10px 0 0}
+.board{margin:46px 0 0}
+.boardhead{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.boardname{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line2);border-radius:5px;padding:3px 8px}
+.boardwhat{color:var(--ink2);font-size:13.5px}
+.boardsrc{color:var(--ink3);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.frame{width:1440px;height:900px;overflow:hidden;background:var(--paper);border:1px solid var(--line2);
+  border-radius:10px;box-shadow:0 2px 10px rgba(47,40,35,.08);position:relative}
+.frame.phone{width:390px;height:844px}
+.frame.half{height:560px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.scale{transform-origin:top left}
+
+/* ---- app shell ---- */
+.app{display:flex;height:100%}
+.rail{width:236px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--line);
+  padding:26px 16px 20px;display:flex;flex-direction:column;gap:26px}
+.wordmark{font-family:'Instrument Serif',Georgia,serif;font-size:26px;letter-spacing:.01em;padding:0 10px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.navitem{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:7px;
+  color:var(--ink2);font-weight:500;font-size:14px}
+.navitem.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(47,40,35,.04),0 0 0 1px var(--line)}
+.navitem svg{flex-shrink:0}
+.navcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--ink3)}
+.navcount.alert{background:var(--red);color:#fff;border-radius:9px;padding:1px 6px}
+.railfoot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;background:var(--paper)}
+.h1{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.muted{color:var(--ink2)} .dim{color:var(--ink3)}
+.pane{padding:28px 40px;overflow:hidden;flex:1}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px}
+.col{width:100%;max-width:760px;margin:0 auto}
+
+/* ---- capture ---- */
+.stream{flex:1;overflow:hidden;padding:32px 40px 8px;display:flex;flex-direction:column;gap:20px}
+.dock{flex-shrink:0;padding:14px 40px 26px;position:relative}
+.inputwrap{position:relative;max-width:760px;margin:0 auto}
+.input{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:11px;box-shadow:0 1px 2px rgba(47,40,35,.05)}
+.input.focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blueWash)}
+.slash{width:26px;height:26px;border-radius:6px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.caret{display:inline-block;width:1.5px;height:18px;background:var(--blue);vertical-align:-3px;margin-left:1px}
+.hint{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--ink3)}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;color:var(--ink2);background:var(--surface)}
+.palette{position:absolute;left:0;right:0;bottom:70px;background:var(--surface);border:1px solid var(--line2);
+  border-radius:11px;box-shadow:0 12px 32px rgba(47,40,35,.13),0 2px 6px rgba(47,40,35,.06);overflow:hidden}
+.paletop{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line)}
+.cmd{display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.cmd:last-child{border-bottom:0}
+.cmd.on{background:var(--blueWash)}
+.cmdname{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:500;width:158px;flex-shrink:0}
+.palefoot{display:flex;gap:16px;padding:9px 14px;background:var(--hov);border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.turn{display:flex;flex-direction:column;gap:10px}
+.said{display:flex;justify-content:flex-end}
+.saidbox{background:var(--surface);border:1px solid var(--line);border-radius:10px 10px 3px 10px;
+  padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;max-width:560px}
+
+/* ---- card + fields ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.cardhead{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fields{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:1px;background:var(--line)}
+.fields.f2{grid-template-columns:repeat(2, minmax(0,1fr))}
+.fields.f4{grid-template-columns:repeat(4, minmax(0,1fr))}
+.field{background:var(--surface);padding:13px 16px;display:flex;flex-direction:column;gap:3px}
+.fval{font-size:14.5px;font-weight:500}
+.cardfoot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  border-top:1px solid var(--line);background:#fcfaf6;font-size:12px;color:var(--ink3)}
+
+/* ---- controls ---- */
+.btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;border-radius:8px;
+  border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:500;
+  font-family:inherit;cursor:default}
+.btn.sm{height:32px;padding:0 11px;font-size:12.5px}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.dan{background:var(--red);border-color:var(--red);color:#fff}
+.btn.full{width:100%;justify-content:center;height:44px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:23px;padding:0 9px;border-radius:20px;
+  font-size:11.5px;font-weight:500;border:1px solid transparent}
+.pill.pend{background:var(--amberWash);color:var(--amber);border-color:var(--amberLine)}
+.pill.done{background:var(--greenWash);color:var(--green);border-color:var(--greenLine)}
+.pill.wait{background:var(--blueWash);color:var(--blue);border-color:var(--blueLine)}
+.pill.err{background:var(--redWash);color:var(--red);border-color:var(--redLine)}
+.note{display:flex;gap:11px;padding:14px 16px;border-radius:10px;border:1px solid;font-size:13.5px;line-height:1.5}
+.note.info{background:var(--blueWash);border-color:var(--blueLine)}
+.note.warn{background:var(--amberWash);border-color:var(--amberLine);color:var(--amber)}
+.note.err{background:var(--redWash);border-color:var(--redLine);color:var(--red)}
+.note svg{flex-shrink:0;margin-top:1px}
+.tabs{display:flex;gap:6px}
+.tab{height:32px;padding:0 13px;border-radius:7px;display:flex;align-items:center;font-size:13px;
+  font-weight:500;color:var(--ink2);border:1px solid transparent}
+.tab.on{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.search{display:flex;align-items:center;gap:9px;height:36px;width:280px;padding:0 12px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:13.5px;color:var(--ink3)}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface)}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);padding:11px 16px;border-bottom:1px solid var(--line2);background:var(--hov)}
+.tbl td{padding:0 16px;height:52px;border-bottom:1px solid var(--hair);font-size:14px;vertical-align:middle}
+.tbl tr.hov td{background:var(--hov)}
+.typetag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+.dot{width:7px;height:7px;border-radius:2px;background:var(--amber);flex-shrink:0}
+.dot.blue{background:var(--blue)} .dot.green{background:var(--green)} .dot.red{background:var(--red)}
+.dot.ink{background:var(--ink3)}
+.skel{background:linear-gradient(90deg,#efe9de 25%,#f6f1e9 37%,#efe9de 63%);background-size:400% 100%;
+  animation:sh 1.4s ease infinite;border-radius:5px;height:11px}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.modalbg{position:absolute;inset:0;background:rgba(47,40,35,.34)}
+.modal{position:absolute;top:220px;left:50%;transform:translateX(-50%);width:460px;background:var(--surface);
+  border-radius:13px;box-shadow:0 24px 60px rgba(47,40,35,.28);overflow:hidden}
+.formrow{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.fieldlabel{font-size:12.5px;font-weight:500;color:var(--ink2)}
+.control{height:42px;display:flex;align-items:center;padding:0 13px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:14px}
+.control.area{height:auto;min-height:96px;align-items:flex-start;padding:11px 13px;line-height:1.6}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;width:fit-content}
+.seg div{height:40px;display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;color:var(--ink2)}
+.seg div.on{background:var(--blue);color:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--surface);font-size:12.5px;color:var(--ink2)}
+.chip.on{background:var(--blueWash);border-color:var(--blueLine);color:var(--blue);font-weight:500}
+.sheetpanel{position:absolute;top:0;right:0;bottom:0;width:420px;background:var(--surface);
+  border-left:1px solid var(--line2);box-shadow:-12px 0 32px rgba(47,40,35,.10);display:flex;flex-direction:column}
+.panelhead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+
+/* ---- 010 additions ---- */
+.sect{margin-bottom:26px}
+.secthead{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+.sectname{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.sectline{flex:1;height:1px;background:var(--line)}
+.item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--surface);
+  border:1px solid var(--line);border-radius:9px;margin-bottom:6px}
+.box{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--line2);flex-shrink:0}
+.box.done{background:var(--green);border-color:var(--green)}
+.tline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:var(--ink2);width:70px;flex-shrink:0;
+  font-variant-numeric:tabular-nums}
+.greet{font-family:'Instrument Serif',Georgia,serif;font-size:34px;line-height:1.15;margin-bottom:5px}
+.dash{display:grid;grid-template-columns:1.35fr 1fr;gap:20px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:17px 19px}
+.tilehead{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.big{font-family:'Instrument Serif',Georgia,serif;font-size:30px;line-height:1}
+.railgrp{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);
+  padding:0 10px;margin:14px 0 5px}
+.timeline{position:relative;padding-left:22px}
+.timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1px;background:var(--line2)}
+.tdot{position:absolute;left:1.5px;width:8px;height:8px;border-radius:50%;background:var(--line2);margin-top:14px}
+.tdot.now{background:var(--blue)}
+
+/* ---- 011 additions ---- */
+.sugg{display:flex;gap:13px;padding:15px 17px;background:var(--surface);border:1px solid var(--line2);
+  border-left:3px solid var(--amber);border-radius:4px 10px 10px 4px;margin-bottom:9px}
+.suggmark{width:28px;height:28px;border-radius:8px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.because{font-size:11.5px;color:var(--ink3);margin-top:7px;padding-top:7px;border-top:1px solid var(--hair)}
+.suggacts{display:flex;gap:7px;margin-top:11px}
+.freq{display:flex;flex-direction:column;gap:2px}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="sheethead">
+  <h1 class="sheettitle">Proactive Slashit</h1>
+  <p class="sheetsub">Epic 011. Slashit speaking first. Every suggestion shows its reasoning, needs a click, and can be turned off for good.</p>
+  <p class="sheetnote">Gate skipped. Drawn ahead of this epic's own Epic (stage 0) and PRD (stage 1), at the user's explicit direction on 2026-09-17, per process-docs/CLAUDE.md §2. Screens cite the V1 intake's numbered sections because no FR numbers exist yet — they are assigned when the PRD is written, and this sheet must be re-checked against them then. Nothing here is approved.</p>
+</div>
+<div class="board">
+  <div class="boardhead"><span class="boardname">Suggestions</span><span class="boardwhat">Slashit speaking first. Every suggestion says why it is being made, and never acts on its own</span><span class="boardsrc">intake §31</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav"><div class="navitem on">Home</div><div class="navitem">Capture</div>
+        <div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem">Upcoming</div>
+        <div class="railgrp">Records</div><div class="navitem">All records</div><div class="navitem">Memories</div><div class="navitem">Goals</div></div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Home</div><div class="dim" style="font-size:13px">Wednesday, 17 September</div></div>
+      <div class="pane"><div style="max-width:760px">
+        <div class="greet" style="font-size:30px">Good evening, Jordan.</div>
+        <div class="dim" style="font-size:14px;margin-bottom:22px">Two tasks left, one event at 7.</div>
+        <div class="secthead" style="margin-bottom:11px"><span class="sectname">Slashit noticed</span><span class="sectline"></span><span class="dim" style="font-size:12px">3 · <span style="text-decoration:underline">turn these off</span></span></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px">Your insurance renews in 10 days and there is no task for it. Add one?</div>
+            <div class="because">Because you told me <span class="mono">Insurance renews 27 September</span> on 8 Sep, and nothing references it.</div>
+            <div class="suggacts"><span class="btn sm pri">Add the task</span><span class="btn sm">Not now</span><span class="btn sm">Never for renewals</span></div></div></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px"><strong>Build a REST API</strong> has been pending for 3 weeks. It is the last task under Backend Learning.</div>
+            <div class="because">Because the project is at 3 of 4 and this task has not moved since 27 Aug.</div>
+            <div class="suggacts"><span class="btn sm pri">Open it</span><span class="btn sm">Not now</span><span class="btn sm">Never for stale tasks</span></div></div></div>
+        <div class="sugg">
+          <div class="suggmark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:14.5px">Every task under <strong>Run a half marathon</strong> is done. Mark the goal achieved?</div>
+            <div class="because">Because 6 of 6 tasks are complete and the goal is still active.</div>
+            <div class="suggacts"><span class="btn sm pri">Mark achieved</span><span class="btn sm">Not now</span></div></div></div>
+        <div class="note info" style="margin-top:16px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>Slashit never creates, edits or deletes a record from a suggestion. Every one needs your click.</div></div>
+      </div></div>
+    </div></div></div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">Control</span><span class="boardwhat">The part that decides whether this epic is liked or hated. Off is a real option, and it is one click from every suggestion</span><span class="boardsrc">intake §31 · product doc, pillar on user control</span></div>
+  <div class="frame"><div class="app">
+    <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+      <div class="nav"><div class="navitem">Home</div><div class="navitem">Capture</div><div class="railgrp">Views</div><div class="navitem">Today</div><div class="navitem">Upcoming</div><div class="railgrp" style="margin-top:10px"></div><div class="navitem on">Settings</div></div>
+      <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div></div>
+    <div class="main">
+      <div class="topbar"><div class="h1">Settings</div></div>
+      <div class="pane"><div style="max-width:620px">
+        <div class="label" style="margin-bottom:6px">Suggestions</div>
+        <div class="dim" style="font-size:13px;margin-bottom:18px">Slashit can point things out on Home. It never changes anything on its own.</div>
+        <div class="qh" style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--hair)">
+          <div class="freq"><div style="font-weight:500">Show suggestions</div><div class="dim" style="font-size:12.5px">On Home only. Never as a pop-up, never by email</div></div>
+          <div style="width:40px;height:23px;border-radius:12px;background:var(--blue);position:relative"><i style="position:absolute;top:2px;left:19px;width:19px;height:19px;border-radius:50%;background:#fff;display:block"></i></div></div>
+        <div style="padding:16px 0 20px;border-bottom:1px solid var(--hair)">
+          <div class="fieldlabel" style="margin-bottom:9px">How many at once</div>
+          <div class="seg"><div>1</div><div class="on">3</div><div>5</div></div></div>
+        <div style="padding:18px 0">
+          <div class="fieldlabel" style="margin-bottom:11px">Kinds you have turned off</div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap"><span class="chip">Renewals <span style="color:var(--ink3)">×</span></span><span class="chip">Stale tasks <span style="color:var(--ink3)">×</span></span></div>
+          <div class="dim" style="font-size:12.5px;margin-top:11px">Turned off from a suggestion's "Never for…" button. Remove one here to start seeing that kind again.</div></div>
+        <div class="note info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div>With suggestions off, Slashit goes back to answering only when asked. Nothing else changes.</div></div>
+      </div></div>
+    </div></div></div>
+</div>
+
+<div class="board">
+  <div class="boardhead"><span class="boardname">States</span><span class="boardwhat">Five required states. "Nothing to suggest" must look deliberate, or the feature will invent filler to avoid looking broken</span><span class="boardsrc">process-docs/CLAUDE.md §6</span></div>
+  <div class="row">
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Empty · nothing worth saying</div>
+      <div style="padding:20px 0"><div class="secthead" style="margin-bottom:11px"><span class="sectname">Slashit noticed</span><span class="sectline"></span></div>
+        <div class="dim" style="font-size:13.5px">Nothing that needs your attention right now.</div></div>
+      <div class="note warn" style="margin-top:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <div>One line, no illustration. A section that must always be full will fill itself with noise.</div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Loading · never blocks Home</div>
+      <div class="skel" style="height:78px;margin-bottom:9px"></div><div class="skel" style="height:78px"></div>
+      <div class="dim" style="font-size:12.5px;margin-top:14px">Suggestions resolve after the rest of Home. They are the least important thing on the page and load like it.</div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Error · fails silently</div>
+      <div class="dim" style="font-size:13.5px;margin-bottom:14px">The section is not rendered at all. No error banner.</div>
+      <div class="note info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <div>This is the one place in Slashit where a failure is hidden. Nothing was asked for, so nothing is owed an explanation — and an error for an unrequested feature is pure noise.</div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Success · after acting</div>
+      <div class="note info" style="margin-bottom:16px;background:var(--greenWash);border-color:var(--greenLine);color:var(--green)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+        <div>Task added: <strong>Renew insurance</strong>, due 27 Sep. <span style="text-decoration:underline">Undo</span></div></div>
+      <div class="label" style="margin-bottom:10px">No permission</div>
+      <div class="dim" style="font-size:13px">Not reachable. Suggestions are computed per account behind sign-in, and are never shown for records the user cannot see.</div>
+    </div></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

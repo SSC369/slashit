@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Persistent Memory — Slashit design</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif&display=swap">
+<style>
+/* Slashit design system, light + dark.
+   Tokens and components taken unchanged from
+   001-capture-and-records-foundation/assets/canvas/ (Records.dc.html,
+   CommandPalette.dc.html, DarkTokens.dc.html) and
+   002-authentication/assets/canvas/. Nothing here is new; additions made by a
+   later epic are declared in that epic's own "Design system deltas" table and
+   appear below its own comment banner. */
+:root{
+  --paper:#faf8f4; --surface:#ffffff; --ink:#2f2823; --ink2:#6b625a; --ink3:#9c9389;
+  --line:#e7e0d5; --line2:#d6ccbc; --rail:#f5f1ea; --hov:#fbf8f3; --hair:#f2ece2;
+  --blue:#2f5ea8; --blueWash:#eef3fb; --blueLine:#d7e2f3;
+  --amber:#8a5a2b; --amberWash:#f8f1e6; --amberLine:#ecdcc6;
+  --red:#a83f36; --redWash:#fbf0ee; --redLine:#f0d7d3;
+  --green:#2f7a52; --greenWash:#edf6f1; --greenLine:#d3e7dd;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#efeae1;color:var(--ink);
+  font-family:'IBM Plex Sans',system-ui,-apple-system,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-wrap:pretty}
+.mono{font-family:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace}
+.serif{font-family:'Instrument Serif',Georgia,serif;font-weight:400}
+
+/* ---- sheet chrome (not part of the product: it frames the artboards) ---- */
+.sheet{max-width:1560px;margin:0 auto;padding:40px 24px 80px}
+.sheethead{padding:24px 4px 8px}
+.sheettitle{font-family:'Instrument Serif',Georgia,serif;font-size:40px;line-height:1.1;margin:0 0 8px}
+.sheetsub{color:var(--ink2);font-size:15px;max-width:760px;margin:0 0 4px}
+.sheetnote{color:var(--ink3);font-size:12.5px;max-width:760px;margin:10px 0 0}
+.board{margin:46px 0 0}
+.boardhead{display:flex;align-items:baseline;gap:12px;margin:0 0 12px;flex-wrap:wrap}
+.boardname{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;color:var(--ink);
+  background:var(--surface);border:1px solid var(--line2);border-radius:5px;padding:3px 8px}
+.boardwhat{color:var(--ink2);font-size:13.5px}
+.boardsrc{color:var(--ink3);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.frame{width:1440px;height:900px;overflow:hidden;background:var(--paper);border:1px solid var(--line2);
+  border-radius:10px;box-shadow:0 2px 10px rgba(47,40,35,.08);position:relative}
+.frame.phone{width:390px;height:844px}
+.frame.half{height:560px}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.scale{transform-origin:top left}
+
+/* ---- app shell ---- */
+.app{display:flex;height:100%}
+.rail{width:236px;flex-shrink:0;background:var(--rail);border-right:1px solid var(--line);
+  padding:26px 16px 20px;display:flex;flex-direction:column;gap:26px}
+.wordmark{font-family:'Instrument Serif',Georgia,serif;font-size:26px;letter-spacing:.01em;padding:0 10px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.navitem{display:flex;align-items:center;gap:10px;height:40px;padding:0 10px;border-radius:7px;
+  color:var(--ink2);font-weight:500;font-size:14px}
+.navitem.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 0 rgba(47,40,35,.04),0 0 0 1px var(--line)}
+.navitem svg{flex-shrink:0}
+.navcount{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--ink3)}
+.navcount.alert{background:var(--red);color:#fff;border-radius:9px;padding:1px 6px}
+.railfoot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-top:1px solid var(--line)}
+.avatar{width:28px;height:28px;border-radius:50%;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;flex-shrink:0;border-bottom:1px solid var(--line);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;background:var(--paper)}
+.h1{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.label{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.muted{color:var(--ink2)} .dim{color:var(--ink3)}
+.pane{padding:28px 40px;overflow:hidden;flex:1}
+.center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 40px}
+.col{width:100%;max-width:760px;margin:0 auto}
+
+/* ---- capture ---- */
+.stream{flex:1;overflow:hidden;padding:32px 40px 8px;display:flex;flex-direction:column;gap:20px}
+.dock{flex-shrink:0;padding:14px 40px 26px;position:relative}
+.inputwrap{position:relative;max-width:760px;margin:0 auto}
+.input{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:11px;box-shadow:0 1px 2px rgba(47,40,35,.05)}
+.input.focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blueWash)}
+.slash{width:26px;height:26px;border-radius:6px;background:var(--amberWash);color:var(--amber);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;flex-shrink:0}
+.caret{display:inline-block;width:1.5px;height:18px;background:var(--blue);vertical-align:-3px;margin-left:1px}
+.hint{display:flex;gap:16px;justify-content:center;margin-top:12px;font-size:12px;color:var(--ink3)}
+.kbd{font-family:'IBM Plex Mono',monospace;font-size:11px;border:1px solid var(--line2);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;color:var(--ink2);background:var(--surface)}
+.palette{position:absolute;left:0;right:0;bottom:70px;background:var(--surface);border:1px solid var(--line2);
+  border-radius:11px;box-shadow:0 12px 32px rgba(47,40,35,.13),0 2px 6px rgba(47,40,35,.06);overflow:hidden}
+.paletop{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;border-bottom:1px solid var(--line)}
+.cmd{display:flex;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid var(--hair)}
+.cmd:last-child{border-bottom:0}
+.cmd.on{background:var(--blueWash)}
+.cmdname{font-family:'IBM Plex Mono',monospace;font-size:13.5px;font-weight:500;width:158px;flex-shrink:0}
+.palefoot{display:flex;gap:16px;padding:9px 14px;background:var(--hov);border-top:1px solid var(--line);font-size:11.5px;color:var(--ink3)}
+.turn{display:flex;flex-direction:column;gap:10px}
+.said{display:flex;justify-content:flex-end}
+.saidbox{background:var(--surface);border:1px solid var(--line);border-radius:10px 10px 3px 10px;
+  padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:13.5px;max-width:560px}
+
+/* ---- card + fields ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.cardhead{display:flex;align-items:center;gap:9px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.fields{display:grid;grid-template-columns:repeat(3, minmax(0,1fr));gap:1px;background:var(--line)}
+.fields.f2{grid-template-columns:repeat(2, minmax(0,1fr))}
+.fields.f4{grid-template-columns:repeat(4, minmax(0,1fr))}
+.field{background:var(--surface);padding:13px 16px;display:flex;flex-direction:column;gap:3px}
+.fval{font-size:14.5px;font-weight:500}
+.cardfoot{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;
+  border-top:1px solid var(--line);background:#fcfaf6;font-size:12px;color:var(--ink3)}
+
+/* ---- controls ---- */
+.btn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 15px;border-radius:8px;
+  border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:13.5px;font-weight:500;
+  font-family:inherit;cursor:default}
+.btn.sm{height:32px;padding:0 11px;font-size:12.5px}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.dan{background:var(--red);border-color:var(--red);color:#fff}
+.btn.full{width:100%;justify-content:center;height:44px;font-size:14px}
+.pill{display:inline-flex;align-items:center;gap:6px;height:23px;padding:0 9px;border-radius:20px;
+  font-size:11.5px;font-weight:500;border:1px solid transparent}
+.pill.pend{background:var(--amberWash);color:var(--amber);border-color:var(--amberLine)}
+.pill.done{background:var(--greenWash);color:var(--green);border-color:var(--greenLine)}
+.pill.wait{background:var(--blueWash);color:var(--blue);border-color:var(--blueLine)}
+.pill.err{background:var(--redWash);color:var(--red);border-color:var(--redLine)}
+.note{display:flex;gap:11px;padding:14px 16px;border-radius:10px;border:1px solid;font-size:13.5px;line-height:1.5}
+.note.info{background:var(--blueWash);border-color:var(--blueLine)}
+.note.warn{background:var(--amberWash);border-color:var(--amberLine);color:var(--amber)}
+.note.err{background:var(--redWash);border-color:var(--redLine);color:var(--red)}
+.note svg{flex-shrink:0;margin-top:1px}
+.tabs{display:flex;gap:6px}
+.tab{height:32px;padding:0 13px;border-radius:7px;display:flex;align-items:center;font-size:13px;
+  font-weight:500;color:var(--ink2);border:1px solid transparent}
+.tab.on{background:var(--surface);color:var(--ink);border-color:var(--line2)}
+.search{display:flex;align-items:center;gap:9px;height:36px;width:280px;padding:0 12px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:13.5px;color:var(--ink3)}
+.tbl{width:100%;border-collapse:collapse;background:var(--surface)}
+.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--ink3);padding:11px 16px;border-bottom:1px solid var(--line2);background:var(--hov)}
+.tbl td{padding:0 16px;height:52px;border-bottom:1px solid var(--hair);font-size:14px;vertical-align:middle}
+.tbl tr.hov td{background:var(--hov)}
+.typetag{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink2)}
+.dot{width:7px;height:7px;border-radius:2px;background:var(--amber);flex-shrink:0}
+.dot.blue{background:var(--blue)} .dot.green{background:var(--green)} .dot.red{background:var(--red)}
+.dot.ink{background:var(--ink3)}
+.skel{background:linear-gradient(90deg,#efe9de 25%,#f6f1e9 37%,#efe9de 63%);background-size:400% 100%;
+  animation:sh 1.4s ease infinite;border-radius:5px;height:11px}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.modalbg{position:absolute;inset:0;background:rgba(47,40,35,.34)}
+.modal{position:absolute;top:220px;left:50%;transform:translateX(-50%);width:460px;background:var(--surface);
+  border-radius:13px;box-shadow:0 24px 60px rgba(47,40,35,.28);overflow:hidden}
+.formrow{display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
+.fieldlabel{font-size:12.5px;font-weight:500;color:var(--ink2)}
+.control{height:42px;display:flex;align-items:center;padding:0 13px;background:var(--surface);
+  border:1px solid var(--line2);border-radius:8px;font-size:14px}
+.control.area{height:auto;min-height:96px;align-items:flex-start;padding:11px 13px;line-height:1.6}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;width:fit-content}
+.seg div{height:40px;display:flex;align-items:center;padding:0 16px;font-size:13.5px;font-weight:500;color:var(--ink2)}
+.seg div.on{background:var(--blue);color:#fff}
+.chip{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 11px;border-radius:7px;
+  border:1px solid var(--line2);background:var(--surface);font-size:12.5px;color:var(--ink2)}
+.chip.on{background:var(--blueWash);border-color:var(--blueLine);color:var(--blue);font-weight:500}
+.sheetpanel{position:absolute;top:0;right:0;bottom:0;width:420px;background:var(--surface);
+  border-left:1px solid var(--line2);box-shadow:-12px 0 32px rgba(47,40,35,.10);display:flex;flex-direction:column}
+.panelhead{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+
+/* ---- 004 additions ---- */
+.answer{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--blue);
+  border-radius:4px 11px 11px 4px;padding:18px 20px}
+.answertext{font-size:15.5px;line-height:1.65;margin-bottom:14px}
+.cites{display:flex;flex-wrap:wrap;gap:7px;padding-top:13px;border-top:1px solid var(--hair)}
+.cite{display:inline-flex;align-items:center;gap:7px;height:27px;padding:0 10px;border-radius:7px;
+  background:var(--hov);border:1px solid var(--line);font-size:12px;color:var(--ink2)}
+.cite .k{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3)}
+.catgrid{display:flex;flex-direction:column;gap:22px}
+.cathead{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.catname{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink3)}
+.catline{flex:1;height:1px;background:var(--line)}
+.mem{display:flex;align-items:center;gap:12px;padding:12px 15px;background:var(--surface);
+  border:1px solid var(--line);border-radius:9px;margin-bottom:7px}
+.memtext{flex:1;font-size:14px}
+.forget{width:52px;height:52px;border-radius:50%;background:var(--redWash);color:var(--red);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+
+</style>
+</head>
+<body>
+<div class="sheet">
+<div class="sheethead">
+  <h1 class="sheettitle">Persistent Memory</h1>
+  <p class="sheetsub">Epic 004. The stated differentiator. Slashit retains what you tell it to, answers from it in sentences rather than rows, and lets you forget anything on demand.</p>
+  <p class="sheetnote">Gate skipped. Drawn ahead of this epic's own Epic (stage 0) and PRD (stage 1), at the user's explicit direction on 2026-09-17, per process-docs/CLAUDE.md §2. Screens cite the V1 intake's numbered sections because no FR numbers exist yet — they are assigned when the PRD is written, and this sheet must be re-checked against them then. Nothing here is approved.</p>
+</div>
+<!-- 1 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Capture</span>
+    <span class="boardwhat">/remember. Category is resolved by the model and shown as a correctable field, never asked for up front</span>
+    <span class="boardsrc">intake §16, §36</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem on">Capture</div><div class="navitem">Records</div><div class="navitem">Memories</div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div><div class="btn sm">History</div></div>
+        <div class="stream">
+          <div class="turn"><div class="said"><div class="saidbox">/remember My passport expires in 2030</div></div>
+            <div class="card"><div class="cardhead"><span class="dot blue"></span><span style="font-weight:600;font-size:14.5px">Memory saved</span></div>
+              <div class="fields f2"><div class="field"><span class="label">Memory</span><span class="fval">Passport expires in 2030</span></div><div class="field"><span class="label">Category</span><span class="fval">Life · Documents</span></div></div>
+              <div class="cardfoot"><span>Slashit chose the category. Change it any time.</span><span style="display:flex;gap:8px"><span class="btn sm">Edit</span><span class="btn sm">Undo</span></span></div></div></div>
+          <div class="turn"><div class="said"><div class="saidbox">/remember I prefer Emirates when flying</div></div>
+            <div class="card"><div class="cardhead"><span class="dot blue"></span><span style="font-weight:600;font-size:14.5px">Memory saved</span></div>
+              <div class="fields f2"><div class="field"><span class="label">Memory</span><span class="fval">Prefers Emirates when flying</span></div><div class="field"><span class="label">Category</span><span class="fval">Personal · Preference</span></div></div>
+              <div class="cardfoot"><span>Slashit chose the category. Change it any time.</span><span style="display:flex;gap:8px"><span class="btn sm">Edit</span><span class="btn sm">Undo</span></span></div></div></div>
+        </div>
+        <div class="dock"><div class="inputwrap"><div class="input focus"><div class="slash">/</div><span class="mono dim">Type a command<span class="caret"></span></span></div>
+          <div class="hint"><span><span class="kbd">/</span> commands</span><span><span class="kbd">↵</span> capture</span></div></div></div>
+      </div></div>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Recall</span>
+    <span class="boardwhat">The new idea in this epic: Slashit answering in a sentence, not returning a row. Every claim cites the memory behind it</span>
+    <span class="boardsrc">intake §17</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem on">Capture</div><div class="navitem">Records</div><div class="navitem">Memories</div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Capture</div><div class="btn sm">History</div></div>
+        <div class="stream">
+          <div class="turn"><div class="said"><div class="saidbox">/search What do you remember about my career?</div></div>
+            <div class="answer">
+              <div class="answertext">You told me you want to become a backend engineer, and that you are learning Spring Boot. You have a project called <strong>Backend Learning</strong> running against that goal.</div>
+              <div class="cites">
+                <span class="cite"><span class="k">Memory</span> Learning Spring Boot</span>
+                <span class="cite"><span class="k">Memory</span> Wants to become a backend engineer</span>
+                <span class="cite"><span class="k">Project</span> Backend Learning</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;padding-left:2px"><span class="btn sm">Show the records</span><span class="btn sm">That is wrong</span></div>
+          </div>
+        </div>
+        <div class="dock"><div class="inputwrap"><div class="input"><div class="slash">/</div><span class="mono dim">Type a command</span></div></div></div>
+      </div></div>
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Memories</span>
+    <span class="boardwhat">/memories. Grouped by category rather than a flat table, because a memory has no date worth sorting on</span>
+    <span class="boardsrc">intake §15, §16, §18</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem">Capture</div><div class="navitem">Records</div><div class="navitem on">Memories</div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div><div style="font-size:11.5px;color:var(--ink3)">jordan@example.com</div></div></div></div>
+      <div class="main">
+        <div class="topbar"><div class="h1">Memories</div>
+          <div style="display:flex;gap:10px;align-items:center"><div class="search">Search memories</div><div class="tabs"><div class="tab on">All</div><div class="tab">Personal</div><div class="tab">People</div><div class="tab">Professional</div><div class="tab">Life</div></div></div></div>
+        <div class="pane"><div class="catgrid">
+          <div><div class="cathead"><span class="catname">Personal</span><span class="catline"></span><span class="dim" style="font-size:12px">2</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Prefers Emirates when flying</span><span class="dim" style="font-size:12px">Preference</span><span class="btn sm">Edit</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Birthday is 4 March</span><span class="dim" style="font-size:12px">Important date</span><span class="btn sm">Edit</span></div></div>
+          <div><div class="cathead"><span class="catname">People</span><span class="catline"></span><span class="dim" style="font-size:12px">1</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Mom's birthday is 12 October</span><span class="dim" style="font-size:12px">Family</span><span class="btn sm">Edit</span></div></div>
+          <div><div class="cathead"><span class="catname">Professional</span><span class="catline"></span><span class="dim" style="font-size:12px">2</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Learning Spring Boot</span><span class="dim" style="font-size:12px">Skill</span><span class="btn sm">Edit</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Wants to become a backend engineer</span><span class="dim" style="font-size:12px">Career goal</span><span class="btn sm">Edit</span></div></div>
+          <div><div class="cathead"><span class="catname">Life</span><span class="catline"></span><span class="dim" style="font-size:12px">1</span></div>
+            <div class="mem"><span class="dot blue"></span><span class="memtext">Passport expires in 2030</span><span class="dim" style="font-size:12px">Documents</span><span class="btn sm">Edit</span></div></div>
+        </div></div>
+      </div></div>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Forget</span>
+    <span class="boardwhat">/forget is not delete. It quotes the memory back in full and says plainly what stops happening</span>
+    <span class="boardsrc">intake §18, §35</span></div>
+  <div class="frame">
+    <div class="app">
+      <div class="rail"><div class="wordmark">slash<span style="color:var(--amber)">.</span>it</div>
+        <div class="nav"><div class="navitem">Capture</div><div class="navitem">Records</div><div class="navitem on">Memories</div><div class="navitem">Settings</div></div>
+        <div class="railfoot"><div class="avatar">J</div><div><div style="font-size:13px;font-weight:500">jordan</div></div></div></div>
+      <div class="main"><div class="topbar"><div class="h1">Memories</div></div><div class="pane"></div></div>
+    </div>
+    <div class="modalbg"></div>
+    <div class="modal">
+      <div style="padding:26px 28px">
+        <div class="forget"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></div>
+        <div class="serif" style="font-size:24px;text-align:center;margin-bottom:8px">Forget this?</div>
+        <div style="background:var(--hov);border:1px solid var(--line);border-radius:9px;padding:13px 15px;margin-bottom:16px">
+          <div class="label" style="margin-bottom:4px">Professional · Skill</div>
+          <div style="font-size:14.5px">Learning Spring Boot</div>
+        </div>
+        <div class="note warn" style="margin-bottom:20px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          <div>Slashit will stop using this when it answers you. Records that mention it are not deleted.</div></div>
+        <div style="display:flex;gap:9px"><div class="btn" style="flex:1;justify-content:center">Keep it</div><div class="btn dan" style="flex:1;justify-content:center">Forget</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">States</span>
+    <span class="boardwhat">Five required states, plus the state unique to recall: nothing remembered on this topic</span>
+    <span class="boardsrc">process-docs/CLAUDE.md §6</span></div>
+  <div class="row">
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Empty</div>
+      <div style="text-align:center;padding:36px 0">
+        <div style="width:46px;height:46px;border-radius:50%;background:var(--blueWash);color:var(--blue);display:flex;align-items:center;justify-content:center;margin:0 auto 14px"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a4 4 0 0 0-4 4v1a4 4 0 0 0 0 8v1a4 4 0 0 0 8 0v-1a4 4 0 0 0 0-8V7a4 4 0 0 0-4-4z"/></svg></div>
+        <div class="serif" style="font-size:22px;margin-bottom:6px">Slashit remembers nothing yet</div>
+        <div class="dim" style="font-size:13px;max-width:300px;margin:0 auto">Try <span class="mono" style="color:var(--amber)">/remember My passport expires in 2030</span></div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Loading · recall in flight</div>
+      <div class="answer"><div style="display:flex;align-items:center;gap:10px;color:var(--blue);font-size:13.5px"><span style="width:13px;height:13px;border:2px solid var(--blueLine);border-top-color:var(--blue);border-radius:50%;display:inline-block"></span>Looking through what I remember&hellip;</div></div>
+      <div class="label" style="margin:26px 0 12px">Loading · list</div>
+      <div style="display:flex;flex-direction:column;gap:9px"><div class="skel" style="width:30%;height:9px"></div><div class="skel" style="height:40px"></div><div class="skel" style="height:40px"></div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Nothing remembered on this topic</div>
+      <div class="answer" style="border-left-color:var(--line2)">
+        <div class="answertext" style="color:var(--ink2)">I do not have anything recorded about your car.</div>
+        <div class="cites" style="border-top:0;padding-top:0"><span class="btn sm">Remember something now</span></div></div>
+      <div class="label" style="margin:22px 0 12px">Error</div>
+      <div class="note err"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div>Recall failed. Nothing was changed, and nothing was forgotten.</div></div>
+    </div></div>
+    <div class="frame half" style="width:470px"><div style="padding:20px">
+      <div class="label" style="margin-bottom:12px">Success · after forgetting</div>
+      <div class="note info" style="margin-bottom:20px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg><div>Forgotten. <span style="color:var(--blue)">Undo</span></div></div>
+      <div class="label" style="margin-bottom:12px">No permission</div>
+      <div class="dim" style="font-size:13px">Not reachable in V1. Memories are per-account and the route sits behind sign-in, so a signed-out user is redirected rather than refused in place. Same posture as 001's Records.</div>
+    </div></div>
+  </div>
+</div>
+
+<!-- 6 -->
+<div class="board">
+  <div class="boardhead"><span class="boardname">Mobile</span><span class="boardwhat">390 × 844. Category headers stay; rows lose the inline Edit and open on tap</span><span class="boardsrc">001 §5</span></div>
+  <div class="row">
+    <div class="frame phone"><div style="display:flex;flex-direction:column;height:100%">
+      <div style="height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px"><div class="h1">Memories</div></div>
+      <div style="padding:14px 18px;flex:1">
+        <div class="cathead"><span class="catname">Personal</span><span class="catline"></span></div>
+        <div class="mem" style="padding:11px 13px"><span class="dot blue"></span><span class="memtext" style="font-size:13.5px">Prefers Emirates when flying</span></div>
+        <div class="mem" style="padding:11px 13px"><span class="dot blue"></span><span class="memtext" style="font-size:13.5px">Birthday is 4 March</span></div>
+        <div class="cathead" style="margin-top:18px"><span class="catname">Professional</span><span class="catline"></span></div>
+        <div class="mem" style="padding:11px 13px"><span class="dot blue"></span><span class="memtext" style="font-size:13.5px">Learning Spring Boot</span></div>
+      </div>
+      <div style="height:62px;border-top:1px solid var(--line);background:var(--rail);display:flex;align-items:center;justify-content:space-around;padding-bottom:6px">
+        <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">≡</div>Capture</div>
+        <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">▤</div>Records</div>
+        <div style="text-align:center;color:var(--ink);font-size:10.5px;font-weight:600"><div style="height:20px">◇</div>Memories</div>
+        <div style="text-align:center;color:var(--ink3);font-size:10.5px"><div style="height:20px">⚙</div>Settings</div></div>
+    </div></div>
+    <div class="frame phone"><div style="display:flex;flex-direction:column;height:100%">
+      <div style="height:54px;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px"><div class="h1">Capture</div></div>
+      <div style="padding:14px 18px;flex:1">
+        <div class="said" style="margin-bottom:10px"><div class="saidbox" style="font-size:12.5px">/search career?</div></div>
+        <div class="answer" style="padding:15px 16px">
+          <div class="answertext" style="font-size:14.5px">You told me you want to become a backend engineer, and that you are learning Spring Boot.</div>
+          <div class="cites"><span class="cite"><span class="k">Memory</span> Spring Boot</span><span class="cite"><span class="k">Memory</span> Backend engineer</span></div>
+        </div>
+      </div>
+      <div style="height:62px;border-top:1px solid var(--line);background:var(--rail)"></div>
+    </div></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

@@ -41,19 +41,36 @@ Status values: `draft`, `in-review`, `approved`, `blocked`, `shipped`,
 
 ## Planned
 
-Confirmed in [V1 features](./product/v1-features.md), not yet opened.
+Confirmed in [V1 features](./product/v1-features.md). None has an approved epic
+or PRD. **Each has a stage-2 design drawn out of order** on 2026-09-17 at the
+user's direction, per [`CLAUDE.md`](./CLAUDE.md) §2 — a starting point for
+review, not an approved design, and not buildable. Stages 0 and 1 still have to
+be written and approved, and each design re-checked against them. None of these
+designs cites an FR, because no FRs exist yet; they cite the V1 intake's
+numbered sections instead.
 
-| # | Epic | Priority | Depends on |
-|---|---|---|---|
-| 003 | Reminders and Notifications | P0 | 001, 002 |
-| 004 | Persistent Memory | P0 | 001, 002 |
-| 005 | Personal Search and Context | P0 | 001, 002, 004 |
-| 006 | Expenses | P1 | 001, 002 |
-| 007 | Events | P1 | 001, 002 |
-| 008 | Goals and Projects | P1 | 001, 002, 005 |
-| 009 | Notes | P1 | 001, 002 |
-| 010 | Daily Control | P1 | 001, 002, 003, 006, 007, 008 |
-| 011 | Proactive Slashit | P2 | 005, 010 |
+| # | Epic | Priority | Depends on | Design drawn | New design work |
+|---|---|---|---|---|---|
+| [003](./003-reminders-and-notifications/) | Reminders and Notifications | P0 | 001, 002 | [draft](./003-reminders-and-notifications/02-design.md) | Recurrence editor, in-app delivery, notification inbox, **the email language 002 also needs** |
+| [004](./004-persistent-memory/) | Persistent Memory | P0 | 001, 002 | [draft](./004-persistent-memory/02-design.md) | **Prose answers with citations** — the first surface where Slashit speaks in sentences. Categories, forget-vs-delete |
+| [005](./005-personal-search-and-context/) | Personal Search and Context | P0 | 001, 002, 004 | [draft](./005-personal-search-and-context/02-design.md) | Cross-type results, **the relationship tree** — the first nested structure |
+| [006](./006-expenses/) | Expenses | P1 | 001, 002 | [draft](./006-expenses/02-design.md) | Summary aggregate, tabular numerals. Everything else reuses 001 |
+| [007](./007-events/) | Events | P1 | 001, 002 | [draft](./007-events/02-design.md) | Day grouping only. **Its Upcoming view collides with 010's** |
+| [008](./008-goals-and-projects/) | Goals and Projects | P1 | 001, 002, 005 | [draft](./008-goals-and-projects/02-design.md) | **First hierarchical record.** Derived progress, task-to-project linking |
+| [009](./009-notes/) | Notes | P1 | 001, 002 | [draft](./009-notes/02-design.md) | Reading column, text area, **the first unsaved-work guard** |
+| [010](./010-daily-control/) | Daily Control | P1 | 001, 002, 003, 006, 007, 008 | [draft](./010-daily-control/02-design.md) | Today, Upcoming, Home. **Changes 001's approved navigation and landing screen** |
+| [011](./011-proactive-slashit/) | Proactive Slashit | P2 | 005, 010 | [draft](./011-proactive-slashit/02-design.md) | Suggestion surface with because-lines, per-kind silencing |
+
+### What these designs surfaced, that the roadmap did not have
+
+| # | Finding | Who it lands on |
+|---|---|---|
+| 1 | **Email has no design language, and 002 already needs one.** T-1.13's OTP template is unowned and undesigned. 003's reminder email establishes the language; whichever ships first should own it, not invent a second style | 002 and 003 |
+| 2 | **010 reopens 001.** Three flat rail items become nine in two groups, and Capture stops being the landing screen. That needs a change record against 001's approved design under [`CLAUDE.md`](./CLAUDE.md) §7, and it contradicts 001's stated intent that the command bar is the front door | user, at 010's epic |
+| 3 | **007 and 010 draw the same Upcoming surface.** 010's is drawn as superseding 007's. Unresolved, it gets built twice | user, at 007's epic |
+| 4 | **004 and 005 overlap at `/search`.** A question routes to prose, a term routes to a list. Where the seam sits is an epic-stage decision, not a design one | user, at 004's epic |
+| 5 | **006 reuses semantic colour tokens as categorical ones.** Amber means "command" in 001, not "food". Either add a categorical ramp or accept the overlap deliberately | user, at design review |
+| 6 | **007's past-event dimming fails contrast as drawn** (62% opacity). Use a token, not opacity. A real defect in the drawing, recorded rather than quietly fixed | user, at design review |
 
 ## Shipped
 
