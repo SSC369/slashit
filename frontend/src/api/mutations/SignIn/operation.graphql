@@ -1,0 +1,23 @@
+mutation SignIn($input: SignInInput!) {
+  signIn(input: $input) {
+    __typename
+    ... on SignedIn {
+      accessToken
+      refreshToken
+      expiresIn
+    }
+    ... on InvalidCredentials {
+      message
+    }
+    ... on AccountLocked {
+      message
+      retryAfter
+    }
+    ... on AccountNotVerified {
+      message
+    }
+    ... on AuthProviderUnavailable {
+      message
+    }
+  }
+}

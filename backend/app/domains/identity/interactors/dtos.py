@@ -12,3 +12,9 @@ class GetSettingsInputDTO:
 class UpdateTimezoneInputDTO:
     user_id: UUID
     timezone: str
+
+
+@dataclass(frozen=True)
+class SignInInputDTO:
+    email: str
+    password: str

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import strawberry
 
-from app.domains.identity.interfaces.dtos import ProfileDTO, SettingsDTO
+from app.domains.identity.interfaces.dtos import AuthSessionDTO, ProfileDTO, SettingsDTO
 
 
 @strawberry.type
@@ -29,4 +29,22 @@ def profile_dto_to_type(*, profile: ProfileDTO, email: str) -> Me:
         email=email,
         username=profile.username,
         avatar_url=profile.avatar_url,
+    )
+
+
+@strawberry.type
+class SignedIn:
+    """Just enough for the client to call
+    ``supabaseClient.auth.setSession({access_token, refresh_token})``."""
+
+    access_token: str
+    refresh_token: str
+    expires_in: int
+
+
+def session_dto_to_type(*, session: AuthSessionDTO) -> SignedIn:
+    return SignedIn(
+        access_token=session.access_token,
+        refresh_token=session.refresh_token,
+        expires_in=session.expires_in,
     )

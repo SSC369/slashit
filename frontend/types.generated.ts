@@ -11,6 +11,22 @@ export type Scalars = {
   DateTime: { input: string; output: string; }
 };
 
+export type AccountLocked = {
+  __typename?: 'AccountLocked';
+  message: Scalars['String']['output'];
+  retryAfter?: Maybe<Scalars['DateTime']['output']>;
+};
+
+export type AccountNotVerified = {
+  __typename?: 'AccountNotVerified';
+  message: Scalars['String']['output'];
+};
+
+export type AuthProviderUnavailable = {
+  __typename?: 'AuthProviderUnavailable';
+  message: Scalars['String']['output'];
+};
+
 export type CaptureHistoryPage = {
   __typename?: 'CaptureHistoryPage';
   items: Array<CaptureTurn>;
@@ -36,6 +52,11 @@ export type CaptureTurnOutcome =
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'TASK_CREATED';
+
+export type InvalidCredentials = {
+  __typename?: 'InvalidCredentials';
+  message: Scalars['String']['output'];
+};
 
 export type InvalidTimezone = {
   __typename?: 'InvalidTimezone';
@@ -63,6 +84,7 @@ export type Mutation = {
   deleteTask: Scalars['Int']['output'];
   discardPendingCapture: Scalars['Boolean']['output'];
   recordsViewOpened: Scalars['Boolean']['output'];
+  signIn: SignInResult;
   submitCapture: CaptureResult;
   updateTask: UpdateTaskResult;
   updateTimezone: UpdateTimezoneResult;
@@ -87,6 +109,11 @@ export type MutationDeleteTaskArgs = {
 
 export type MutationDiscardPendingCaptureArgs = {
   pendingCaptureId: Scalars['ID']['input'];
+};
+
+
+export type MutationSignInArgs = {
+  input: SignInInput;
 };
 
 
@@ -187,6 +214,20 @@ export type Settings = {
 export type SharedQuotaExhausted = {
   __typename?: 'SharedQuotaExhausted';
   message: Scalars['String']['output'];
+};
+
+export type SignInInput = {
+  email: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+};
+
+export type SignInResult = AccountLocked | AccountNotVerified | AuthProviderUnavailable | InvalidCredentials | SignedIn;
+
+export type SignedIn = {
+  __typename?: 'SignedIn';
+  accessToken: Scalars['String']['output'];
+  expiresIn: Scalars['Int']['output'];
+  refreshToken: Scalars['String']['output'];
 };
 
 export type SortField =

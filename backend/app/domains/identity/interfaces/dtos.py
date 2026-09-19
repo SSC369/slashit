@@ -25,3 +25,20 @@ class ProfileDTO:
     # Not exposed through GraphQL's `Me` type, so a missing value never reaches
     # the client; kept honest here rather than backfilled with `now()`.
     created_at: datetime | None
+
+
+@dataclass(frozen=True)
+class AuthSessionDTO:
+    """A successful sign-in, straight from Supabase's token response."""
+
+    access_token: str
+    refresh_token: str
+    expires_in: int
+
+
+@dataclass(frozen=True)
+class AuthAttemptOutcomeDTO:
+    """Whether the subject is locked, and until when."""
+
+    locked: bool
+    locked_until: datetime | None

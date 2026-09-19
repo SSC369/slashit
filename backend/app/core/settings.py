@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     database_url: str
     supabase_url: str
     supabase_jwks_url: str
+    # The anon/publishable key, same one the frontend embeds. Not a secret:
+    # it authorises calls to Supabase's public Auth API, nothing more. Used
+    # by SupabaseAuthService for the server-side sign-in call (FR-17).
+    supabase_publishable_key: str
     db_pool_size: int = 5
     db_pool_max_overflow: int = 5
     # Supabase caches its JWKS for ten minutes. Caching longer than the issuer

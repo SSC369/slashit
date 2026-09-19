@@ -8,7 +8,7 @@ Supabase's ``auth`` schema).
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Text
+from sqlalchemy import DateTime, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -39,3 +39,24 @@ class Profile(Base):
     username: Mapped[str | None] = mapped_column(Text)
     avatar_url: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class AuthAttempt(Base):
+    """Rate-limit state for sign-in and signup (migration 0008_auth_attempts).
+
+    One row per (subject, kind). For ``sign_in``, ``subject`` is now an
+    email, not a user id: FR-17's lockout moved from a Supabase hook (which
+    only ran once Supabase had already resolved the user) into the app,
+    which knows the email before any lookup. ``signup`` rows are still
+    written by the ``hook_before_user_created`` hook directly in SQL, never
+    through this model.
+    """
+
+    __tablename__ = "auth_attempts"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    subject: Mapped[str] = mapped_column(Text)
+    kind: Mapped[str] = mapped_column(Text)
+    failed_count: Mapped[int] = mapped_column(Integer)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

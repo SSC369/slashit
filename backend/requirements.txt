@@ -48,3 +48,10 @@ langchain-google-genai==4.4.0
 # first real use. PsycopgConnector needs psycopg[pool] and croniter, both
 # pulled in as its own dependencies.
 procrastinate==3.9.0
+
+# --- Added by 002-authentication, slice 1, FR-17 moved into the app, 2026-09-19 ---
+
+# SignInInteractor calls Supabase's Auth REST API directly (the Password
+# Verification Attempt hook is Teams/Enterprise only). Already a transitive
+# dependency of fastapi's test client; now imported by application code too.
+httpx==0.28.1

@@ -2,32 +2,23 @@ import { CheckIcon, CircleAlertIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { Link, useNavigate } from "react-router";
 
+import useSignIn from "../../../../api/mutations/SignIn/useSignIn";
 import { supabaseClient } from "../../../../api/lib/supabaseClient";
 import Button from "../../../../design-system/components/Button";
 import AuthCard from "../../components/AuthCard";
 import * as Styles from "./styles";
 
-// Detects a signed-in-but-unverified account. `email_not_confirmed` is a
-// documented Supabase Auth error code (@supabase/auth-js error-codes.ts) and
-// is distinct from `invalid_credentials`, so this is a solid signal, not a
-// string match.
-const UNVERIFIED_ERROR_CODE = "email_not_confirmed";
-
-// Best-effort signal for the "Password Verification Attempt" hook's lockout
-// rejection (FR-17, `hook_password_verification_attempt` in
-// backend/app/migrations/versions/0009_auth_hooks.py). Supabase's
-// @supabase/auth-js error-codes.ts has no dedicated code for a rejected
-// Auth Hook, and that migration's own docstring flags its response shape as
-// UNVERIFIED against a live project (hook registration is manual task
-// T-1.4). Matching on the hook's own literal message text is the closest
-// available signal until it is checked against a real rejection; logged as
-// a deviation in 05-dev-log.md.
-const RATE_LIMIT_MESSAGE_SIGNAL = "Too many attempts";
-
 const SUCCESS_REDIRECT_DELAY_MS = 1200;
 const BLOCKED_REDIRECT_DELAY_MS = 1600;
 
-type ViewStateType = "FORM" | "LOADING" | "ERROR" | "BLOCKED" | "LIMITED" | "SUCCESS";
+type ViewStateType =
+  | "FORM"
+  | "LOADING"
+  | "ERROR"
+  | "BLOCKED"
+  | "LIMITED"
+  | "UNAVAILABLE"
+  | "SUCCESS";
 
 // Google's official four-colour "G" mark. Copied verbatim from
 // process-docs/002-authentication/assets/canvas/SignIn.dc.html per the
@@ -56,6 +47,7 @@ const GoogleGMark = (): ReactElement => (
 
 const SignInController = (): ReactElement => {
   const navigate = useNavigate();
+  const { triggerAPI: triggerSignIn } = useSignIn();
   const [viewState, setViewState] = useState<ViewStateType>("FORM");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -80,39 +72,41 @@ const SignInController = (): ReactElement => {
     });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     setViewState("LOADING");
 
-    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
-
-    const isSuccess = !error;
-    if (isSuccess) {
-      setViewState("SUCCESS");
-      redirectTimeoutRef.current = window.setTimeout(() => navigate("/"), SUCCESS_REDIRECT_DELAY_MS);
-      return;
-    }
-
-    const isUnverified = error.code === UNVERIFIED_ERROR_CODE;
-    if (isUnverified) {
-      setViewState("BLOCKED");
-      redirectTimeoutRef.current = window.setTimeout(
-        () => navigate(`/verify-email?email=${encodeURIComponent(email)}`),
-        BLOCKED_REDIRECT_DELAY_MS,
-      );
-      return;
-    }
-
-    const isRateLimited = error.message.includes(RATE_LIMIT_MESSAGE_SIGNAL);
-    if (isRateLimited) {
-      setViewState("LIMITED");
-      return;
-    }
-
-    // Wrong password and an unregistered email land here too, and render the
-    // same byte-identical copy either way (FR-11): there is only one branch
-    // that can produce this state, so the wording cannot diverge by cause.
-    setViewState("ERROR");
+    // FR-17's lockout is enforced by the backend (identity.SignInInteractor),
+    // not a Supabase Auth Hook: that hook is Teams/Enterprise only, confirmed
+    // against the live project 2026-09-19. This mutation is the sign-in path
+    // now; supabaseClient only receives the resulting session.
+    triggerSignIn({
+      email,
+      password,
+      onSignedIn: async (session) => {
+        await supabaseClient.auth.setSession({
+          access_token: session.accessToken,
+          refresh_token: session.refreshToken,
+        });
+        setViewState("SUCCESS");
+        redirectTimeoutRef.current = window.setTimeout(() => navigate("/"), SUCCESS_REDIRECT_DELAY_MS);
+      },
+      onAccountNotVerified: () => {
+        setViewState("BLOCKED");
+        redirectTimeoutRef.current = window.setTimeout(
+          () => navigate(`/verify-email?email=${encodeURIComponent(email)}`),
+          BLOCKED_REDIRECT_DELAY_MS,
+        );
+      },
+      onAccountLocked: () => setViewState("LIMITED"),
+      onProviderUnavailable: () => setViewState("UNAVAILABLE"),
+      // Wrong password and an unregistered email land here too, and render
+      // the same byte-identical copy either way (FR-11): there is only one
+      // branch that can produce this state, so the wording cannot diverge
+      // by cause.
+      onInvalidCredentials: () => setViewState("ERROR"),
+      onRequestFailed: () => setViewState("UNAVAILABLE"),
+    });
   };
 
   const isLoading = viewState === "LOADING";
@@ -156,6 +150,20 @@ const SignInController = (): ReactElement => {
           <div className={Styles.centerSubtextStyles}>
             This account is locked for 15 minutes after too many failed sign-ins.
           </div>
+        </div>
+      </AuthCard>
+    );
+  }
+
+  if (viewState === "UNAVAILABLE") {
+    return (
+      <AuthCard>
+        <div className={Styles.centerCardStyles}>
+          <div className={Styles.warnIconStyles}>
+            <CircleAlertIcon size={24} />
+          </div>
+          <div className={Styles.titleStyles}>Sign-in is temporarily unavailable</div>
+          <div className={Styles.centerSubtextStyles}>Try again in a moment.</div>
         </div>
       </AuthCard>
     );

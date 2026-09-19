@@ -47,12 +47,17 @@ from app.domains.identity.interactors.get_settings import GetSettingsInteractor
 from app.domains.identity.interactors.purge_unverified_accounts import (
     PurgeUnverifiedAccountsInteractor,
 )
+from app.domains.identity.interactors.sign_in import SignInInteractor
 from app.domains.identity.interactors.update_timezone import UpdateTimezoneInteractor
 from app.domains.identity.repositories.auth_account_repository import (
     SqlAuthAccountRepository,
 )
+from app.domains.identity.repositories.auth_attempt_repository import (
+    SqlAuthAttemptRepository,
+)
 from app.domains.identity.repositories.profile_repository import SqlProfileRepository
 from app.domains.identity.repositories.settings_repository import SqlSettingsRepository
+from app.domains.identity.services.supabase_auth_service import SupabaseAuthService
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
@@ -237,6 +242,17 @@ def build_get_settings_interactor(context: Context) -> GetSettingsInteractor:
 def build_update_timezone_interactor(context: Context) -> UpdateTimezoneInteractor:
     return UpdateTimezoneInteractor(
         settings_repository=SqlSettingsRepository(context.session)
+    )
+
+
+def build_sign_in_interactor(context: Context) -> SignInInteractor:
+    settings = get_settings()
+    return SignInInteractor(
+        auth_attempt_repository=SqlAuthAttemptRepository(context.session),
+        auth_provider=SupabaseAuthService(
+            base_url=settings.supabase_url,
+            publishable_key=settings.supabase_publishable_key,
+        ),
     )
 
 

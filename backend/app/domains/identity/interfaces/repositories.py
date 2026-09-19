@@ -2,7 +2,11 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domains.identity.interfaces.dtos import ProfileDTO, SettingsDTO
+from app.domains.identity.interfaces.dtos import (
+    AuthAttemptOutcomeDTO,
+    ProfileDTO,
+    SettingsDTO,
+)
 
 
 class SettingsRepository(Protocol):
@@ -24,3 +28,16 @@ class AuthAccountRepository(Protocol):
     """
 
     async def delete_unverified_created_before(self, *, cutoff: datetime) -> int: ...
+
+
+class AuthAttemptRepository(Protocol):
+    """FR-17's sign-in lockout, moved into the app (2026-09-19: the Password
+    Verification Attempt hook is Teams/Enterprise only)."""
+
+    async def is_locked(self, *, email: str) -> AuthAttemptOutcomeDTO:
+        """Read-only: the current lock state, no side effect."""
+        ...
+
+    async def record_attempt(self, *, email: str, valid: bool) -> AuthAttemptOutcomeDTO:
+        """Count one attempt and return the resulting lock state."""
+        ...
