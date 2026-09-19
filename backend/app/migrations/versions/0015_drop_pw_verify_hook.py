@@ -1,8 +1,16 @@
 """Drop hook_password_verification_attempt: unusable on this project's plan.
 
-Revision ID: 0015_drop_password_verification_hook
+Revision ID: 0015_drop_pw_verify_hook
 Revises: 0014_events
 Create Date: 2026-09-19
+
+Named short deliberately: Alembic's default `alembic_version.version_num` is
+`VARCHAR(32)`, and this migration's first attempt at a revision id
+(`0015_drop_password_verification_hook`, 36 characters) overran it. The
+`upgrade()` transaction rolled back cleanly when that write failed — Alembic
+wraps the DDL and the version-table update in one transaction — but it is
+the reason this id is short. Caught live, applying to the real project;
+worth checking future ids against this limit rather than by feel.
 
 User decision 2026-09-19: Supabase's Password Verification Attempt hook is
 Teams/Enterprise only (confirmed against the live dashboard, which shows only
@@ -26,7 +34,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0015_drop_password_verification_hook"
+revision: str = "0015_drop_pw_verify_hook"
 down_revision: str | None = "0014_events"
 branch_labels: Sequence[str] | None = None
 depends_on: Sequence[str] | None = None

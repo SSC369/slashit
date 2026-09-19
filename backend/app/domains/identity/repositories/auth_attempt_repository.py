@@ -8,7 +8,7 @@ connecting role itself, which owns the table, same reasoning as
 
 Ports the logic ``hook_password_verification_attempt`` used to run inside
 Postgres (migration 0009, dropped by 0015) into Python, keyed by email
-instead of user id. See ``0015_drop_password_verification_hook.py`` for why.
+instead of user id. See ``0015_drop_pw_verify_hook.py`` for why.
 """
 
 import uuid
