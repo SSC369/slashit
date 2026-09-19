@@ -6,7 +6,7 @@ stage: 4
 status: approved
 owner: user
 created: 2026-09-13
-updated: 2026-09-14
+updated: 2026-09-19
 approved_on: 2026-09-13
 supersedes: null
 split: true
@@ -30,6 +30,8 @@ of the process rules.
 | `pending_captures` | new | 1 |
 | `user_settings` | new | 2 |
 | `capture_turns` | new | 4 |
+| `tasks` | changed: `deleted_at` added, soft delete | metrics gap closure, 2026-09-19 |
+| `events` | new | metrics gap closure, 2026-09-19 |
 
 ## 1. Scope recap
 
@@ -202,17 +204,18 @@ The feature is done when every sub-plan is done and:
 - [x] The five cross-slice cases in section 8 pass. Checked 2026-09-14; see the Verified column above.
 - [x] All migrations applied, each table RLS-enabled with a policy. Four now, not three: `0006_capture_turns` (slice 4) added since this line was written.
 - [x] Implementation matches the approved design, or a change record explains why not. `RecordEditForm`'s due-date gap (04.2's own deferral) closed 2026-09-14, D-43.
-- [ ] **The metrics named in PRD §8 are instrumented. Not true — checked honestly 2026-09-14, not assumed:**
-  - Covered today, no new work: captures per active user per week and captures by command name (`tasks.created_at`/`user_id`/`original_input`); captures refused for a cap or outage (`ai_usage.outcome`, epic 000's table — `success`/`user_limit_reached`/`shared_quota_exhausted`/`provider_unavailable`/`provider_timeout`/`malformed_result`, all queryable by user and week).
-  - Partial: corrections within five minutes of creation. An edit is derivable from `tasks.updated_at` vs `created_at`; a deletion is not, since `deleteTask` hard-deletes with no audit trail.
-  - Not covered, buildable within this feature: sessions where the user typed without a command (FR-9). `submit_capture.py` deliberately writes no `capture_turns` row for `NonCommandGuidanceDTO`, reasoned in `00-epic.md`'s 2026-09-14 addendum as "nothing was attempted" — true for FR-44's history purpose, but it also means this metric has no data source at all right now. Weekly actives opening a records view has no view-event log anywhere in the app.
-  - Not covered, blocked outside this feature: week-four retention by signup cohort needs a signup date, which needs accounts — epic 002 (Authentication), not yet built.
-- [ ] `index.md` updated to `shipped`. Left as `in-review`: the metrics box above is genuinely open, not a formality, and rule 3 says not to mark something done that is not done. Say the word on how to treat the three real metric gaps (build the two buildable ones, drop them with a reason, or something else) and this closes.
+- [ ] **The metrics named in PRD §8 are instrumented. Five of seven true as of 2026-09-19, two blocked:**
+  - Covered, no new work: captures per active user per week and captures by command name (`tasks.created_at`/`user_id`/`original_input`); captures refused for a cap or outage (`ai_usage.outcome`, epic 000's table).
+  - **Closed 2026-09-19:** corrections within five minutes of creation. `deleteTask` no longer hard-deletes; it sets `tasks.deleted_at`, so a deletion is now derivable the same way an edit already was, from `updated_at`/`deleted_at` against `created_at`.
+  - **Closed 2026-09-19:** sessions where the user typed without a command (FR-9), and weekly actives opening a records view. Both write to a new `events` table (`app/domains/analytics/`): `submit_capture.py` logs `no_command_input` on the guidance branch, and a new `recordsViewOpened` mutation, called once when the records view mounts, logs `records_view_opened`.
+  - Still not covered, blocked outside this feature: week-four retention by signup cohort needs a signup date, which needs accounts — epic 002 (Authentication), not yet built.
+- [ ] `index.md` updated to `shipped`. Left as `in-review`: cohort retention is still genuinely open, blocked on epic 002, not a formality.
 
 ## Change log
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-19 | Two of the three real PRD §8 metric gaps closed. New table `events` (`app/domains/analytics/`, migration `0014_events`), logging `no_command_input` (FR-9, from `submit_capture.py`) and `records_view_opened` (a new `recordsViewOpened` mutation, called on the records view's mount). `tasks` gains `deleted_at` (migration `0013_tasks_soft_delete`); `deleteTask` now soft-deletes, every read path filters `deleted_at IS NULL`, closing the deletion half of the "corrections within five minutes" metric. This is new scope on an approved, locked plan, added directly rather than through a full re-review, on explicit user instruction: `backend/tests` (unit + touched integration), mypy strict, and ruff all pass; `frontend` build, lint and tests pass; `frontend/schema.graphql` regenerated from the live backend schema. Cohort retention (blocked on epic 002) is the one metric gap still open | User: "use soft delete dont hard delete any data record, proceed with the implementation" | user |
 | 2026-09-14 | §8's five cross-slice cases checked against reality and recorded, all pass (T-X.1/T-X.2 live in a browser, T-X.3 cross-referenced to four existing boundary tests plus the standing RLS sweep, T-X.4/T-X.5 cross-referenced to slice 3's dev log). §11's Definition of Done updated to match: migrations and cross-slice cases checked off; the metrics box audited honestly against PRD §8's seven named metrics — 3 already covered by existing tables (`tasks`, `ai_usage`), 1 partial (edits yes, deletes no audit trail), 3 not covered (2 buildable, 1 blocked on epic 002's accounts). Feature left `in-review`, not `shipped`, until the three real metric gaps are resolved one way or another | User asked to record the two open Definition-of-Done items | user |
 | 2026-09-14 | Slice 4 marked approved | User approved `04.4` | user |
 | 2026-09-14 | `Tables touched` section added at the top, per the new doc rule in `process-docs/CLAUDE.md` | User asked that any feature touching tables name them at the top of the doc | user |

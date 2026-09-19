@@ -12,6 +12,7 @@ class FakeTaskRepository:
 
     def __init__(self) -> None:
         self.tasks: dict[uuid.UUID, TaskDTO] = {}
+        self.deleted_ids: set[uuid.UUID] = set()
 
     async def create_task(
         self,
@@ -42,7 +43,9 @@ class FakeTaskRepository:
         return [
             task
             for task in self.tasks.values()
-            if task.user_id == user_id and task.status == "pending"
+            if task.user_id == user_id
+            and task.status == "pending"
+            and task.id not in self.deleted_ids
         ]
 
     async def list_for_user(
@@ -54,7 +57,11 @@ class FakeTaskRepository:
         sort_by: str,
         sort_desc: bool,
     ) -> list[TaskDTO]:
-        tasks = [task for task in self.tasks.values() if task.user_id == user_id]
+        tasks = [
+            task
+            for task in self.tasks.values()
+            if task.user_id == user_id and task.id not in self.deleted_ids
+        ]
         if search:
             tasks = [task for task in tasks if search.lower() in task.title.lower()]
 
@@ -69,7 +76,7 @@ class FakeTaskRepository:
         self, *, user_id: uuid.UUID, task_id: uuid.UUID
     ) -> TaskDTO | None:
         task = self.tasks.get(task_id)
-        if task is None or task.user_id != user_id:
+        if task is None or task.user_id != user_id or task_id in self.deleted_ids:
             return None
         return task
 
@@ -84,7 +91,7 @@ class FakeTaskRepository:
         due_at_provided: bool,
     ) -> TaskDTO | None:
         task = self.tasks.get(task_id)
-        if task is None or task.user_id != user_id:
+        if task is None or task.user_id != user_id or task_id in self.deleted_ids:
             return None
         now = datetime.now(UTC)
         new_due_at = due_at if due_at_provided else task.due_at
@@ -120,10 +127,17 @@ class FakeTaskRepository:
     async def delete_many(
         self, *, user_id: uuid.UUID, task_ids: list[uuid.UUID]
     ) -> int:
+        """Soft delete, same as SqlTaskRepository: rows stay in ``self.tasks``,
+        marked in ``self.deleted_ids``, so a test can still assert on what a
+        deleted task looked like if it needs to."""
         deleted = 0
         for task_id in task_ids:
             task = self.tasks.get(task_id)
-            if task is not None and task.user_id == user_id:
-                del self.tasks[task_id]
+            if (
+                task is not None
+                and task.user_id == user_id
+                and task_id not in self.deleted_ids
+            ):
+                self.deleted_ids.add(task_id)
                 deleted += 1
         return deleted

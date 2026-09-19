@@ -1,15 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { API_INITIAL, API_SUCCESS } from "../../../../constants/apiConstants";
 import { StoreProvider } from "../../../../stores/StoreProvider";
 import RecordsController from "./RecordsController";
 
-const { mockUseGetRecords } = vi.hoisted(() => ({ mockUseGetRecords: vi.fn() }));
+const { mockUseGetRecords, mockUseRecordsViewOpened } = vi.hoisted(() => ({
+  mockUseGetRecords: vi.fn(),
+  mockUseRecordsViewOpened: vi.fn(),
+}));
 
 vi.mock("../../../../api/queries/GetRecords/useGetRecords", () => ({
   default: () => mockUseGetRecords(),
+}));
+
+vi.mock("../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened", () => ({
+  default: () => mockUseRecordsViewOpened(),
 }));
 
 const renderWithProviders = () =>
@@ -22,6 +29,14 @@ const renderWithProviders = () =>
   );
 
 describe("RecordsController", () => {
+  beforeEach(() => {
+    mockUseRecordsViewOpened.mockReturnValue({
+      triggerAPI: vi.fn(),
+      apiStatus: API_INITIAL,
+      apiError: null,
+    });
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

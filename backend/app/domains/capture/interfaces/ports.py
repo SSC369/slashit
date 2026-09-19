@@ -39,3 +39,10 @@ class ExtractionPort(Protocol):
         schema: dict[str, Any],
         instruction: str,
     ) -> ExtractionResult: ...
+
+
+class AnalyticsPort(Protocol):
+    """What capture needs from analytics: log a no-command session. FR-9's
+    metric (PRD section 8) has no other data source."""
+
+    async def record_no_command_input(self, *, user_id: UUID) -> None: ...

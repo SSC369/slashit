@@ -12,7 +12,11 @@ import strawberry
 from strawberry.types import Info
 
 from app.core.context import Context
-from app.core.deps import build_delete_tasks_interactor, build_update_task_interactor
+from app.core.deps import (
+    build_delete_tasks_interactor,
+    build_log_records_view_opened_interactor,
+    build_update_task_interactor,
+)
 from app.domains.records.graphql.errors import NoFieldsToUpdate, RecordNotFound
 from app.domains.records.graphql.inputs import UpdateTaskInput
 from app.domains.records.graphql.types import TaskStatus
@@ -87,3 +91,13 @@ class RecordMutations:
                 user_id=user_id, task_ids=[UUID(str(task_id)) for task_id in ids]
             )
         )
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    async def records_view_opened(self, info: Info) -> bool:
+        """The frontend calls this once when the records view mounts. PRD
+        section 8's "weekly actives opening a records view" metric."""
+        context = cast(Context, info.context)
+        user_id = cast(UUID, context.user_id)
+        interactor = build_log_records_view_opened_interactor(context)
+        await interactor.log_records_view_opened(user_id=user_id)
+        return True

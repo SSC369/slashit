@@ -4,6 +4,7 @@ import { useNavigate } from "react-router";
 
 import useGetRecords from "../../../../api/queries/GetRecords/useGetRecords";
 import { useResponseHandler } from "../../../../api/queries/GetRecords/responseHandler";
+import useRecordsViewOpened from "../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened";
 import { API_SUCCESS } from "../../../../constants/apiConstants";
 import { cn } from "../../../../utils/cn";
 import { useStore } from "../../../../stores/StoreProvider";
@@ -18,8 +19,17 @@ const RecordsController = (): ReactElement => {
   const navigate = useNavigate();
   const { triggerAPI, data, apiStatus } = useGetRecords();
   const { handleResponse } = useResponseHandler();
+  const { triggerAPI: triggerRecordsViewOpened } = useRecordsViewOpened();
 
   const { kindFilter, searchText, sortField } = store.records;
+
+  useEffect(() => {
+    // PRD section 8's "weekly actives opening a records view" metric. Fired
+    // once per mount, not per filter change, so it reflects an open, not a
+    // refetch.
+    triggerRecordsViewOpened();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {

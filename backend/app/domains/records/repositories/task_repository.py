@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, delete, select, update
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -84,7 +84,11 @@ class SqlTaskRepository:
         async with user_transaction(self.session, user_id) as scoped:
             result = await scoped.scalars(
                 select(Task)
-                .where(Task.user_id == user_id, Task.status == "pending")
+                .where(
+                    Task.user_id == user_id,
+                    Task.status == "pending",
+                    Task.deleted_at.is_(None),
+                )
                 .order_by(Task.due_at.is_(None), Task.due_at.asc())
             )
             tasks = result.all()
@@ -104,7 +108,9 @@ class SqlTaskRepository:
         # stays a real parameter because a second record type will make it do
         # something without a signature change.
         now = datetime.now(UTC)
-        statement = select(Task).where(Task.user_id == user_id)
+        statement = select(Task).where(
+            Task.user_id == user_id, Task.deleted_at.is_(None)
+        )
         if search:
             statement = statement.where(Task.title.ilike(f"%{search}%"))
 
@@ -123,7 +129,7 @@ class SqlTaskRepository:
         now = datetime.now(UTC)
         async with user_transaction(self.session, user_id) as scoped:
             task = await scoped.get(Task, task_id)
-        if task is None or task.user_id != user_id:
+        if task is None or task.user_id != user_id or task.deleted_at is not None:
             return None
         return _task_to_dto(task=task, now=now)
 
@@ -149,11 +155,15 @@ class SqlTaskRepository:
         async with user_transaction(self.session, user_id) as scoped:
             await scoped.execute(
                 update(Task)
-                .where(Task.id == task_id, Task.user_id == user_id)
+                .where(
+                    Task.id == task_id,
+                    Task.user_id == user_id,
+                    Task.deleted_at.is_(None),
+                )
                 .values(**values)
             )
             task = await scoped.get(Task, task_id)
-        if task is None or task.user_id != user_id:
+        if task is None or task.user_id != user_id or task.deleted_at is not None:
             return None
         return _task_to_dto(task=task, now=now)
 
@@ -172,11 +182,23 @@ class SqlTaskRepository:
     async def delete_many(
         self, *, user_id: uuid.UUID, task_ids: list[uuid.UUID]
     ) -> int:
+        """Soft-delete: sets ``deleted_at`` rather than removing the row.
+
+        User decision 2026-09-19: no task is ever hard-deleted. Every read
+        path filters ``deleted_at IS NULL``, so a soft-deleted task behaves,
+        from every other method's point of view, as if it were gone.
+        """
         async with user_transaction(self.session, user_id) as scoped:
             result = cast(
                 CursorResult[Any],
                 await scoped.execute(
-                    delete(Task).where(Task.user_id == user_id, Task.id.in_(task_ids))
+                    update(Task)
+                    .where(
+                        Task.user_id == user_id,
+                        Task.id.in_(task_ids),
+                        Task.deleted_at.is_(None),
+                    )
+                    .values(deleted_at=datetime.now(UTC))
                 ),
             )
         return result.rowcount

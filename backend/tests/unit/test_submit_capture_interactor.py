@@ -26,6 +26,7 @@ from app.domains.gateway.errors import (
     UserLimitReachedError,
 )
 from app.domains.records.public import TaskDTO
+from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -39,22 +40,31 @@ def _interactor(
     FakeTaskPort,
     FakePendingCaptureRepository,
     FakeCaptureTurnRepository,
+    FakeAnalyticsPort,
 ]:
     task_port = FakeTaskPort()
     pending_capture_repository = FakePendingCaptureRepository()
     capture_turn_repository = FakeCaptureTurnRepository()
+    analytics = FakeAnalyticsPort()
     interactor = SubmitCaptureInteractor(
         pending_capture_repository=pending_capture_repository,
         capture_turn_repository=capture_turn_repository,
         task_port=task_port,
         extraction=extraction_port or FakeExtractionPort(result=extraction()),
+        analytics=analytics,
     )
-    return interactor, task_port, pending_capture_repository, capture_turn_repository
+    return (
+        interactor,
+        task_port,
+        pending_capture_repository,
+        capture_turn_repository,
+        analytics,
+    )
 
 
 async def test_empty_input_after_trimming_raises() -> None:
     """T-1.1."""
-    interactor, _, _, _ = _interactor()
+    interactor, _, _, _, _ = _interactor()
 
     with pytest.raises(ValueError):
         await interactor.submit_capture(user_id=uuid.uuid4(), raw_input="   ")
@@ -62,7 +72,7 @@ async def test_empty_input_after_trimming_raises() -> None:
 
 async def test_input_over_length_raises() -> None:
     """T-1.2: AD-4."""
-    interactor, _, _, _ = _interactor()
+    interactor, _, _, _, _ = _interactor()
 
     with pytest.raises(ValueError):
         await interactor.submit_capture(
@@ -80,6 +90,16 @@ async def test_non_command_input_returns_guidance_with_original_text() -> None:
 
     assert isinstance(result, NonCommandGuidanceDTO)
     assert result.original_input == "buy milk tomorrow"
+
+
+async def test_non_command_input_logs_the_fr9_metric_event() -> None:
+    """PRD section 8: sessions where the user typed without a command."""
+    interactor, _, _, _, analytics = _interactor()
+    user_id = uuid.uuid4()
+
+    await interactor.submit_capture(user_id=user_id, raw_input="buy milk tomorrow")
+
+    assert analytics.no_command_input_calls == [user_id]
 
 
 async def test_unknown_command_returns_unrecognised() -> None:
@@ -100,7 +120,9 @@ async def test_add_task_with_title_and_due_creates_a_task() -> None:
     extraction_port = FakeExtractionPort(
         result=extraction(title="Finish docs", due_at="2026-09-14T00:00:00+00:00")
     )
-    interactor, task_port, _, turn_repo = _interactor(extraction_port=extraction_port)
+    interactor, task_port, _, turn_repo, _ = _interactor(
+        extraction_port=extraction_port
+    )
 
     result = await interactor.submit_capture(
         user_id=uuid.uuid4(), raw_input="/add-task finish docs tomorrow"
@@ -119,7 +141,7 @@ async def test_add_task_with_title_and_due_creates_a_task() -> None:
 
 async def test_add_task_with_no_arguments_asks_for_a_title() -> None:
     """T-1.6 (title branch): FR-8. T-4.2."""
-    interactor, task_port, pending_repo, turn_repo = _interactor()
+    interactor, task_port, pending_repo, turn_repo, _ = _interactor()
 
     result = await interactor.submit_capture(
         user_id=uuid.uuid4(), raw_input="/add-task"
@@ -140,7 +162,7 @@ async def test_add_task_with_no_arguments_asks_for_a_title() -> None:
 async def test_add_task_missing_due_date_asks_for_it() -> None:
     """T-1.6: FR-8."""
     extraction_port = FakeExtractionPort(result=extraction(title="Buy milk"))
-    interactor, task_port, pending_repo, turn_repo = _interactor(
+    interactor, task_port, pending_repo, turn_repo, _ = _interactor(
         extraction_port=extraction_port
     )
 
@@ -158,7 +180,7 @@ async def test_add_task_missing_due_date_asks_for_it() -> None:
 
 async def test_tasks_lists_open_tasks_and_writes_no_turn() -> None:
     """T-1.9 (renumbered): FR-25. T-4.4: `/tasks` is a read, not a capture."""
-    interactor, task_port, _, turn_repo = _interactor()
+    interactor, task_port, _, turn_repo, _ = _interactor()
     user_id = uuid.uuid4()
     await task_port.create_task(
         user_id=user_id, title="Existing", due_at=None, original_input="/add-task x"
@@ -174,7 +196,7 @@ async def test_tasks_lists_open_tasks_and_writes_no_turn() -> None:
 
 async def test_non_command_and_unrecognised_command_write_no_turn() -> None:
     """T-4.4: guidance outcomes are not capture attempts."""
-    interactor, _, _, turn_repo = _interactor()
+    interactor, _, _, turn_repo, _ = _interactor()
 
     await interactor.submit_capture(user_id=uuid.uuid4(), raw_input="buy milk")
     await interactor.submit_capture(user_id=uuid.uuid4(), raw_input="/add-tsk x")
@@ -202,7 +224,9 @@ async def test_each_gateway_failure_passes_through_unmapped(
     T-4.3: each also writes one refused turn."""
     gql_error = raised.to_gql()  # type: ignore[attr-defined]
     extraction_port = FakeExtractionPort(result=gql_error)
-    interactor, task_port, _, turn_repo = _interactor(extraction_port=extraction_port)
+    interactor, task_port, _, turn_repo, _ = _interactor(
+        extraction_port=extraction_port
+    )
 
     result = await interactor.submit_capture(
         user_id=uuid.uuid4(), raw_input="/add-task finish docs tomorrow"

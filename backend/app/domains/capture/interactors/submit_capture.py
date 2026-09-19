@@ -31,7 +31,7 @@ from app.domains.capture.interfaces.dtos import (
     PendingCaptureDTO,
     UnrecognisedCommandDTO,
 )
-from app.domains.capture.interfaces.ports import ExtractionPort, TaskPort
+from app.domains.capture.interfaces.ports import AnalyticsPort, ExtractionPort, TaskPort
 from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
@@ -71,11 +71,13 @@ class SubmitCaptureInteractor:
         capture_turn_repository: CaptureTurnRepository,
         task_port: TaskPort,
         extraction: ExtractionPort,
+        analytics: AnalyticsPort,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
         self.task_port = task_port
         self.extraction = extraction
+        self.analytics = analytics
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
@@ -87,6 +89,7 @@ class SubmitCaptureInteractor:
         text = self._validate_and_normalise(raw_input=raw_input)
 
         if not text.startswith("/"):
+            await self._record_no_command_input(user_id=user_id)
             return NonCommandGuidanceDTO(original_input=text)
 
         command_name, argument_text = self._split_command(text=text)
@@ -219,6 +222,15 @@ class SubmitCaptureInteractor:
             question_text=question_text,
         )
         return pending_capture
+
+    async def _record_no_command_input(self, *, user_id: UUID) -> None:
+        """FR-9's metric (PRD section 8). Same non-blocking pattern as
+        _record_turn: an instrumentation write failure never turns a
+        successful guidance response into an error."""
+        try:
+            await self.analytics.record_no_command_input(user_id=user_id)
+        except Exception:
+            logger.exception("analytics.no_command_input_failed", user_id=str(user_id))
 
     async def _record_turn(
         self,

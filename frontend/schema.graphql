@@ -49,6 +49,7 @@ type Mutation {
   updateTask(id: ID!, input: UpdateTaskInput!): UpdateTaskResult!
   completeTask(id: ID!): UpdateTaskResult!
   deleteTask(ids: [ID!]!): Int!
+  recordsViewOpened: Boolean!
   updateTimezone(input: UpdateTimezoneInput!): UpdateTimezoneResult!
 }
 

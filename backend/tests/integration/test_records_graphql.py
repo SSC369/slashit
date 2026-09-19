@@ -253,7 +253,7 @@ async def test_complete_task_sets_status_done(
     assert body["data"]["completeTask"] == {"__typename": "Task", "status": "done"}
 
 
-async def test_delete_task_removes_the_row(
+async def test_delete_task_soft_deletes_the_row(
     client: AsyncClient,
     engine: AsyncEngine,
     signing_key: ec.EllipticCurvePrivateKey,
@@ -261,7 +261,9 @@ async def test_delete_task_removes_the_row(
     settings: Settings,
     two_users: tuple[uuid.UUID, uuid.UUID],
 ) -> None:
-    """FR-20."""
+    """FR-20. User decision 2026-09-19: no task is ever hard-deleted, so the
+    row survives with deleted_at set, and the records query no longer
+    returns it."""
     user_a, _user_b = two_users
     task_id = await _insert_task(engine, user_id=user_a)
     token = _token(signing_key, settings, user_id=user_a)
@@ -277,6 +279,48 @@ async def test_delete_task_removes_the_row(
     body = response.json()
 
     assert body["data"]["deleteTask"] == 1
+
+    async with engine.begin() as conn:
+        deleted_at = await conn.scalar(
+            text("SELECT deleted_at FROM tasks WHERE id = :id"), {"id": task_id}
+        )
+    assert deleted_at is not None, "the row should survive, marked deleted"
+
+    records_response = await client.post(
+        "/graphql",
+        json={"query": "{ records { id } }"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert records_response.json()["data"]["records"] == []
+
+
+async def test_records_view_opened_writes_one_event(
+    client: AsyncClient,
+    engine: AsyncEngine,
+    signing_key: ec.EllipticCurvePrivateKey,
+    patched_jwks: None,
+    settings: Settings,
+    two_users: tuple[uuid.UUID, uuid.UUID],
+) -> None:
+    """PRD section 8: weekly actives opening a records view."""
+    user_a, _user_b = two_users
+    token = _token(signing_key, settings, user_id=user_a)
+
+    response = await client.post(
+        "/graphql",
+        json={"query": "mutation { recordsViewOpened }"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    body = response.json()
+
+    assert body["data"]["recordsViewOpened"] is True
+
+    async with engine.begin() as conn:
+        event_type = await conn.scalar(
+            text("SELECT event_type FROM events WHERE user_id = :user_id"),
+            {"user_id": user_a},
+        )
+    assert event_type == "records_view_opened"
 
 
 async def test_user_a_cannot_read_user_bs_record(

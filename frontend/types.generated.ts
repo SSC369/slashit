@@ -62,6 +62,7 @@ export type Mutation = {
   completeTask: UpdateTaskResult;
   deleteTask: Scalars['Int']['output'];
   discardPendingCapture: Scalars['Boolean']['output'];
+  recordsViewOpened: Scalars['Boolean']['output'];
   submitCapture: CaptureResult;
   updateTask: UpdateTaskResult;
   updateTimezone: UpdateTimezoneResult;

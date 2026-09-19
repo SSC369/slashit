@@ -13,6 +13,11 @@ from app.core.auth import decode_email_claim, extract_bearer_token, verify_token
 from app.core.context import Context
 from app.core.errors import AuthenticationError
 from app.core.settings import Settings, get_settings
+from app.domains.analytics.interactors.record_event import RecordEventInteractor
+from app.domains.analytics.repositories.event_repository import SqlEventRepository
+from app.domains.capture.adapters.analytics_event_adapter import (
+    CaptureAnalyticsAdapter,
+)
 from app.domains.capture.adapters.gateway_extraction_adapter import (
     GatewayExtractionAdapter,
 )
@@ -48,9 +53,15 @@ from app.domains.identity.repositories.auth_account_repository import (
 )
 from app.domains.identity.repositories.profile_repository import SqlProfileRepository
 from app.domains.identity.repositories.settings_repository import SqlSettingsRepository
+from app.domains.records.adapters.analytics_event_adapter import (
+    RecordsAnalyticsAdapter,
+)
 from app.domains.records.interactors.delete_tasks import DeleteTasksInteractor
 from app.domains.records.interactors.get_record_detail import GetRecordDetailInteractor
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
+from app.domains.records.interactors.log_records_view_opened import (
+    LogRecordsViewOpenedInteractor,
+)
 from app.domains.records.interactors.update_task import UpdateTaskInteractor
 from app.domains.records.repositories.task_repository import SqlTaskRepository
 from app.domains.records.services.records_service import RecordsService
@@ -122,6 +133,24 @@ def _build_extraction_port(*, context: Context) -> GatewayExtractionAdapter:
     return GatewayExtractionAdapter(extract_interactor=extract_interactor)
 
 
+def _build_record_event_interactor(*, context: Context) -> RecordEventInteractor:
+    return RecordEventInteractor(
+        event_repository=SqlEventRepository(context.session)
+    )
+
+
+def _build_capture_analytics_port(*, context: Context) -> CaptureAnalyticsAdapter:
+    return CaptureAnalyticsAdapter(
+        record_event_interactor=_build_record_event_interactor(context=context)
+    )
+
+
+def _build_records_analytics_port(*, context: Context) -> RecordsAnalyticsAdapter:
+    return RecordsAnalyticsAdapter(
+        record_event_interactor=_build_record_event_interactor(context=context)
+    )
+
+
 def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor:
     """Wire capture's one use case.
 
@@ -135,6 +164,7 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
         capture_turn_repository=SqlCaptureTurnRepository(context.session),
         task_port=_build_task_port(context=context),
         extraction=_build_extraction_port(context=context),
+        analytics=_build_capture_analytics_port(context=context),
     )
 
 
@@ -188,6 +218,14 @@ def build_update_task_interactor(context: Context) -> UpdateTaskInteractor:
 
 def build_delete_tasks_interactor(context: Context) -> DeleteTasksInteractor:
     return DeleteTasksInteractor(task_repository=SqlTaskRepository(context.session))
+
+
+def build_log_records_view_opened_interactor(
+    context: Context,
+) -> LogRecordsViewOpenedInteractor:
+    return LogRecordsViewOpenedInteractor(
+        analytics=_build_records_analytics_port(context=context)
+    )
 
 
 def build_get_settings_interactor(context: Context) -> GetSettingsInteractor:

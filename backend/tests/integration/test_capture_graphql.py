@@ -11,6 +11,8 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy.sql import text
 
 from app.core import auth as auth_module
 from app.core.settings import Settings
@@ -81,12 +83,14 @@ async def test_tasks_command_lists_open_tasks(
 
 async def test_non_command_input_returns_guidance_end_to_end(
     client: AsyncClient,
+    engine: AsyncEngine,
     signing_key: ec.EllipticCurvePrivateKey,
     patched_jwks: None,
     settings: Settings,
     two_users: tuple[uuid.UUID, uuid.UUID],
 ) -> None:
-    """FR-9, also calls no vendor."""
+    """FR-9, also calls no vendor. Also writes the PRD section 8 metric event
+    for a session where the user typed without a command."""
     user_a, _user_b = two_users
     token = _token(signing_key, settings, user_id=user_a)
 
@@ -106,6 +110,13 @@ async def test_non_command_input_returns_guidance_end_to_end(
     assert response.status_code == 200, body
     assert body["data"]["submitCapture"]["__typename"] == "NonCommandGuidance"
     assert body["data"]["submitCapture"]["originalInput"] == "buy milk tomorrow"
+
+    async with engine.begin() as conn:
+        event_type = await conn.scalar(
+            text("SELECT event_type FROM events WHERE user_id = :user_id"),
+            {"user_id": user_a},
+        )
+    assert event_type == "no_command_input"
 
 
 async def test_submit_capture_refuses_without_a_token(client: AsyncClient) -> None:
