@@ -33,8 +33,13 @@ class SqlAuthAttemptRepository:
         self.session = session
 
     async def is_locked(self, *, email: str) -> AuthAttemptOutcomeDTO:
-        row = await self._get_row(email=email)
+        # Scoped even for a plain read: an unscoped execute() autobegins a
+        # transaction that is never closed, and the next session.begin() (in
+        # record_attempt, same request) then raises "A transaction is
+        # already begun on this Session." Found live, 2026-09-19.
         now = datetime.now(UTC)
+        async with self.session.begin():
+            row = await self._get_row(email=email)
         if row is None or row.locked_until is None or row.locked_until <= now:
             return _NOT_LOCKED
         return AuthAttemptOutcomeDTO(locked=True, locked_until=row.locked_until)
