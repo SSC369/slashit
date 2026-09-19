@@ -6,7 +6,7 @@ stage: 5
 status: draft
 owner: user
 created: 2026-09-12
-updated: 2026-09-13
+updated: 2026-09-19
 approved_on: null
 supersedes: null
 ---
@@ -341,6 +341,10 @@ already caps total spend at 250 USD (build plan §11.3), which is a ceiling, not
 an alert — nobody is told before it's hit. A billing budget alert at a much
 lower threshold, closer to expected spend, is the piece still missing.
 
+**Item 1 closed, 2026-09-19.** User set a Google Cloud budget alert at ₹100,
+well under Tier 1's 250 USD cap. The provider-side spend cap and billing alert
+line of section 11's definition of done is now met.
+
 ## Change log
 
 | Date | Change | Why | Approved by |
@@ -348,6 +352,7 @@ lower threshold, closer to expected spend, is the piece still missing.
 | 2026-09-13 | Slice 3 recorded. All ten tasks done, keyword-call/naming compliance fixed in `b7efa04`, spend cap and slice 1's CI/Docker gaps still unverified | Slice 3 development completed | — |
 | 2026-09-13 | D-12 opened: billing has come unlinked from the Gemini project, account back on free-tier limits (RPD 20 vs. the paid RPD 1,000 the build plan assumed). Blocks the spend cap confirmation | Found while confirming the spend cap and billing alert | user |
 | 2026-09-13 | D-12 closed: billing re-linked, real limits confirmed as RPM 1,000 / RPD 10,000 / TPM 2,000,000. The 2026-09-10 reading had RPM and RPD transposed. `03-build-plan.md` corrected: capacity tables rescaled 10x, a stray per-user cap of 50 fixed to 20, a stale `gemini-2.5-flash` reference fixed to `gemini-3.6-flash` | User reported updated rate limits | user |
+| 2026-09-19 | Billing budget alert set at ₹100 in the Google Cloud console. Section 11's spend-cap-and-alert item closed | User set the alert | user |
 
 ### The index's five cross-slice cases (section 8)
 
