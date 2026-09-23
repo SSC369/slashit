@@ -9,6 +9,7 @@ from functools import lru_cache
 from typing import Literal
 from urllib.parse import unquote, urlsplit
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _ASYNC_DRIVER_PREFIX = "postgresql+asyncpg://"
@@ -45,6 +46,19 @@ class Settings(BaseSettings):
     supabase_publishable_key: str
     db_pool_size: int = 5
     db_pool_max_overflow: int = 5
+    # --- Epic 003 slice 3: reminder email ---
+    # Kill switch, off by default (sub-plan 4.3 decision 2): no email leaves
+    # until a sending domain is verified. Off, every email delivery is written
+    # `skipped` and Resend is never called.
+    reminder_email_enabled: bool = False
+    # Empty is allowed only while email is off; the validator below refuses
+    # an enabled switch with no key rather than failing at the first send.
+    resend_api_key: str = ""
+    # "Slashit <reminders@your-domain>", on a domain verified in Resend (Q9).
+    reminder_email_from: str = ""
+    # Where the email's "Open in Slashit" link points.
+    app_base_url: str = "http://localhost:5173"
+
     # Supabase caches its JWKS for ten minutes. Caching longer than the issuer
     # does risks rejecting valid tokens signed with a freshly rotated key.
     jwks_cache_seconds: int = 600
@@ -55,6 +69,17 @@ class Settings(BaseSettings):
         extra="forbid",
         case_sensitive=False,
     )
+
+    @model_validator(mode="after")
+    def _require_email_credentials_when_enabled(self) -> "Settings":
+        """Email on with no key or sender stops the process at startup."""
+        if self.reminder_email_enabled and not (
+            self.resend_api_key and self.reminder_email_from
+        ):
+            raise ValueError(
+                "REMINDER_EMAIL_ENABLED needs RESEND_API_KEY and REMINDER_EMAIL_FROM"
+            )
+        return self
 
     @property
     def async_database_url(self) -> str:
@@ -76,7 +101,7 @@ class Settings(BaseSettings):
 
         **A secret added to ``Settings`` without being added here is a defect.**
         """
-        secrets = {self.gemini_api_key}
+        secrets = {self.gemini_api_key, self.resend_api_key}
 
         # A connection error renders the DSN, and the DSN carries the password.
         # Both encoded and decoded forms: the DSN carries one, an exception may

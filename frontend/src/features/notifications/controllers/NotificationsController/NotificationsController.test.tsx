@@ -133,6 +133,34 @@ describe("NotificationsController", () => {
     expect(screen.getByText("Nothing here yet")).toBeInTheDocument();
   });
 
+  it("TC-3.11: the email-paused notice is listed with its detail and no actions", () => {
+    const store = renderShell();
+    act(() => {
+      store.notifications.setPanelOpen(true);
+      store.notifications.setPage(
+        [
+          notification({
+            id: "n9",
+            kind: "EMAIL_PAUSED",
+            targetId: null,
+            title: "Email paused until tomorrow",
+            detail: "You reached 50 reminder emails today. Reminders keep landing here.",
+            showPopup: false,
+          }),
+        ],
+        null,
+      );
+    });
+
+    expect(screen.getByText("Email paused until tomorrow")).toBeInTheDocument();
+    expect(
+      screen.getByText("You reached 50 reminder emails today. Reminders keep landing here."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Done/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Snooze/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Open/ })).not.toBeInTheDocument();
+  });
+
   it("TC-2.17: a push adds the item, counts it, and pops up once", () => {
     mocks.listResult.apiStatus = API_SUCCESS;
     const store = renderShell();

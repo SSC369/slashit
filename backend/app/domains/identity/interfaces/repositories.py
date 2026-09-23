@@ -1,4 +1,5 @@
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, time
 from typing import Protocol
 from uuid import UUID
 
@@ -9,10 +10,28 @@ from app.domains.identity.interfaces.dtos import (
 )
 
 
+@dataclass(frozen=True)
+class ReminderSettingsWrite:
+    """The reminder settings a save writes, whole. The interactor carries
+    forward what the caller did not change."""
+
+    default_reminder_time: time
+    popups_enabled: bool
+    email_enabled: bool
+    channels_off_warned_at: datetime | None
+
+
 class SettingsRepository(Protocol):
     async def get_for_user(self, *, user_id: UUID) -> SettingsDTO | None: ...
 
     async def upsert(self, *, user_id: UUID, timezone: str) -> SettingsDTO: ...
+
+    async def save_reminder_settings(
+        self, *, user_id: UUID, write: ReminderSettingsWrite, timezone_if_new: str
+    ) -> SettingsDTO:
+        """Writes the reminder columns; creates the row, with
+        ``timezone_if_new``, if the user has none yet."""
+        ...
 
 
 class ProfileRepository(Protocol):
@@ -28,6 +47,11 @@ class AuthAccountRepository(Protocol):
     """
 
     async def delete_unverified_created_before(self, *, cutoff: datetime) -> int: ...
+
+    async def get_email(self, *, user_id: UUID) -> str | None:
+        """The account's address, for reminder email (epic 003 FR-14). Read
+        on the service-role connection by the email job only."""
+        ...
 
 
 class AuthAttemptRepository(Protocol):

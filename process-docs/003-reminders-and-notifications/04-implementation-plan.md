@@ -63,7 +63,7 @@ timezone moves and outages.
 |---|---|---|---|---|
 | 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, built 2026-09-23; live pass owed |
 | 2 | [04.2-fire-in-the-app.md](./04.2-fire-in-the-app.md) | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | approved, built 2026-09-23; live pass owed |
-| 3 | [04.3-email-and-settings.md](./04.3-email-and-settings.md) | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | drafted, in review |
+| 3 | [04.3-email-and-settings.md](./04.3-email-and-settings.md) | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | built; T-3.10 waits on a sending domain |
 | 4 | 04.4-timezone-and-hardening.md | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | not started |
 
 Slices 3 and 4 are independent of each other and can be built in either order.
@@ -113,7 +113,7 @@ ReminderService.list_for_records(*, user_id, search: str | None) -> list[Reminde
 ReminderSettingsDTO(timezone: str, default_reminder_time: time, popups_enabled: bool,
                     email_enabled: bool, channels_off_warned_at: datetime | None)
 IdentityService.get_reminder_settings(*, user_id) -> ReminderSettingsDTO
-IdentityService.get_account_email(*, user_id) -> str          # slice 3
+IdentityService.get_account_email(*, user_id) -> str | None   # slice 3
 
 # notifications/public.py — slice 2 creates, slice 3 adds email delivery
 NotificationService.publish(*, publish: PublishNotification) -> NotificationDTO | None  # None: already published
@@ -219,4 +219,5 @@ into the store, per `frontend/rules/repo-rules.md` §7.
 | 2026-09-23 | §4 brought in line with slice 1 as built: `ScheduleSpec.repeat_month_day`; `ReminderDTO.when_note` and the GraphQL `whenNote`; `create_reminder` also returns `ReminderNeedsWhen`; the GraphQL type adds `repeatMonthDay` and `updatedAt`, names its enum `ReminderRepeatKind` and types `origin` as `String`, as `Task` does | Found while building slice 1; each is logged in `05-dev-log.md` (D-1 to D-4) | user, with slice 1's commit | none: sub-plans 2 to 4 are not yet written |
 | 2026-09-23 | `reminders.snoozed_until` added to migration 0019 and the table list | User chose, before 04.2 was drafted, that snoozing a recurring reminder adds a one-off firing and leaves the series alone (FR-21 with FR-24) | user, with 04.2 | 4.2 only; 4.1 is built and unaffected |
 | 2026-09-23 | §4 `NotificationService` signatures and §5 migration `0020_procrastinate_schema` brought in line with slice 2 as built | Dev log D-19 and D-22 | pending user review | none: 4.3 and 4.4 are not yet written |
-| 2026-09-23 | Migration `0021_notification_time_zone` added to the table list and §5 | 04.3 decision 3: the email job reads the reminder's zone from the notification, since notifications may not call reminders | pending, with 04.3 | 4.3 only |
+| 2026-09-23 | Migration `0021_notification_time_zone` added to the table list and §5 | 04.3 decision 3: the email job reads the reminder's zone from the notification, since notifications may not call reminders | user, with 04.3 | 4.3 only |
+| 2026-09-23 | §4 `IdentityService.get_account_email` returns `str \| None` | Built with slice 3: an account may have no address, and 4.3 §8 plans for it. Dev log D-33 | pending user review | none: 4.3 is built to it; 4.4 does not use it |

@@ -102,6 +102,10 @@ describe("CommandCenterController /remind", () => {
 
     expect(screen.getByText("Reminder set")).toBeInTheDocument();
     expect(screen.getByText("No time given, so your default reminder time")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Change default time" })).toHaveAttribute(
+      "href",
+      "/settings",
+    );
     expect(store.toast.current?.message).toBe("Reminder set for Thu 15 Oct, 9:00 AM");
     expect(store.reminders.get("r1")).toEqual(reminder);
   });

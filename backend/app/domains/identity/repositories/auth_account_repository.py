@@ -12,6 +12,7 @@ depends on.
 
 from datetime import datetime
 from typing import Any, cast
+from uuid import UUID
 
 from sqlalchemy import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,3 +36,10 @@ class SqlAuthAccountRepository:
                 ),
             )
         return result.rowcount
+
+    async def get_email(self, *, user_id: UUID) -> str | None:
+        async with self.session.begin():
+            email = await self.session.scalar(
+                text("SELECT email FROM auth.users WHERE id = :id"), {"id": user_id}
+            )
+        return str(email) if email is not None else None

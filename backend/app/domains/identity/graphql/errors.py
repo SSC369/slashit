@@ -72,3 +72,19 @@ class AccountNotVerifiedError(DomainError):
 
     def __init__(self) -> None:
         super().__init__("Verify your email before signing in")
+
+
+@strawberry.type
+class InvalidReminderSettings:
+    """A setting the form must mark. `field` names it for the client."""
+
+    message: str
+    field: str
+
+
+class InvalidReminderSettingsError(DomainError):
+    gql_type = InvalidReminderSettings
+
+    def __init__(self, *, field: str, message: str) -> None:
+        self.field = field
+        super().__init__(message)

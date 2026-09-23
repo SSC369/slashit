@@ -19,17 +19,10 @@ from app.domains.notifications.services.live_signal import LiveSignal
 from app.domains.notifications.services.notification_service import (
     NotificationService,
 )
+from tests.fakes.fake_email import FakeDeliverySettings, FakeEmailQueue
 from tests.fakes.fake_notification_repository import FakeNotificationRepository
 
 NOW = datetime(2026, 9, 24, 13, 30, tzinfo=UTC)
-
-
-class FakeDeliverySettings:
-    def __init__(self, *, popups_enabled: bool) -> None:
-        self.enabled = popups_enabled
-
-    async def popups_enabled(self, *, user_id: uuid.UUID) -> bool:
-        return self.enabled
 
 
 def _publish(*, user_id: uuid.UUID, source_id: uuid.UUID) -> PublishNotification:
@@ -51,6 +44,8 @@ def _service(
     return NotificationService(
         notification_repository=repository,
         delivery_settings=FakeDeliverySettings(popups_enabled=popups_enabled),
+        email_queue=FakeEmailQueue(),
+        is_email_configured=False,
         now_provider=lambda: NOW,
     )
 

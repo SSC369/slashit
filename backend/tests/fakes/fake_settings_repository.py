@@ -10,6 +10,7 @@ from app.domains.identity.constants import (
     DEFAULT_REMINDER_TIME,
 )
 from app.domains.identity.interfaces.dtos import SettingsDTO
+from app.domains.identity.interfaces.repositories import ReminderSettingsWrite
 
 
 class FakeSettingsRepository:
@@ -37,6 +38,24 @@ class FakeSettingsRepository:
             channels_off_warned_at=existing.channels_off_warned_at
             if existing
             else None,
+            created_at=existing.created_at if existing is not None else now,
+            updated_at=now,
+        )
+        self.rows[user_id] = settings
+        return settings
+
+    async def save_reminder_settings(
+        self, *, user_id: UUID, write: ReminderSettingsWrite, timezone_if_new: str
+    ) -> SettingsDTO:
+        now = datetime.now(UTC)
+        existing = self.rows.get(user_id)
+        settings = SettingsDTO(
+            user_id=user_id,
+            timezone=existing.timezone if existing else timezone_if_new,
+            default_reminder_time=write.default_reminder_time,
+            popups_enabled=write.popups_enabled,
+            email_enabled=write.email_enabled,
+            channels_off_warned_at=write.channels_off_warned_at,
             created_at=existing.created_at if existing is not None else now,
             updated_at=now,
         )

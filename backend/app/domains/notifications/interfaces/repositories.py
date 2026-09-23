@@ -5,19 +5,62 @@ from typing import Protocol
 from uuid import UUID
 
 from app.domains.notifications.interfaces.dtos import (
+    DeliveryStatusValue,
+    EmailDeliveryDTO,
     NotificationActionValue,
     NotificationDTO,
     NotificationPageDTO,
+    PublishedNotification,
     PublishNotification,
 )
 
 
 class NotificationRepository(Protocol):
     async def insert_notification(
-        self, *, publish: PublishNotification, show_popup: bool, now: datetime
-    ) -> NotificationDTO | None:
-        """Insert the row and its pop-up delivery, and signal open apps, in one
-        transaction. None when a row for this ``source_id`` already exists."""
+        self,
+        *,
+        publish: PublishNotification,
+        show_popup: bool,
+        email_status: DeliveryStatusValue,
+        now: datetime,
+    ) -> PublishedNotification | None:
+        """Insert the row, its pop-up and email deliveries, and signal open
+        apps, in one transaction. None when a row for this ``source_id``
+        already exists."""
+        ...
+
+    async def get_email_status_for_source(
+        self, *, user_id: UUID, source_id: UUID
+    ) -> tuple[UUID, DeliveryStatusValue] | None:
+        """The email delivery of the notification published for a source."""
+        ...
+
+    async def count_emails_since(self, *, user_id: UUID, since: datetime) -> int:
+        """Email deliveries queued or sent for notifications created since."""
+        ...
+
+    async def has_email_paused_since(
+        self, *, user_id: UUID, since: datetime
+    ) -> bool: ...
+
+    async def get_email_delivery(self, *, delivery_id: UUID) -> EmailDeliveryDTO | None:
+        """By id alone, for the email job on the service-role connection."""
+        ...
+
+    async def mark_email_sent(
+        self,
+        *,
+        user_id: UUID,
+        delivery_id: UUID,
+        provider_message_id: str,
+        sent_at: datetime,
+    ) -> None: ...
+
+    async def record_email_failure(
+        self, *, user_id: UUID, delivery_id: UUID, is_final: bool
+    ) -> int:
+        """Counts one failed attempt, and marks the delivery failed when
+        ``is_final``. Returns the attempts made so far."""
         ...
 
     async def list_page(

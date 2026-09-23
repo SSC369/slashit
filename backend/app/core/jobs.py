@@ -31,5 +31,9 @@ procrastinate_app = App(
         conninfo=_settings.database_url,
         kwargs={"options": JOB_QUEUE_SEARCH_PATH},
     ),
-    import_paths=["app.domains.identity.jobs", "app.domains.reminders.jobs"],
+    import_paths=[
+        "app.domains.identity.jobs",
+        "app.domains.reminders.jobs",
+        "app.domains.notifications.jobs",
+    ],
 )

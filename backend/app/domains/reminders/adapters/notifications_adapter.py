@@ -22,6 +22,7 @@ class NotificationsAdapter:
                 detail=announcement.detail,
                 marker=announcement.lateness,
                 occurred_at=announcement.occurred_at,
+                time_zone=announcement.time_zone,
             )
         )
 

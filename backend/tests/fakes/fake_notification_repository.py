@@ -1,25 +1,48 @@
 """An in-memory NotificationRepository. Not a mock: it behaves."""
 
 import uuid
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from app.domains.notifications.interfaces.dtos import (
+    DeliveryStatusValue,
+    EmailDeliveryDTO,
     NotificationActionValue,
     NotificationDTO,
     NotificationPageDTO,
+    PublishedNotification,
     PublishNotification,
 )
+
+
+@dataclass
+class FakeEmailDelivery:
+    id: uuid.UUID
+    notification_id: uuid.UUID
+    status: DeliveryStatusValue
+    attempts: int = 0
+    provider_message_id: str | None = None
+    sent_at: datetime | None = None
 
 
 class FakeNotificationRepository:
     def __init__(self) -> None:
         self.rows: dict[uuid.UUID, NotificationDTO] = {}
+        self.emails: dict[uuid.UUID, FakeEmailDelivery] = {}
 
     async def insert_notification(
-        self, *, publish: PublishNotification, show_popup: bool, now: datetime
-    ) -> NotificationDTO | None:
-        if any(row.source_id == publish.source_id for row in self.rows.values()):
+        self,
+        *,
+        publish: PublishNotification,
+        show_popup: bool,
+        email_status: DeliveryStatusValue,
+        now: datetime,
+    ) -> PublishedNotification | None:
+        is_repeat = publish.kind == "reminder" and any(
+            row.kind == "reminder" and row.source_id == publish.source_id
+            for row in self.rows.values()
+        )
+        if is_repeat:
             return None
         notification = NotificationDTO(
             id=uuid.uuid4(),
@@ -31,6 +54,7 @@ class FakeNotificationRepository:
             detail=publish.detail,
             marker=publish.marker,
             occurred_at=publish.occurred_at,
+            time_zone=publish.time_zone,
             created_at=now,
             read_at=None,
             action=None,
@@ -38,7 +62,87 @@ class FakeNotificationRepository:
             show_popup=show_popup,
         )
         self.rows[notification.id] = notification
-        return notification
+        delivery = FakeEmailDelivery(
+            id=uuid.uuid4(), notification_id=notification.id, status=email_status
+        )
+        self.emails[delivery.id] = delivery
+        return PublishedNotification(
+            notification=notification,
+            email_delivery_id=delivery.id,
+            email_status=email_status,
+        )
+
+    async def get_email_status_for_source(
+        self, *, user_id: uuid.UUID, source_id: uuid.UUID
+    ) -> tuple[uuid.UUID, DeliveryStatusValue] | None:
+        for delivery in self.emails.values():
+            row = self.rows[delivery.notification_id]
+            if row.user_id == user_id and row.source_id == source_id:
+                return delivery.id, delivery.status
+        return None
+
+    async def count_emails_since(self, *, user_id: uuid.UUID, since: datetime) -> int:
+        return sum(
+            1
+            for delivery in self.emails.values()
+            if delivery.status in ("queued", "sent")
+            and self.rows[delivery.notification_id].user_id == user_id
+            and self.rows[delivery.notification_id].created_at >= since
+        )
+
+    async def has_email_paused_since(
+        self, *, user_id: uuid.UUID, since: datetime
+    ) -> bool:
+        return any(
+            row.user_id == user_id
+            and row.kind == "email_paused"
+            and row.created_at >= since
+            for row in self.rows.values()
+        )
+
+    async def get_email_delivery(
+        self, *, delivery_id: uuid.UUID
+    ) -> EmailDeliveryDTO | None:
+        delivery = self.emails.get(delivery_id)
+        if delivery is None:
+            return None
+        row = self.rows[delivery.notification_id]
+        return EmailDeliveryDTO(
+            delivery_id=delivery.id,
+            user_id=row.user_id,
+            status=delivery.status,
+            attempts=delivery.attempts,
+            title=row.title,
+            detail=row.detail,
+            marker=row.marker,
+            occurred_at=row.occurred_at,
+            time_zone=row.time_zone,
+            target_id=row.target_id,
+            notification_created_at=row.created_at,
+        )
+
+    async def mark_email_sent(
+        self,
+        *,
+        user_id: uuid.UUID,
+        delivery_id: uuid.UUID,
+        provider_message_id: str,
+        sent_at: datetime,
+    ) -> None:
+        delivery = self.emails[delivery_id]
+        delivery.status = "sent"
+        delivery.provider_message_id = provider_message_id
+        delivery.sent_at = sent_at
+        delivery.attempts += 1
+
+    async def record_email_failure(
+        self, *, user_id: uuid.UUID, delivery_id: uuid.UUID, is_final: bool
+    ) -> int:
+        delivery = self.emails[delivery_id]
+        delivery.attempts += 1
+        if is_final:
+            delivery.status = "failed"
+        return delivery.attempts
 
     async def list_page(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

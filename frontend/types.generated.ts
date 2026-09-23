@@ -70,6 +70,12 @@ export type InvalidReminder = {
   message: Scalars['String']['output'];
 };
 
+export type InvalidReminderSettings = {
+  __typename?: 'InvalidReminderSettings';
+  field: Scalars['String']['output'];
+  message: Scalars['String']['output'];
+};
+
 export type InvalidTimezone = {
   __typename?: 'InvalidTimezone';
   message: Scalars['String']['output'];
@@ -111,6 +117,7 @@ export type Mutation = {
   snoozeReminder: ReminderActionResult;
   submitCapture: CaptureResult;
   updateReminder: UpdateReminderResult;
+  updateReminderSettings: UpdateReminderSettingsResult;
   updateTask: UpdateTaskResult;
   updateTimezone: UpdateTimezoneResult;
 };
@@ -171,6 +178,11 @@ export type MutationSubmitCaptureArgs = {
 export type MutationUpdateReminderArgs = {
   id: Scalars['ID']['input'];
   input: UpdateReminderInput;
+};
+
+
+export type MutationUpdateReminderSettingsArgs = {
+  input: UpdateReminderSettingsInput;
 };
 
 
@@ -393,6 +405,12 @@ export type ReminderRepeatKind =
 
 export type ReminderResult = Reminder | ReminderNotFound;
 
+export type ReminderSettingsSaved = {
+  __typename?: 'ReminderSettingsSaved';
+  settings: Settings;
+  showBothOffWarning: Scalars['Boolean']['output'];
+};
+
 export type ReminderState =
   | 'DONE'
   | 'FIRED'
@@ -411,6 +429,8 @@ export type RemindersListed = {
 export type Settings = {
   __typename?: 'Settings';
   defaultReminderTime: Scalars['String']['output'];
+  emailEnabled: Scalars['Boolean']['output'];
+  popupsEnabled: Scalars['Boolean']['output'];
   timezone: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -491,6 +511,14 @@ export type UpdateReminderInput = {
 };
 
 export type UpdateReminderResult = InvalidReminder | Reminder | ReminderDeleted | ReminderNotFound | ReminderTimePassed;
+
+export type UpdateReminderSettingsInput = {
+  defaultReminderTime?: InputMaybe<Scalars['String']['input']>;
+  emailEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  popupsEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type UpdateReminderSettingsResult = InvalidReminderSettings | ReminderSettingsSaved;
 
 export type UpdateTaskInput = {
   dueAt?: InputMaybe<Scalars['DateTime']['input']>;

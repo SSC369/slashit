@@ -104,3 +104,4 @@ export const reminderListRowStyles =
 export const reminderListNameStyles = "truncate font-medium text-foreground";
 export const reminderListMetaStyles = "truncate text-foreground-secondary";
 export const quickAnswerRowStyles = "mt-3 flex flex-wrap gap-2";
+export const footLinkStyles = "text-accent hover:underline";

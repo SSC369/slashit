@@ -15,6 +15,7 @@ import strawberry
 NotificationKindValue = Literal["reminder", "email_paused"]
 MarkerValue = Literal["on_time", "late", "missed"]
 NotificationActionValue = Literal["done", "snoozed"]
+DeliveryStatusValue = Literal["queued", "sent", "failed", "skipped"]
 
 
 @dataclass(frozen=True)
@@ -27,12 +28,55 @@ class PublishNotification:
 
     user_id: UUID
     kind: NotificationKindValue
-    source_id: UUID
+    source_id: UUID | None
     target_id: UUID | None
     title: str
     detail: str
     marker: MarkerValue
     occurred_at: datetime
+    # The reminder's zone, for the email's set time (4.3 decision 3).
+    time_zone: str = "UTC"
+
+
+@dataclass(frozen=True)
+class DeliverySettings:
+    """What notifications needs to know about the user, in its own words."""
+
+    popups_enabled: bool
+    email_enabled: bool
+    timezone: str
+
+
+@dataclass(frozen=True)
+class PublishedNotification:
+    notification: "NotificationDTO"
+    # The email delivery written beside it, and whether it waits to be sent.
+    email_delivery_id: UUID
+    email_status: DeliveryStatusValue
+
+
+@dataclass(frozen=True)
+class EmailDeliveryDTO:
+    """One email delivery and the notification it carries, for the job."""
+
+    delivery_id: UUID
+    user_id: UUID
+    status: DeliveryStatusValue
+    attempts: int
+    title: str
+    detail: str
+    marker: MarkerValue
+    occurred_at: datetime
+    time_zone: str
+    target_id: UUID | None
+    notification_created_at: datetime
+
+
+@dataclass(frozen=True)
+class EmailContent:
+    subject: str
+    html: str
+    text: str
 
 
 @dataclass(frozen=True)
@@ -46,6 +90,7 @@ class NotificationDTO:
     detail: str
     marker: MarkerValue
     occurred_at: datetime
+    time_zone: str
     created_at: datetime
     read_at: datetime | None
     action: NotificationActionValue | None

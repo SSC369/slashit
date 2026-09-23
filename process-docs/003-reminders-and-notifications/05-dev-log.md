@@ -13,7 +13,7 @@ supersedes: null
 
 # Dev Log — Reminders and Notifications
 
-Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md) · [04.2](./04.2-fire-in-the-app.md)
+Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md) · [04.2](./04.2-fire-in-the-app.md) · [04.3](./04.3-email-and-settings.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -170,9 +170,75 @@ same missing Supabase project as T-1.14.
 | I-5 | `procrastinate --app=app.core.jobs.procrastinate_app worker` could not load the app | The console script does not put the working directory on `sys.path` | `python -m procrastinate` (D-20) |
 | I-6 | The snooze menu's items had names like "Tomorrow9:00 AM" to a screen reader | Two adjacent spans, no separator | `aria-label` "Tomorrow, 9:00 AM"; caught by a test |
 
+## Slice 3 — Email and settings
+
+Backend and frontend built 2026-09-23. Verified against a real local
+PostgreSQL 16, in unit, integration and component tests. Email ships switched
+off (decision 2): **no real email has been sent**. T-3.10 waits on a verified
+sending domain and a Resend key, and the browser pass waits on T-1.14's
+Supabase project.
+
+### Tasks
+
+| # | Task | Status | Note |
+|---|---|---|---|
+| T-3.1 | Migration 0021; settings variables | **done** | Downgrade to 0020 and upgrade to head run clean. Settings refuses email switched on without a key and a sender (D-35) |
+| T-3.2 | Identity: save settings, warning stamp, account email; `updateReminderSettings` | **done** | TC-3.6, TC-3.7 in `test_reminder_settings.py`; TC-3.9 in `test_reminder_email_and_settings.py` |
+| T-3.3 | `email_content.py` | **done** | TC-3.1: subject, time in the reminder's zone, the late line, link, footer, user text escaped |
+| T-3.4 | Email decision, cap and paused notice in `publish` | **done** | TC-3.2, TC-3.3, TC-3.4 in `test_reminder_email.py`. A firing with email disabled by configuration logs `notifications.email_disabled` (§8) |
+| T-3.5 | `resend_sender.py`, `email_queue.py`, `send_email` job | **done** | TC-3.5 unit; TC-3.8 integration: two fires, one queued delivery, sent once to the account's real `auth.users` address through a fake sender, then `skipped` on a repeat |
+| T-3.6 | Frontend Settings section and `Switch` | **done** | TC-3.10: loading, the saved values, spinner beside the control, failure flips back, both-off warning, a refused time |
+| T-3.7 | `email_paused` notice in the panel | **done** | TC-3.11: title, detail, no Done, Snooze or Open |
+| T-3.8 | Return to the link after sign-in | **done** | TC-3.12, email and Google. Logged against 002 (D-39) |
+| T-3.9 | "Change default time" link on the capture card | **done** | Asserted in the capture test; links to `/settings` (D-40) |
+| T-3.10 | Real send, once a domain and key exist | **waiting** | No sending domain or key exists (build plan Q9). Set `REMINDER_EMAIL_ENABLED`, `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, fire one reminder, and record the email here |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `pytest -m "not live"` against local PostgreSQL 16 | **260 passed**: 185 unit, 66 integration, 9 settings and logging |
+| `mypy app` (strict) | No issues in 221 source files. `mypy app tests` shows the 3 errors a clean `HEAD` shows, in files not touched |
+| `ruff check .` | Clean. `ruff format --check`: every changed file formatted; the same 6 old files are not |
+| `alembic downgrade 0020_procrastinate_schema` then `upgrade head` | Clean |
+| `tsc -b`, `oxlint`, `npm run build` | Clean; oxlint's one warning is still the old `StrictMode` import |
+| `vitest run` | **147 passed** (128 after slice 2) |
+| Real email | Not sent. See T-3.10 |
+| Browser pass | Not run. See T-1.14 |
+
+### Deviations
+
+| # | Deviation | Why | Consequence |
+|---|---|---|---|
+| D-32 | Names differ from 4.3 §6 and §7. The sender port is `EmailSenderPort`, which raises `EmailSendError`; a further `EmailQueuePort.enqueue_email` wraps the queue. Repository methods are `get_email_delivery`, `mark_email_sent`, `record_email_failure` and `get_email_status_for_source`, where §6 listed `get_delivery`, `mark_delivery_sent` and `record_delivery_attempt` | Each touches only the email delivery, so the name says email. The queue port lets `publish` be unit-tested without the job queue | 4.3 §6 and §7 are superseded by the code for these names |
+| D-33 | `IdentityService.get_account_email` returns `str \| None`; index §4 has `str`. `IdentityService` takes `auth_account_repository` as an optional collaborator | §8 plans for "No account email", which needs None. Only the email job needs the repository, so the other builders are unchanged | Index §4 is behind by `\| None`. The job marks the delivery `failed` and logs `no_address` |
+| D-34 | `PublishNotification.source_id` is optional and gains `time_zone`; `NotificationDTO` gains `time_zone`. `insert_notification` returns `PublishedNotification`: the notification, its email delivery id and status. The `email_paused` notice goes through the same insert, with no source, pop-up and email both `skipped` | One write path for every list row. The notice has no firing behind it, so no source; it must never email about email | `publish` still returns `NotificationDTO \| None`, so reminders is unchanged apart from passing the zone |
+| D-35 | Settings refuses to start when `REMINDER_EMAIL_ENABLED` is true and `RESEND_API_KEY` or `REMINDER_EMAIL_FROM` is empty. The key joins the log redactor's secrets | A missing key found at boot costs one restart. Found at send time, it costs five failed attempts per email | Not in 4.3; additive |
+| D-36 | The default time is a list of half-hour steps, plus the saved time when it falls between steps | The artboard draws a dropdown showing 9:00 AM and no step | > Assumption: half-hour steps. A time typed in capture is not limited to them |
+| D-37 | Copy not on the canvas: "Couldn't turn pop-ups off. They are still on. Try again.", "Couldn't change the default time. It is still 9:00 AM. Try again.", and "Sent to your account email, at most 50 a day" while the address has not loaded | `SettingsFailed` draws only the email line. The others follow its pattern | To review with the design |
+| D-38 | The both-off warning shows after the save that returns `showBothOffWarning`, and hides as soon as either switch is back on | FR-34 warns once, and the server stamps that once. A warning left up after a switch is back on would be false | Reloading the page does not show it again, by design |
+| D-39 | Return-to rides a `?next=` parameter on `/sign-in`. Only a path on this origin is honoured | Decision 1. Checking the path keeps the parameter from becoming an open redirect | Supabase's Redirect URLs must allow paths under the site URL (`/**`), or Google lands on the site root. Logged in 002's dev log |
+| D-40 | The capture card shows "Change default time" when `whenNote` is the server's default-time sentence | No field says which rule wrote the note (D-2), and adding one for a link was more than the link is worth | A change to that sentence in `schedule_planner.py` must change `DEFAULT_TIME_NOTE` in `ReminderCards.tsx` too |
+| D-41 | The `email_paused` notice uses the `MailX` icon | The artboard's icon was not matched glyph for glyph | Visual only |
+
+### Not done, and why
+
+- **T-3.10, the first real email.** No verified sending domain or Resend key exists. Everything up to the provider call is tested; the call itself is tested against a fake.
+- **The browser pass**, for T-1.14's reason.
+- **Resend bounce and complaint webhooks.** Out of this slice by 4.3 §3; they need a deployed public URL.
+- **`DarkSettingsReminders`** uses the existing dark tokens and was not checked by eye (D-31).
+
+### Incidents and defects
+
+| # | What broke | Cause | Fix |
+|---|---|---|---|
+| I-7 | `ruff format app` reformatted three old files outside this slice | The command was run on the whole folder | Reverted with `git checkout`; only changed files are formatted |
+| I-8 | `mypy` flagged the purge test's fake as not an `AuthAccountRepository` | The Protocol gained `get_email` | The fake gained it too |
+
 ## Change log
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-23 | Created. Slice 1 built: 3 migrations, the `reminders` domain, identity and capture extended, records union, 4 frontend operations, 2 stores, 3 shared components, the Reminders tab, detail, edit and delete with every drawn state. 210 backend and 112 frontend tests pass. Live browser pass blocked in this environment | User: "implementation plan approved, start slice 1" | user |
 | 2026-09-23 | Slice 2 built: migrations 0019 and 0020, the `notifications` domain, firing, Done and Snooze, the live feed over LISTEN/NOTIFY and a WebSocket, the bell, panel, pop-ups and row actions. 243 backend and 128 frontend tests pass; a real worker fired a reminder; 2,000 due at once fired at p95 28.5 s. Live browser pass blocked in this environment | User: "Proceed", approving 4.2 | user |
+| 2026-09-23 | Slice 3 built: migration 0021, email delivery with its daily cap and paused notice, the `send_email` job, `updateReminderSettings`, the Settings reminders section with every drawn state, the `email_paused` notice, return to the link after sign-in, and the "Change default time" link. 260 backend and 147 frontend tests pass. Email ships off; the first real send (T-3.10) waits on a sending domain | User: "Commit and proceed with next", approving 4.3 | user |

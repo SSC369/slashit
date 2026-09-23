@@ -14,11 +14,14 @@ from sqlalchemy.sql import text
 from app.core.db import user_transaction
 from app.domains.notifications.constants import NOTIFY_CHANNEL
 from app.domains.notifications.interfaces.dtos import (
+    DeliveryStatusValue,
+    EmailDeliveryDTO,
     MarkerValue,
     NotificationActionValue,
     NotificationDTO,
     NotificationKindValue,
     NotificationPageDTO,
+    PublishedNotification,
     PublishNotification,
 )
 from app.domains.notifications.models import Notification, NotificationDelivery
@@ -35,9 +38,15 @@ class SqlNotificationRepository:
         self.session = session
 
     async def insert_notification(
-        self, *, publish: PublishNotification, show_popup: bool, now: datetime
-    ) -> NotificationDTO | None:
+        self,
+        *,
+        publish: PublishNotification,
+        show_popup: bool,
+        email_status: DeliveryStatusValue,
+        now: datetime,
+    ) -> PublishedNotification | None:
         notification_id = uuid.uuid4()
+        email_delivery_id = uuid.uuid4()
         async with user_transaction(self.session, publish.user_id) as scoped:
             inserted_id = await scoped.scalar(
                 insert(Notification)
@@ -51,6 +60,7 @@ class SqlNotificationRepository:
                     detail=publish.detail,
                     marker=publish.marker,
                     occurred_at=publish.occurred_at,
+                    time_zone=publish.time_zone,
                     created_at=now,
                 )
                 .on_conflict_do_nothing(
@@ -63,13 +73,26 @@ class SqlNotificationRepository:
                 return None
             await scoped.execute(
                 insert(NotificationDelivery).values(
-                    id=uuid.uuid4(),
-                    notification_id=notification_id,
-                    user_id=publish.user_id,
-                    channel="popup",
-                    status="sent" if show_popup else "skipped",
-                    attempts=0,
-                    sent_at=now if show_popup else None,
+                    [
+                        {
+                            "id": uuid.uuid4(),
+                            "notification_id": notification_id,
+                            "user_id": publish.user_id,
+                            "channel": "popup",
+                            "status": "sent" if show_popup else "skipped",
+                            "attempts": 0,
+                            "sent_at": now if show_popup else None,
+                        },
+                        {
+                            "id": email_delivery_id,
+                            "notification_id": notification_id,
+                            "user_id": publish.user_id,
+                            "channel": "email",
+                            "status": email_status,
+                            "attempts": 0,
+                            "sent_at": None,
+                        },
+                    ]
                 )
             )
             # AD-4. Delivered by PostgreSQL only when this transaction commits,
@@ -91,7 +114,145 @@ class SqlNotificationRepository:
                     _select_with_popup().where(Notification.id == notification_id)
                 )
             ).one()
-        return _row_to_dto(row=row)
+        return PublishedNotification(
+            notification=_row_to_dto(row=row),
+            email_delivery_id=email_delivery_id,
+            email_status=email_status,
+        )
+
+    async def get_email_status_for_source(
+        self, *, user_id: uuid.UUID, source_id: uuid.UUID
+    ) -> tuple[uuid.UUID, DeliveryStatusValue] | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            row = (
+                await scoped.execute(
+                    select(NotificationDelivery.id, NotificationDelivery.status)
+                    .join(
+                        Notification,
+                        Notification.id == NotificationDelivery.notification_id,
+                    )
+                    .where(
+                        Notification.user_id == user_id,
+                        Notification.source_id == source_id,
+                        NotificationDelivery.channel == "email",
+                    )
+                )
+            ).one_or_none()
+        if row is None:
+            return None
+        return row[0], cast(DeliveryStatusValue, row[1])
+
+    async def count_emails_since(self, *, user_id: uuid.UUID, since: datetime) -> int:
+        async with user_transaction(self.session, user_id) as scoped:
+            count = await scoped.scalar(
+                select(func.count())
+                .select_from(NotificationDelivery)
+                .join(
+                    Notification,
+                    Notification.id == NotificationDelivery.notification_id,
+                )
+                .where(
+                    NotificationDelivery.user_id == user_id,
+                    NotificationDelivery.channel == "email",
+                    NotificationDelivery.status.in_(("queued", "sent")),
+                    Notification.created_at >= since,
+                )
+            )
+        return int(count or 0)
+
+    async def has_email_paused_since(
+        self, *, user_id: uuid.UUID, since: datetime
+    ) -> bool:
+        async with user_transaction(self.session, user_id) as scoped:
+            found = await scoped.scalar(
+                select(Notification.id)
+                .where(
+                    Notification.user_id == user_id,
+                    Notification.kind == "email_paused",
+                    Notification.created_at >= since,
+                )
+                .limit(1)
+            )
+        return found is not None
+
+    async def get_email_delivery(
+        self, *, delivery_id: uuid.UUID
+    ) -> EmailDeliveryDTO | None:
+        # No user_transaction: the email job knows only the delivery id and
+        # runs on the service-role connection (T3). It writes, below, as the
+        # user the row belongs to.
+        async with self.session.begin():
+            row = (
+                await self.session.execute(
+                    select(NotificationDelivery, Notification)
+                    .join(
+                        Notification,
+                        Notification.id == NotificationDelivery.notification_id,
+                    )
+                    .where(
+                        NotificationDelivery.id == delivery_id,
+                        NotificationDelivery.channel == "email",
+                    )
+                )
+            ).one_or_none()
+        if row is None:
+            return None
+        delivery = cast(NotificationDelivery, row[0])
+        notification = cast(Notification, row[1])
+        return EmailDeliveryDTO(
+            delivery_id=delivery.id,
+            user_id=delivery.user_id,
+            status=cast(DeliveryStatusValue, delivery.status),
+            attempts=delivery.attempts,
+            title=notification.title,
+            detail=notification.detail,
+            marker=cast(MarkerValue, notification.marker),
+            occurred_at=notification.occurred_at,
+            time_zone=notification.time_zone,
+            target_id=notification.target_id,
+            notification_created_at=notification.created_at,
+        )
+
+    async def mark_email_sent(
+        self,
+        *,
+        user_id: uuid.UUID,
+        delivery_id: uuid.UUID,
+        provider_message_id: str,
+        sent_at: datetime,
+    ) -> None:
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                update(NotificationDelivery)
+                .where(
+                    NotificationDelivery.id == delivery_id,
+                    NotificationDelivery.user_id == user_id,
+                )
+                .values(
+                    status="sent",
+                    provider_message_id=provider_message_id,
+                    sent_at=sent_at,
+                    attempts=NotificationDelivery.attempts + 1,
+                )
+            )
+
+    async def record_email_failure(
+        self, *, user_id: uuid.UUID, delivery_id: uuid.UUID, is_final: bool
+    ) -> int:
+        values: dict[str, Any] = {"attempts": NotificationDelivery.attempts + 1}
+        if is_final:
+            values["status"] = "failed"
+        async with user_transaction(self.session, user_id) as scoped:
+            attempts = await scoped.scalar(
+                update(NotificationDelivery)
+                .where(
+                    NotificationDelivery.id == delivery_id,
+                    NotificationDelivery.user_id == user_id,
+                )
+                .values(**values)
+                .returning(NotificationDelivery.attempts)
+            )
+        return int(attempts or 0)
 
     async def list_page(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int
@@ -226,6 +387,7 @@ def _row_to_dto(*, row: Any) -> NotificationDTO:
         detail=notification.detail,
         marker=cast(MarkerValue, notification.marker),
         occurred_at=notification.occurred_at,
+        time_zone=notification.time_zone,
         created_at=notification.created_at,
         read_at=notification.read_at,
         action=cast(NotificationActionValue | None, notification.action),

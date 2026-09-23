@@ -55,6 +55,11 @@ type InvalidReminder {
   field: String!
 }
 
+type InvalidReminderSettings {
+  message: String!
+  field: String!
+}
+
 type InvalidTimezone {
   message: String!
 }
@@ -86,6 +91,7 @@ type Mutation {
   deleteTask(ids: [ID!]!): Int!
   recordsViewOpened: Boolean!
   updateTimezone(input: UpdateTimezoneInput!): UpdateTimezoneResult!
+  updateReminderSettings(input: UpdateReminderSettingsInput!): UpdateReminderSettingsResult!
   signIn(input: SignInInput!): SignInResult!
   updateReminder(id: ID!, input: UpdateReminderInput!): UpdateReminderResult!
   deleteReminder(id: ID!): DeleteReminderResult!
@@ -257,6 +263,11 @@ enum ReminderRepeatKind {
 
 union ReminderResult = Reminder | ReminderNotFound
 
+type ReminderSettingsSaved {
+  settings: Settings!
+  showBothOffWarning: Boolean!
+}
+
 enum ReminderState {
   UPCOMING
   FIRED
@@ -275,6 +286,8 @@ type Settings {
   timezone: String!
   updatedAt: DateTime!
   defaultReminderTime: String!
+  popupsEnabled: Boolean!
+  emailEnabled: Boolean!
 }
 
 type SharedQuotaExhausted {
@@ -349,6 +362,14 @@ input UpdateReminderInput {
 }
 
 union UpdateReminderResult = Reminder | InvalidReminder | ReminderTimePassed | ReminderDeleted | ReminderNotFound
+
+input UpdateReminderSettingsInput {
+  defaultReminderTime: String = null
+  popupsEnabled: Boolean = null
+  emailEnabled: Boolean = null
+}
+
+union UpdateReminderSettingsResult = ReminderSettingsSaved | InvalidReminderSettings
 
 input UpdateTaskInput {
   title: String = null

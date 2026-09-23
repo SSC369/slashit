@@ -10,7 +10,7 @@ export type GetSettingsQueryVariables = Exact<{
 }>;
 
 
-export type GetSettingsQuery = { settings: { timezone: string, updatedAt: string, defaultReminderTime: string } };
+export type GetSettingsQuery = { settings: { timezone: string, updatedAt: string, defaultReminderTime: string, popupsEnabled: boolean, emailEnabled: boolean } };
 
 
 export const GetSettingsDocument = gql`
@@ -19,6 +19,8 @@ export const GetSettingsDocument = gql`
     timezone
     updatedAt
     defaultReminderTime
+    popupsEnabled
+    emailEnabled
   }
 }
     `;

@@ -95,6 +95,8 @@ class FiringAnnouncement:
     detail: str
     lateness: LatenessValue
     occurred_at: datetime
+    # The reminder's zone, so an email can say "7:00 PM · Asia/Kolkata".
+    time_zone: str
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,4 @@
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, MailX } from "lucide-react";
 import type { ReactElement } from "react";
 
 import BusyButton from "../../../components/BusyButton";
@@ -31,6 +31,8 @@ const NotificationItem = (props: NotificationItemProps): ReactElement => {
   const { notification, actionState, isOffline, defaultReminderTime, onOpen, onDone, onSnooze } =
     props;
   const isReminder = notification.kind === "REMINDER" && notification.targetId !== null;
+  // FR-39: a notice, not a reminder, so it carries no actions.
+  const isEmailPaused = notification.kind === "EMAIL_PAUSED";
   const isAwaitingAction = isReminder && notification.action === null;
   const isActing = actionState?.status === "ACTING";
   const hasFailed = actionState?.status === "FAILED";
@@ -38,8 +40,11 @@ const NotificationItem = (props: NotificationItemProps): ReactElement => {
   return (
     <div className={cn(Styles.itemStyles, !notification.read && Styles.itemUnreadStyles)}>
       {!notification.read && <span className={Styles.itemUnreadDotStyles} aria-label="Unread" />}
-      <div className={Styles.itemTitleRowStyles}>
-        <span className={Styles.itemTitleStyles}>{notification.title}</span>
+      <div className={cn(Styles.itemTitleRowStyles, isEmailPaused && Styles.itemNoticeTitleRowStyles)}>
+        {isEmailPaused && <MailX size={15} aria-hidden="true" className="shrink-0" />}
+        <span className={cn(Styles.itemTitleStyles, isEmailPaused && Styles.itemNoticeTitleStyles)}>
+          {notification.title}
+        </span>
         {notification.marker === "LATE" && (
           <span className={cn(Styles.markerBaseStyles, Styles.markerLateStyles)}>Late</span>
         )}
@@ -47,7 +52,9 @@ const NotificationItem = (props: NotificationItemProps): ReactElement => {
           <span className={cn(Styles.markerBaseStyles, Styles.markerMissedStyles)}>Missed</span>
         )}
       </div>
-      <div className={Styles.itemMetaStyles}>{describeNotificationMeta(notification, new Date())}</div>
+      <div className={Styles.itemMetaStyles}>
+        {isEmailPaused ? notification.detail : describeNotificationMeta(notification, new Date())}
+      </div>
       {isReminder && (
         <div className={Styles.itemActionsStyles}>
           {isAwaitingAction && (

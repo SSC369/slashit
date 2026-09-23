@@ -54,6 +54,9 @@ from app.domains.identity.interactors.purge_unverified_accounts import (
     PurgeUnverifiedAccountsInteractor,
 )
 from app.domains.identity.interactors.sign_in import SignInInteractor
+from app.domains.identity.interactors.update_reminder_settings import (
+    UpdateReminderSettingsInteractor,
+)
 from app.domains.identity.interactors.update_timezone import UpdateTimezoneInteractor
 from app.domains.identity.repositories.auth_account_repository import (
     SqlAuthAccountRepository,
@@ -67,6 +70,7 @@ from app.domains.identity.services.identity_service import IdentityService
 from app.domains.identity.services.supabase_auth_service import SupabaseAuthService
 from app.domains.notifications.adapters.identity_settings_adapter import (
     IdentityDeliverySettingsAdapter,
+    IdentityRecipientAdapter,
 )
 from app.domains.notifications.interactors.count_unread import CountUnreadInteractor
 from app.domains.notifications.interactors.list_notifications import (
@@ -76,16 +80,19 @@ from app.domains.notifications.interactors.mark_all_read import MarkAllReadInter
 from app.domains.notifications.interactors.mark_notification_read import (
     MarkNotificationReadInteractor,
 )
+from app.domains.notifications.interactors.send_email import SendEmailInteractor
 from app.domains.notifications.interactors.stream_notifications import (
     StreamNotificationsInteractor,
 )
 from app.domains.notifications.repositories.notification_repository import (
     SqlNotificationRepository,
 )
+from app.domains.notifications.services.email_queue import ProcrastinateEmailQueue
 from app.domains.notifications.services.live_signal import live_signal
 from app.domains.notifications.services.notification_service import (
     NotificationService,
 )
+from app.domains.notifications.services.resend_sender import ResendEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
@@ -422,6 +429,8 @@ def _build_notification_service(*, session: AsyncSession) -> NotificationService
                 settings_repository=SqlSettingsRepository(session)
             )
         ),
+        email_queue=ProcrastinateEmailQueue(),
+        is_email_configured=get_settings().reminder_email_enabled,
         now_provider=_utc_now,
     )
 
@@ -505,4 +514,33 @@ def build_stream_notifications_interactor(
     return StreamNotificationsInteractor(
         notification_repository=SqlNotificationRepository(context.session),
         signal=live_signal,
+    )
+
+
+def build_send_email_interactor(session: AsyncSession) -> SendEmailInteractor:
+    """Wired outside a request `Context`, for `notifications/jobs.py`, on the
+    service-role connection the account address needs (T3)."""
+    settings = get_settings()
+    return SendEmailInteractor(
+        notification_repository=SqlNotificationRepository(session),
+        recipient=IdentityRecipientAdapter(
+            identity_service=IdentityService(
+                settings_repository=SqlSettingsRepository(session),
+                auth_account_repository=SqlAuthAccountRepository(session),
+            )
+        ),
+        sender=ResendEmailSender(
+            api_key=settings.resend_api_key, sender=settings.reminder_email_from
+        ),
+        app_base_url=settings.app_base_url,
+        now_provider=_utc_now,
+    )
+
+
+def build_update_reminder_settings_interactor(
+    context: Context,
+) -> UpdateReminderSettingsInteractor:
+    return UpdateReminderSettingsInteractor(
+        settings_repository=SqlSettingsRepository(context.session),
+        now_provider=_utc_now,
     )

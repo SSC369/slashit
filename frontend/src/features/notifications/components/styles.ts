@@ -61,3 +61,5 @@ export const popupOfflineStyles = "text-command";
 export const snoozeOptionStyles =
   "flex w-full items-center justify-between gap-6 px-3.5 py-2 text-left text-[13px] text-foreground hover:bg-background";
 export const snoozeTimeStyles = "text-[12.5px] text-foreground-tertiary";
+export const itemNoticeTitleRowStyles = "text-foreground-secondary";
+export const itemNoticeTitleStyles = "text-foreground-secondary";

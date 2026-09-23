@@ -2,6 +2,7 @@ import { InfoIcon } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from "react";
 
+import useUpdateReminderSettings from "../../../../api/mutations/UpdateReminderSettings/useUpdateReminderSettings";
 import useUpdateTimezone from "../../../../api/mutations/UpdateTimezone/useUpdateTimezone";
 import useGetSettings from "../../../../api/queries/GetSettings/useGetSettings";
 import { useResponseHandler } from "../../../../api/queries/GetSettings/responseHandler";
@@ -9,12 +10,16 @@ import Button from "../../../../design-system/components/Button";
 import { useStore } from "../../../../stores/StoreProvider";
 import { cn } from "../../../../utils/cn";
 import { detectTimezone } from "../../../../utils/detectTimezone";
+import { formatClockTime } from "../../../../utils/formatReminder";
 import PageTopbar from "../../../../components/PageTopbar";
 import {
   getThemePreference,
   setThemePreference,
   type ThemePreferenceType,
 } from "../../../../utils/themePreference";
+import ReminderSettingsSection, {
+  type ReminderSettingType,
+} from "../../components/ReminderSettingsSection";
 import * as Styles from "./styles";
 
 interface ThemeOptionProps {
@@ -36,6 +41,27 @@ const listSupportedTimezones = (): string[] => {
   }
 };
 
+const FALLBACK_REMINDER_TIME = "09:00";
+
+/** `SettingsFailed`: what did not change, and that the old value still holds. */
+const describeSaveFailure = (args: {
+  setting: ReminderSettingType;
+  isOn: boolean;
+  previousTime: string;
+}): string => {
+  const { setting, isOn, previousTime } = args;
+  const wanted = isOn ? "on" : "off";
+  const kept = isOn ? "off" : "on";
+  switch (setting) {
+    case "EMAIL":
+      return `Couldn't turn email ${wanted}. It is still ${kept}. Try again.`;
+    case "POPUPS":
+      return `Couldn't turn pop-ups ${wanted}. They are still ${kept}. Try again.`;
+    case "DEFAULT_TIME":
+      return `Couldn't change the default time. It is still ${formatClockTime(previousTime)}. Try again.`;
+  }
+};
+
 const SettingsController = (): ReactElement => {
   const store = useStore();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -47,6 +73,11 @@ const SettingsController = (): ReactElement => {
   const { triggerAPI: triggerGetSettings, data } = useGetSettings();
   const { handleResponse } = useResponseHandler();
   const { triggerAPI: triggerUpdateTimezone } = useUpdateTimezone();
+  const { triggerAPI: triggerUpdateReminderSettings } = useUpdateReminderSettings();
+  const [savingSetting, setSavingSetting] = useState<ReminderSettingType | null>(null);
+  const [reminderFailureMessage, setReminderFailureMessage] = useState<string | null>(null);
+  const [timeErrorMessage, setTimeErrorMessage] = useState<string | null>(null);
+  const [isBothOffWarningShown, setIsBothOffWarningShown] = useState(false);
 
   useEffect(() => {
     triggerGetSettings({ detectedTimezone: detectTimezone() });
@@ -71,6 +102,48 @@ const SettingsController = (): ReactElement => {
         setErrorMessage(null);
       },
       onInvalidTimezone: (message) => setErrorMessage(message),
+    });
+  };
+
+  /** The control shows the new value at once and flips back if the save
+   * fails (`SettingsSaving`, `SettingsFailed`). */
+  const saveReminderSetting = (args: {
+    setting: ReminderSettingType;
+    input: { defaultReminderTime?: string; popupsEnabled?: boolean; emailEnabled?: boolean };
+    isOn: boolean;
+  }): void => {
+    const { setting, input, isOn } = args;
+    const settings = store.settings;
+    const previous = {
+      timezone: settings.timezone ?? "",
+      defaultReminderTime: settings.defaultReminderTime ?? FALLBACK_REMINDER_TIME,
+      popupsEnabled: settings.popupsEnabled,
+      emailEnabled: settings.emailEnabled,
+    };
+    settings.setSettings({ ...previous, ...input });
+    setSavingSetting(setting);
+    setReminderFailureMessage(null);
+    setTimeErrorMessage(null);
+    triggerUpdateReminderSettings({
+      input,
+      onReminderSettingsSaved: ({ settings: saved, showBothOffWarning }) => {
+        settings.setSettings(saved);
+        setSavingSetting(null);
+        if (showBothOffWarning) setIsBothOffWarningShown(true);
+        if (saved.popupsEnabled || saved.emailEnabled) setIsBothOffWarningShown(false);
+      },
+      onInvalidReminderSettings: ({ message }) => {
+        settings.setSettings(previous);
+        setSavingSetting(null);
+        setTimeErrorMessage(message);
+      },
+      onRequestFailed: () => {
+        settings.setSettings(previous);
+        setSavingSetting(null);
+        setReminderFailureMessage(
+          describeSaveFailure({ setting, isOn, previousTime: previous.defaultReminderTime }),
+        );
+      },
     });
   };
 
@@ -121,6 +194,31 @@ const SettingsController = (): ReactElement => {
               </div>
             )}
           </div>
+
+          <ReminderSettingsSection
+            isLoading={store.settings.timezone === null}
+            defaultReminderTime={store.settings.defaultReminderTime ?? FALLBACK_REMINDER_TIME}
+            popupsEnabled={store.settings.popupsEnabled}
+            emailEnabled={store.settings.emailEnabled}
+            accountEmail={store.auth.email}
+            savingSetting={savingSetting}
+            failureMessage={reminderFailureMessage}
+            timeErrorMessage={timeErrorMessage}
+            isBothOffWarningShown={isBothOffWarningShown}
+            onChangeDefaultTime={(localTime) =>
+              saveReminderSetting({
+                setting: "DEFAULT_TIME",
+                input: { defaultReminderTime: localTime },
+                isOn: true,
+              })
+            }
+            onTogglePopups={(isOn) =>
+              saveReminderSetting({ setting: "POPUPS", input: { popupsEnabled: isOn }, isOn })
+            }
+            onToggleEmail={(isOn) =>
+              saveReminderSetting({ setting: "EMAIL", input: { emailEnabled: isOn }, isOn })
+            }
+          />
 
           <div className={Styles.sectionStyles}>
             <div className={Styles.sectionTitleStyles}>Appearance</div>

@@ -1,11 +1,16 @@
 import { ArrowRight, Check, Pencil } from "lucide-react";
 import type { ReactElement } from "react";
+import { Link } from "react-router";
 
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Button from "../../../design-system/components/Button";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
 import { describeRepeatDetail, formatReminderDate } from "../../../utils/formatReminder";
 import * as Styles from "./styles";
+
+/** The server's note when no time was typed (FR-3); the card then offers the
+ * setting that chose the time. */
+const DEFAULT_TIME_NOTE = "No time given, so your default reminder time";
 
 interface ReminderCreatedCardProps {
   reminder: ReminderFieldsFragment;
@@ -52,7 +57,17 @@ export const ReminderCreatedCard = (props: ReminderCreatedCardProps): ReactEleme
         </div>
       </div>
       <div className={Styles.cardFootStyles}>
-        <span>Created just now · via command</span>
+        <span>
+          Created just now · via command
+          {reminder.whenNote === DEFAULT_TIME_NOTE && (
+            <>
+              {" · "}
+              <Link to="/settings" className={Styles.footLinkStyles}>
+                Change default time
+              </Link>
+            </>
+          )}
+        </span>
         <div className={Styles.cardFootActionsStyles}>
           <Button size="sm" onClick={() => onEditReminder(reminder.id)}>
             <Pencil size={13} /> Edit

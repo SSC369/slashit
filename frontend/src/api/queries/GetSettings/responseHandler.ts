@@ -5,6 +5,8 @@ export interface GetSettingsCallbacks {
     timezone: string;
     updatedAt: string;
     defaultReminderTime: string;
+    popupsEnabled: boolean;
+    emailEnabled: boolean;
   }) => void;
 }
 
@@ -22,6 +24,8 @@ export const useResponseHandler = (): {
       timezone: data.settings.timezone,
       updatedAt: data.settings.updatedAt,
       defaultReminderTime: data.settings.defaultReminderTime,
+      popupsEnabled: data.settings.popupsEnabled,
+      emailEnabled: data.settings.emailEnabled,
     });
   };
 

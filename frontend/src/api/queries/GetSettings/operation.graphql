@@ -3,5 +3,7 @@ query GetSettings($detectedTimezone: String) {
     timezone
     updatedAt
     defaultReminderTime
+    popupsEnabled
+    emailEnabled
   }
 }

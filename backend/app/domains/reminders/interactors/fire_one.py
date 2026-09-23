@@ -163,6 +163,7 @@ class FireOneInteractor:
                 detail=reminder.summary.repeat_text if is_repeating else "",
                 lateness=firing.lateness,
                 occurred_at=firing.scheduled_for,
+                time_zone=reminder.schedule_timezone,
             )
         )
 

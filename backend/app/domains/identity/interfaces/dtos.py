@@ -58,3 +58,10 @@ class AuthAttemptOutcomeDTO:
 
     locked: bool
     locked_until: datetime | None
+
+
+@dataclass(frozen=True)
+class ReminderSettingsSavedDTO:
+    settings: SettingsDTO
+    # FR-34: true only on the save that first turned both switches off.
+    show_both_off_warning: bool

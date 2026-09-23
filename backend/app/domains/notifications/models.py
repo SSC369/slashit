@@ -33,6 +33,8 @@ class Notification(Base):
         Enum(*MARKERS, name="firing_lateness", create_type=False)
     )
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # The reminder's zone, so the email can say "7:00 PM · Asia/Kolkata".
+    time_zone: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     action: Mapped[str | None] = mapped_column(
