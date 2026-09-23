@@ -1,4 +1,5 @@
-"""Reminders' mutations: edit and delete. Done and snooze arrive in slice 2."""
+"""Reminders' mutations: edit, delete, and the two things done to a fired
+reminder, Done and Snooze (FR-19 to FR-21)."""
 
 from datetime import time
 from typing import Annotated, cast
@@ -10,6 +11,8 @@ from strawberry.types import Info
 from app.core.context import Context
 from app.core.deps import (
     build_delete_reminder_interactor,
+    build_mark_reminder_done_interactor,
+    build_snooze_reminder_interactor,
     build_update_reminder_interactor,
 )
 from app.domains.reminders.graphql.errors import (
@@ -19,13 +22,16 @@ from app.domains.reminders.graphql.errors import (
     ReminderNotFound,
     ReminderTimePassed,
 )
-from app.domains.reminders.graphql.inputs import UpdateReminderInput
+from app.domains.reminders.graphql.inputs import SnoozeChoice, UpdateReminderInput
 from app.domains.reminders.graphql.types import ReminderDeleteSucceeded
 from app.domains.reminders.interactors.dtos import (
     DeleteReminderInputDTO,
+    MarkReminderDoneInputDTO,
+    SnoozeReminderInputDTO,
     UpdateReminderInputDTO,
 )
 from app.domains.reminders.interfaces.dtos import Reminder, reminder_dto_to_type
+from app.domains.reminders.services.firing import SnoozeOption
 from app.domains.reminders.services.schedule import RepeatKind
 from app.graphql.error_mapping import map_errors
 from app.graphql.permissions import IsAuthenticated
@@ -37,6 +43,9 @@ UpdateReminderResult = Annotated[
     | ReminderDeleted
     | ReminderNotFound,
     strawberry.union("UpdateReminderResult"),
+]
+ReminderActionResult = Annotated[
+    Reminder | ReminderNotFound, strawberry.union("ReminderActionResult")
 ]
 DeleteReminderResult = Annotated[
     ReminderDeleteSucceeded | ReminderNotFound, strawberry.union("DeleteReminderResult")
@@ -93,3 +102,38 @@ class ReminderMutations:
             dto=DeleteReminderInputDTO(user_id=user_id, reminder_id=UUID(str(id_)))
         )
         return cast(DeleteReminderResult, ReminderDeleteSucceeded(id=id_))
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    @map_errors
+    async def mark_reminder_done(
+        self,
+        info: Info,
+        id_: Annotated[strawberry.ID, strawberry.argument(name="id")],
+    ) -> ReminderActionResult:
+        context = cast(Context, info.context)
+        interactor = build_mark_reminder_done_interactor(context)
+        reminder = await interactor.mark_reminder_done(
+            dto=MarkReminderDoneInputDTO(
+                user_id=cast(UUID, context.user_id), reminder_id=UUID(str(id_))
+            )
+        )
+        return cast(ReminderActionResult, reminder_dto_to_type(reminder=reminder))
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    @map_errors
+    async def snooze_reminder(
+        self,
+        info: Info,
+        id_: Annotated[strawberry.ID, strawberry.argument(name="id")],
+        option: SnoozeChoice,
+    ) -> ReminderActionResult:
+        context = cast(Context, info.context)
+        interactor = build_snooze_reminder_interactor(context)
+        reminder = await interactor.snooze_reminder(
+            dto=SnoozeReminderInputDTO(
+                user_id=cast(UUID, context.user_id),
+                reminder_id=UUID(str(id_)),
+                option=SnoozeOption(option.value),
+            )
+        )
+        return cast(ReminderActionResult, reminder_dto_to_type(reminder=reminder))

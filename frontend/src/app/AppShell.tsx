@@ -9,6 +9,7 @@ import OfflineBanner from "../components/OfflineBanner";
 import Toast from "../components/Toast";
 import UpdateBanner from "../components/UpdateBanner";
 import Popover from "../design-system/components/Popover";
+import NotificationsController from "../features/notifications/controllers/NotificationsController/NotificationsController";
 import { useStore } from "../stores/StoreProvider";
 import { cn } from "../utils/cn";
 import * as Styles from "./styles";
@@ -131,6 +132,7 @@ const AppShell = (): ReactElement => {
         <Outlet />
         <Toast toast={store.toast.current} onDismiss={store.toast.dismiss} />
       </div>
+      <NotificationsController />
       <InstallPrompt />
     </div>
   );

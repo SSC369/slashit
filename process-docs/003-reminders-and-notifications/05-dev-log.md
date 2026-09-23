@@ -13,7 +13,7 @@ supersedes: null
 
 # Dev Log — Reminders and Notifications
 
-Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md)
+Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md) · [04.2](./04.2-fire-in-the-app.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -95,8 +95,84 @@ and the real model: see T-1.14 and "Not done, and why".
 | I-1 | A `/remind` refusal's "kept below" command vanished from the bar | Enter cleared the bar after dispatching the submit, so a refusal that restored the command first was overwritten | Clear, then submit (D-15). Caught by a component test before any browser use |
 | I-2 | Reverted, not shipped: an earlier `ruff format app tests` run rewrote six files outside this slice | They were already unformatted at `HEAD` | Reverted to keep the diff on this feature. Noted in Verification |
 
+## Slice 2 — Fire in the app
+
+Backend and frontend built 2026-09-23. Verified against a real local
+PostgreSQL 16, a real Procrastinate worker, and a real WebSocket, and in unit
+and component tests. **Not yet verified live in a browser**: T-2.15 hits the
+same missing Supabase project as T-1.14.
+
+### Tasks
+
+| # | Task | Status | Note |
+|---|---|---|---|
+| T-2.1 | Migration 0019 | **done** | Upgrade, downgrade and upgrade again run clean. The RLS sweep covers all three new tables (TC-2.14). `notifications` carries four more columns than planned (D-18) |
+| T-2.2 | `firing.py` pure helpers | **done** | TC-2.1, TC-2.2, TC-2.8 in `test_firing.py`. Also holds the fired and snoozed wording (D-27) |
+| T-2.3 | Notifications domain | **done** | TC-2.10 and FR-37's rules in `test_notifications.py` |
+| T-2.4 | `fire_due`, `fire_one`, jobs, notifications adapter | **done** | TC-2.3 to TC-2.6, TC-2.9 in `test_fire_reminders.py`. Two idempotent steps, not one transaction (D-17) |
+| T-2.5 | Done and Snooze interactors and mutations | **done** | TC-2.7, and TC-2.13 over the wire |
+| T-2.6 | Notifications GraphQL | **done** | TC-2.12, TC-2.13 in `test_firing_and_notifications.py` |
+| T-2.7 | Listener, WebSocket auth, subscription | **done** | TC-2.15 twice: the listener against a real NOTIFY, and a real WebSocket in `test_notification_subscription.py`, token in `connection_init`, a bad token closed with 4403 |
+| T-2.8 | Worker run locally beside the API | **done** | Needed migration 0020 first (D-19). A reminder due 20 s ahead fired 2 s after its time, `on_time`; the next minute's sweep queued nothing |
+| T-2.9 | Frontend operations, subscription, `NotificationsStore`, reconnect refetch | **done** | Seven operation folders; the token rides in `connection_init`; a reconnect refetches the count and the list |
+| T-2.10 | `PageTopbar` and the bell on five pages; tab title | **done** | TC-2.16 |
+| T-2.11 | Notification panel with every state | **done** | TC-2.16: loading, error, empty, list; `PanelActionFailed` copy per action |
+| T-2.12 | Pop-up stack and Snooze menu | **done** | TC-2.17, TC-2.18: acting, failed, offline, resulting times |
+| T-2.13 | Done and Snooze on Needs attention rows | **done** | TC-2.19, and a failed Done kept on its row |
+| T-2.14 | Load check | **done** | TC-2.20, below |
+| T-2.15 | Live pass in a browser | **blocked** | As T-1.14: no Supabase project to sign in against in this container |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `pytest -m "not live"` against local PostgreSQL 16 | **243 passed**: 170 unit, 64 integration, 9 settings and logging |
+| `mypy app` (strict) | No issues in 214 source files |
+| `ruff check .` | Clean. `ruff format --check`: the same 6 files as slice 1, untouched |
+| `alembic downgrade 0018` then `upgrade head` | Clean, 0019 and 0020 both ways |
+| Real worker, `python -m procrastinate ... worker` | One reminder fired on time, unattended (T-2.8) |
+| TC-2.20, 2,000 reminders due in one minute across 20 users, local | Default concurrency: all fired, p50 24.7 s, **p95 41.3 s**, max 43.1 s. `--concurrency=10`: p50 16.0 s, **p95 28.5 s**, max 29.7 s. NFR-1 asks for 60 s. Measured, not `estimate`; a hosted database will differ |
+| `tsc -b`, `oxlint`, `npm run build` | Clean; oxlint's one warning is still the old `StrictMode` import |
+| `vitest run` | **128 passed** (112 after slice 1) |
+| Browser pass | Not run. See T-2.15 |
+
+### Deviations
+
+| # | Deviation | Why | Consequence |
+|---|---|---|---|
+| D-17 | `fire_one` is two idempotent steps, not the single transaction 4.2 §5 drew: the firing row and the reminder's new state in one transaction, then the notification published through notifications' service | One transaction would mean passing a `Session` from reminders into notifications, which repo-rules §6.2 forbids. Each step is safe to repeat: the unique firing and the unique notification source keep both to one row. A retry whose first run died between the steps finds the firing already written and publishes it | TC-2.5 and the interrupted-retry unit test cover it. A reminder deleted in that gap loses its notification, the one case not recovered |
+| D-18 | `notifications` has `target_id`, `occurred_at`, `action` and `acted_at` beyond build plan §3's fields | Open needs the reminder's id (FR-22); the panel's lines need the due time ("due Sun 6:00 PM, delivered Mon 4:10 PM") and what was done ("marked done 9:41 AM"). Reminders reports Done and Snooze to notifications through its port, so the direction of §2 holds | Build plan §3 is behind the schema by four columns; recorded here rather than reopening the locked build plan |
+| D-19 | Migration `0020_procrastinate_schema` installs the job queue's own tables, in a `procrastinate` schema. `core/jobs.py` connects with `search_path=procrastinate` | No migration had ever installed them (002's dev log left the worker unset), so no job could run. A separate schema keeps job rows out of Supabase's exposed `public` schema and out of the RLS sweep. Its triggers name tables unqualified, so any other connection touching them must set the same path | Index §5 gains a migration, with a change record. A Procrastinate upgrade needs its own migration |
+| D-20 | The worker runs as `python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`, written into the `Dockerfile`'s comments | The bare `procrastinate` script cannot import `app` from the working directory. Concurrency 10 leaves NFR-1 twice the margin of the default | Deploy config uses this command for the second container (AD-9) |
+| D-21 | GraphQL `Settings` exposes `defaultReminderTime`, a slice early | The snooze menu shows "Tomorrow, 9:00 AM" (`ReminderToast`); its control is still slice 3 | Additive |
+| D-22 | `NotificationService.publish(*, publish: PublishNotification) -> NotificationDTO \| None`, and a `record_action`, where index §4 listed keyword fields returning a DTO | A DTO over seven keywords; None tells the caller the firing was already published | Index §4 corrected with a change record |
+| D-23 | GraphQL names differ from 4.2 §7: the snooze enum is `SnoozeChoice`; `Notification` has `targetId`, `occurredAt`, `action`, `actedAt`; `NotificationMarker.NONE` means on time; mark-all returns `MarkAllNotificationsReadSucceeded { markedCount }`; `Reminder` gains `snoozedUntil`, and its `nextFireAt` is now whichever of series and snooze comes first | The names follow D-18's fields and the existing `ReminderX` naming | 4.2 §7 is superseded by the schema for these names |
+| D-24 | `Context.connection_params`, a `SlashitGraphQLRouter` whose `on_ws_connect` verifies the token, and a context getter over `HTTPConnection` | A browser cannot set WebSocket headers; the plan said "context reads the token from `connection_init`" without the mechanism | Tested end to end over a real socket |
+| D-25 | Two root fields in one GraphQL document, such as `notifications` and `unreadNotificationCount`, fail: Strawberry resolves them at once on the request's one session | Not new to this slice; this is the first time a test asked for two roots together | The client sends them as separate operations. Every domain shares the limit; a per-resolver session is the fix, a platform change for its own record |
+| D-26 | `FakeReminderRepository` and `FakeReminderPort` describe reminders on the test's clock | Slice 1's `test_daily_with_no_date_starts_today` read the wall clock and failed after 20:00 in Kolkata (I-3) | Tests are clock-proof |
+| D-27 | A fired reminder's `whenText` reads "Fired today, 7:00 PM" or "Missed, Mon 21 Sep, 7:00 PM"; a snoozed one shows its snooze time | `Main` draws these; slice 1 only had the next occurrence | `summarize_reminder` in `firing.py`, used by the repository |
+| D-28 | The Capture page's history control is now a real `<button>` inside `PageTopbar` | It was a clickable `div`; moving it was the moment to fix it | Keyboard reachable |
+| D-29 | The Reminders tab does not update live when a reminder fires; it reloads on its next visit | A push carries a notification, not the reminder's new state. The bell, panel and pop-up do update live | Known gap. A second subscription payload, or a refetch on push, would close it |
+| D-30 | A failed Done or Snooze on a Reminders row says "That didn't save. Try again." beside it | The design drew row actions but not their failure | Copy not on the canvas; to review |
+| D-31 | Mobile artboards `MobileNotifications`, `MobileReminderToast` unmatched, per decision 2. The dark artboards use the existing dark tokens and were not checked by eye | Decision 2 | Owed with a mobile shell and a browser pass |
+
+### Not done, and why
+
+- **T-2.15, the live browser pass**, for T-1.14's reason. The pieces under it are each proven on real infrastructure: the worker, the database, NOTIFY and a real WebSocket.
+- **Live refresh of the Reminders tab** on a push (D-29).
+
+### Incidents and defects
+
+| # | What broke | Cause | Fix |
+|---|---|---|---|
+| I-3 | A slice 1 unit test failed at 21:14 Kolkata time | The fake repository described reminders against the wall clock while the test fixed its own clock | D-26 |
+| I-4 | An integration test asking for two root fields raised "A transaction is already begun on this Session" | D-25 | Queries sent apart |
+| I-5 | `procrastinate --app=app.core.jobs.procrastinate_app worker` could not load the app | The console script does not put the working directory on `sys.path` | `python -m procrastinate` (D-20) |
+| I-6 | The snooze menu's items had names like "Tomorrow9:00 AM" to a screen reader | Two adjacent spans, no separator | `aria-label` "Tomorrow, 9:00 AM"; caught by a test |
+
 ## Change log
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-23 | Created. Slice 1 built: 3 migrations, the `reminders` domain, identity and capture extended, records union, 4 frontend operations, 2 stores, 3 shared components, the Reminders tab, detail, edit and delete with every drawn state. 210 backend and 112 frontend tests pass. Live browser pass blocked in this environment | User: "implementation plan approved, start slice 1" | user |
+| 2026-09-23 | Slice 2 built: migrations 0019 and 0020, the `notifications` domain, firing, Done and Snooze, the live feed over LISTEN/NOTIFY and a WebSocket, the bell, panel, pop-ups and row actions. 243 backend and 128 frontend tests pass; a real worker fired a reminder; 2,000 due at once fired at p95 28.5 s. Live browser pass blocked in this environment | User: "Proceed", approving 4.2 | user |

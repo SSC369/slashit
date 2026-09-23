@@ -20,7 +20,7 @@ export type ReminderState =
   | 'FIRED'
   | 'UPCOMING';
 
-export type ReminderFieldsFragment = { id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null };
+export type ReminderFieldsFragment = { id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null };
 
 export const ReminderFieldsFragmentDoc = gql`
     fragment ReminderFields on Reminder {
@@ -44,5 +44,6 @@ export const ReminderFieldsFragmentDoc = gql`
   createdAt
   updatedAt
   whenNote
+  snoozedUntil
 }
     `;

@@ -19,4 +19,5 @@ fragment ReminderFields on Reminder {
   createdAt
   updatedAt
   whenNote
+  snoozedUntil
 }

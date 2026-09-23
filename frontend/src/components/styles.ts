@@ -41,3 +41,9 @@ export const statusPillUpcomingStyles = "border-command-wash bg-command-wash tex
 export const statusPillFiredStyles = "border-accent-wash bg-accent-wash text-accent";
 export const statusPillMissedStyles = "border-destructive-wash bg-destructive-wash text-destructive";
 export const statusPillDoneStyles = "border-success-wash bg-success-wash text-success";
+
+// Page topbar: the title and the bell, on every page (003 slice 2)
+export const pageTopbarStyles =
+  "flex h-[60px] shrink-0 items-center justify-between border-b border-border bg-background px-7";
+export const pageTopbarTitleStyles = "text-[17px] font-semibold tracking-[-0.01em] text-foreground";
+export const pageTopbarActionsStyles = "flex items-center gap-1.5";

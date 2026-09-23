@@ -22,5 +22,6 @@ export const buildReminder = (overrides: Partial<ReminderFieldsFragment> = {}): 
   createdAt: "2026-09-23T04:30:00Z",
   updatedAt: "2026-09-23T04:30:00Z",
   whenNote: null,
+  snoozedUntil: null,
   ...overrides,
 });

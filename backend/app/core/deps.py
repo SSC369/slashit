@@ -65,6 +65,27 @@ from app.domains.identity.repositories.profile_repository import SqlProfileRepos
 from app.domains.identity.repositories.settings_repository import SqlSettingsRepository
 from app.domains.identity.services.identity_service import IdentityService
 from app.domains.identity.services.supabase_auth_service import SupabaseAuthService
+from app.domains.notifications.adapters.identity_settings_adapter import (
+    IdentityDeliverySettingsAdapter,
+)
+from app.domains.notifications.interactors.count_unread import CountUnreadInteractor
+from app.domains.notifications.interactors.list_notifications import (
+    ListNotificationsInteractor,
+)
+from app.domains.notifications.interactors.mark_all_read import MarkAllReadInteractor
+from app.domains.notifications.interactors.mark_notification_read import (
+    MarkNotificationReadInteractor,
+)
+from app.domains.notifications.interactors.stream_notifications import (
+    StreamNotificationsInteractor,
+)
+from app.domains.notifications.repositories.notification_repository import (
+    SqlNotificationRepository,
+)
+from app.domains.notifications.services.live_signal import live_signal
+from app.domains.notifications.services.notification_service import (
+    NotificationService,
+)
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
@@ -81,14 +102,22 @@ from app.domains.records.services.records_service import RecordsService
 from app.domains.reminders.adapters.identity_clock_adapter import (
     IdentityUserClockAdapter,
 )
+from app.domains.reminders.adapters.notifications_adapter import NotificationsAdapter
 from app.domains.reminders.interactors.create_reminder import CreateReminderInteractor
 from app.domains.reminders.interactors.delete_reminder import DeleteReminderInteractor
+from app.domains.reminders.interactors.fire_due import FireDueInteractor
+from app.domains.reminders.interactors.fire_one import FireOneInteractor
 from app.domains.reminders.interactors.get_reminder import GetReminderInteractor
 from app.domains.reminders.interactors.list_reminders import ListRemindersInteractor
+from app.domains.reminders.interactors.mark_reminder_done import (
+    MarkReminderDoneInteractor,
+)
+from app.domains.reminders.interactors.snooze_reminder import SnoozeReminderInteractor
 from app.domains.reminders.interactors.update_reminder import UpdateReminderInteractor
 from app.domains.reminders.repositories.reminder_repository import (
     SqlReminderRepository,
 )
+from app.domains.reminders.services.firing_queue import ProcrastinateFiringQueue
 from app.domains.reminders.services.reminder_service import ReminderService
 
 
@@ -123,6 +152,22 @@ async def build_context(
         request_id=request_id,
         session_factory=session_factory,
     )
+
+
+def authenticate_connection(
+    *, context: Context, authorization_header: str | None
+) -> bool:
+    """Set a WebSocket's identity from its ``connection_init`` token. The same
+    verification an HTTP request gets in ``build_context``; False if it fails."""
+    token = extract_bearer_token(authorization_header)
+    if token is None:
+        return False
+    try:
+        context.user_id = verify_token(token, get_settings())
+        context.email = decode_email_claim(token)
+    except AuthenticationError:
+        return False
+    return True
 
 
 def build_extract_interactor(
@@ -366,4 +411,98 @@ def build_purge_unverified_accounts_interactor(
     from."""
     return PurgeUnverifiedAccountsInteractor(
         auth_account_repository=SqlAuthAccountRepository(session)
+    )
+
+
+def _build_notification_service(*, session: AsyncSession) -> NotificationService:
+    return NotificationService(
+        notification_repository=SqlNotificationRepository(session),
+        delivery_settings=IdentityDeliverySettingsAdapter(
+            identity_service=IdentityService(
+                settings_repository=SqlSettingsRepository(session)
+            )
+        ),
+        now_provider=_utc_now,
+    )
+
+
+def _build_reminder_notifications_port(
+    *, session: AsyncSession
+) -> NotificationsAdapter:
+    return NotificationsAdapter(
+        notification_service=_build_notification_service(session=session)
+    )
+
+
+def build_fire_due_interactor(session: AsyncSession) -> FireDueInteractor:
+    """Wired outside a request `Context`, for `reminders/jobs.py`."""
+    return FireDueInteractor(
+        reminder_repository=SqlReminderRepository(session),
+        firing_queue=ProcrastinateFiringQueue(),
+        now_provider=_utc_now,
+    )
+
+
+def build_fire_one_interactor(session: AsyncSession) -> FireOneInteractor:
+    """Wired outside a request `Context`, for `reminders/jobs.py`."""
+    return FireOneInteractor(
+        reminder_repository=SqlReminderRepository(session),
+        notifications=_build_reminder_notifications_port(session=session),
+        now_provider=_utc_now,
+    )
+
+
+def build_mark_reminder_done_interactor(context: Context) -> MarkReminderDoneInteractor:
+    return MarkReminderDoneInteractor(
+        reminder_repository=SqlReminderRepository(context.session),
+        notifications=_build_reminder_notifications_port(session=context.session),
+        now_provider=_utc_now,
+    )
+
+
+def build_snooze_reminder_interactor(context: Context) -> SnoozeReminderInteractor:
+    return SnoozeReminderInteractor(
+        reminder_repository=SqlReminderRepository(context.session),
+        notifications=_build_reminder_notifications_port(session=context.session),
+        user_clock=_build_user_clock_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_list_notifications_interactor(
+    context: Context,
+) -> ListNotificationsInteractor:
+    return ListNotificationsInteractor(
+        notification_repository=SqlNotificationRepository(context.session)
+    )
+
+
+def build_count_unread_interactor(context: Context) -> CountUnreadInteractor:
+    return CountUnreadInteractor(
+        notification_repository=SqlNotificationRepository(context.session)
+    )
+
+
+def build_mark_notification_read_interactor(
+    context: Context,
+) -> MarkNotificationReadInteractor:
+    return MarkNotificationReadInteractor(
+        notification_repository=SqlNotificationRepository(context.session),
+        now_provider=_utc_now,
+    )
+
+
+def build_mark_all_read_interactor(context: Context) -> MarkAllReadInteractor:
+    return MarkAllReadInteractor(
+        notification_repository=SqlNotificationRepository(context.session),
+        now_provider=_utc_now,
+    )
+
+
+def build_stream_notifications_interactor(
+    context: Context,
+) -> StreamNotificationsInteractor:
+    return StreamNotificationsInteractor(
+        notification_repository=SqlNotificationRepository(context.session),
+        signal=live_signal,
     )

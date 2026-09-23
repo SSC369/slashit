@@ -1,0 +1,14 @@
+fragment NotificationFields on Notification {
+  id
+  kind
+  targetId
+  title
+  detail
+  marker
+  occurredAt
+  createdAt
+  read
+  action
+  actedAt
+  showPopup
+}

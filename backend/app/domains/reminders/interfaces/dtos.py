@@ -22,6 +22,8 @@ from app.domains.reminders.services.schedule import (
 ReminderStateValue = Literal["upcoming", "fired", "done"]
 ReminderActionValue = Literal["done", "snoozed", "missed"]
 RecordOriginValue = Literal["command", "edit"]
+LatenessValue = Literal["on_time", "late", "missed"]
+UserActionValue = Literal["done", "snoozed"]
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,54 @@ class ReminderDTO:
     # Set only on the reminder a create returns: why its time differs from
     # what was typed. Never stored, so every read leaves it None.
     when_note: str | None = None
+    # A pending snooze: one extra firing, the series untouched (4.2 decision 1).
+    snoozed_until: datetime | None = None
+
+    @property
+    def next_due_at(self) -> datetime | None:
+        """The next instant this reminder fires: its series or its snooze,
+        whichever comes first."""
+        instants = [
+            instant
+            for instant in (self.next_fire_at, self.snoozed_until)
+            if instant is not None
+        ]
+        return min(instants) if instants else None
+
+
+@dataclass(frozen=True)
+class FiringDTO:
+    """One occurrence that fired."""
+
+    id: UUID
+    reminder_id: UUID
+    user_id: UUID
+    scheduled_for: datetime
+    fired_at: datetime
+    lateness: LatenessValue
+    action: ReminderActionValue | None
+    acted_at: datetime | None
+
+
+@dataclass(frozen=True)
+class DueReminderDTO:
+    """What the sweep reads: which reminder, and the instant it is due for."""
+
+    reminder_id: UUID
+    due_at: datetime
+
+
+@dataclass(frozen=True)
+class FiringAnnouncement:
+    """What reminders tells the notification list about one firing."""
+
+    user_id: UUID
+    firing_id: UUID
+    reminder_id: UUID
+    title: str
+    detail: str
+    lateness: LatenessValue
+    occurred_at: datetime
 
 
 @dataclass(frozen=True)
@@ -139,6 +189,7 @@ class Reminder:
     original_input: str | None
     created_at: datetime
     updated_at: datetime
+    snoozed_until: datetime | None = None
     when_note: str | None = strawberry.field(
         default=None,
         description="Why the time differs from what was typed. Only on create.",
@@ -151,7 +202,7 @@ def reminder_dto_to_type(*, reminder: ReminderDTO) -> Reminder:
         id=strawberry.ID(str(reminder.id)),
         description=reminder.description,
         state=ReminderState(reminder.state),
-        next_fire_at=reminder.next_fire_at,
+        next_fire_at=reminder.next_due_at,
         when_text=reminder.summary.when_text,
         repeat_text=reminder.summary.repeat_text,
         repeat_kind=ReminderRepeatKind(spec.repeat_kind.value),
@@ -169,5 +220,6 @@ def reminder_dto_to_type(*, reminder: ReminderDTO) -> Reminder:
         original_input=reminder.original_input,
         created_at=reminder.created_at,
         updated_at=reminder.updated_at,
+        snoozed_until=reminder.snoozed_until,
         when_note=reminder.when_note,
     )

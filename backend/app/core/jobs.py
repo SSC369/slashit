@@ -22,7 +22,14 @@ from app.core.settings import get_settings
 
 _settings = get_settings()
 
+# The queue's tables live in their own schema (migration 0020), so every
+# connection the queue opens looks there first.
+JOB_QUEUE_SEARCH_PATH = "-c search_path=procrastinate"
+
 procrastinate_app = App(
-    connector=PsycopgConnector(conninfo=_settings.database_url),
-    import_paths=["app.domains.identity.jobs"],
+    connector=PsycopgConnector(
+        conninfo=_settings.database_url,
+        kwargs={"options": JOB_QUEUE_SEARCH_PATH},
+    ),
+    import_paths=["app.domains.identity.jobs", "app.domains.reminders.jobs"],
 )

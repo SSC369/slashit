@@ -33,7 +33,7 @@ class ListRemindersInteractor:
         )
 
     def _soonest_first(self, *, reminders: list[ReminderDTO]) -> list[ReminderDTO]:
-        return sorted(reminders, key=lambda item: item.next_fire_at or _FAR_FUTURE)
+        return sorted(reminders, key=lambda item: item.next_due_at or _FAR_FUTURE)
 
     def _newest_first(self, *, reminders: list[ReminderDTO]) -> list[ReminderDTO]:
         return sorted(

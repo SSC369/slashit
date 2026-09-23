@@ -64,6 +64,12 @@ type MalformedResult {
   reason: String!
 }
 
+type MarkAllNotificationsReadSucceeded {
+  markedCount: Int!
+}
+
+union MarkNotificationReadResult = Notification | NotificationNotFound
+
 type Me {
   id: ID!
   email: String!
@@ -83,6 +89,10 @@ type Mutation {
   signIn(input: SignInInput!): SignInResult!
   updateReminder(id: ID!, input: UpdateReminderInput!): UpdateReminderResult!
   deleteReminder(id: ID!): DeleteReminderResult!
+  markReminderDone(id: ID!): ReminderActionResult!
+  snoozeReminder(id: ID!, option: SnoozeChoice!): ReminderActionResult!
+  markNotificationRead(id: ID!): MarkNotificationReadResult!
+  markAllNotificationsRead: MarkAllNotificationsReadSucceeded!
 }
 
 type NoFieldsToUpdate {
@@ -91,6 +101,46 @@ type NoFieldsToUpdate {
 
 type NonCommandGuidance {
   originalInput: String!
+}
+
+type Notification {
+  id: ID!
+  kind: NotificationKind!
+  targetId: ID
+  title: String!
+  detail: String!
+  marker: NotificationMarker!
+  occurredAt: DateTime!
+  createdAt: DateTime!
+  read: Boolean!
+  action: NotificationAction
+  actedAt: DateTime
+  showPopup: Boolean!
+}
+
+enum NotificationAction {
+  DONE
+  SNOOZED
+}
+
+enum NotificationKind {
+  REMINDER
+  EMAIL_PAUSED
+}
+
+enum NotificationMarker {
+  NONE
+  LATE
+  MISSED
+}
+
+type NotificationNotFound {
+  message: String!
+}
+
+type NotificationPage {
+  items: [Notification!]!
+  nextCursor: String
 }
 
 type PendingQuestionCreated {
@@ -116,6 +166,8 @@ type Query {
   me: Me!
   reminders(search: String = null): ReminderGroups!
   reminder(id: ID!): ReminderResult!
+  notifications(cursor: String = null): NotificationPage!
+  unreadNotificationCount: Int!
   apiVersion: String!
 }
 
@@ -154,6 +206,7 @@ type Reminder {
   originalInput: String
   createdAt: DateTime!
   updatedAt: DateTime!
+  snoozedUntil: DateTime
 
   """Why the time differs from what was typed. Only on create."""
   whenNote: String
@@ -164,6 +217,8 @@ enum ReminderAction {
   SNOOZED
   MISSED
 }
+
+union ReminderActionResult = Reminder | ReminderNotFound
 
 type ReminderCreated {
   reminder: Reminder!
@@ -219,6 +274,7 @@ type RemindersListed {
 type Settings {
   timezone: String!
   updatedAt: DateTime!
+  defaultReminderTime: String!
 }
 
 type SharedQuotaExhausted {
@@ -238,9 +294,19 @@ type SignedIn {
   expiresIn: Int!
 }
 
+enum SnoozeChoice {
+  TEN_MINUTES
+  ONE_HOUR
+  TOMORROW
+}
+
 enum SortField {
   CREATED_AT
   DUE_AT
+}
+
+type Subscription {
+  notificationReceived: Notification!
 }
 
 type Task {

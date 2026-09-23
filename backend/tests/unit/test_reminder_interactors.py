@@ -84,7 +84,9 @@ async def _created(
 
 async def test_create_resolves_tomorrow_evening_in_the_users_zone() -> None:
     reminder = await _created(
-        repository=FakeReminderRepository(), user_id=uuid.uuid4(), fields=_fields()
+        repository=FakeReminderRepository(now_provider=_now),
+        user_id=uuid.uuid4(),
+        fields=_fields(),
     )
     assert reminder.next_fire_at == datetime(2026, 9, 24, 13, 30, tzinfo=UTC)
     assert reminder.summary.when_text == "Tomorrow, 7:00 PM"
@@ -96,7 +98,7 @@ async def test_create_resolves_tomorrow_evening_in_the_users_zone() -> None:
 async def test_create_with_a_date_and_no_time_takes_the_default_time() -> None:
     """TC-1.11, FR-3."""
     reminder = await _created(
-        repository=FakeReminderRepository(),
+        repository=FakeReminderRepository(now_provider=_now),
         user_id=uuid.uuid4(),
         fields=_fields(local_date=date(2026, 10, 15), local_time=None),
     )
@@ -108,7 +110,7 @@ async def test_create_with_a_date_and_no_time_takes_the_default_time() -> None:
 async def test_create_at_a_time_passed_today_moves_to_tomorrow() -> None:
     """FR-4: 7 AM said at 10 AM."""
     reminder = await _created(
-        repository=FakeReminderRepository(),
+        repository=FakeReminderRepository(now_provider=_now),
         user_id=uuid.uuid4(),
         fields=_fields(local_date=date(2026, 9, 23), local_time=time(7)),
     )
@@ -118,7 +120,7 @@ async def test_create_at_a_time_passed_today_moves_to_tomorrow() -> None:
 
 async def test_create_with_no_date_asks_and_writes_nothing() -> None:
     """TC-1.14's half in reminders, FR-2."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     outcome = await _create(repository).create_reminder(
         user_id=uuid.uuid4(),
         fields=_fields(description="Call the plumber", local_date=None),
@@ -131,7 +133,7 @@ async def test_create_with_no_date_asks_and_writes_nothing() -> None:
 
 async def test_daily_with_no_date_starts_today() -> None:
     reminder = await _created(
-        repository=FakeReminderRepository(),
+        repository=FakeReminderRepository(now_provider=_now),
         user_id=uuid.uuid4(),
         fields=_fields(kind=RepeatKind.DAILY, local_date=None, local_time=time(20)),
     )
@@ -141,7 +143,7 @@ async def test_daily_with_no_date_starts_today() -> None:
 
 async def test_monthly_on_the_31st_first_fires_on_30_september() -> None:
     reminder = await _created(
-        repository=FakeReminderRepository(),
+        repository=FakeReminderRepository(now_provider=_now),
         user_id=uuid.uuid4(),
         fields=_fields(kind=RepeatKind.MONTHLY, local_date=None, month_day=31),
     )
@@ -152,7 +154,7 @@ async def test_monthly_on_the_31st_first_fires_on_30_september() -> None:
 
 async def test_the_101st_active_reminder_is_refused() -> None:
     """TC-1.13, FR-38."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     for _ in range(MAX_ACTIVE_REMINDERS):
         await _created(repository=repository, user_id=user_id, fields=_fields())
@@ -167,7 +169,7 @@ async def test_the_101st_active_reminder_is_refused() -> None:
 
 async def test_a_deleted_reminder_frees_a_place_under_the_cap() -> None:
     """TC-1.13: a done or deleted one does not count."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     created = [
         await _created(repository=repository, user_id=user_id, fields=_fields())
@@ -216,7 +218,7 @@ def _update(repository: FakeReminderRepository) -> UpdateReminderInteractor:
 
 async def test_edit_replaces_the_series_and_recomputes_the_next_time() -> None:
     """FR-28."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
@@ -230,7 +232,7 @@ async def test_edit_replaces_the_series_and_recomputes_the_next_time() -> None:
 
 async def test_edit_to_weekly_with_no_day_raises_the_paired_error() -> None:
     """TC-1.17."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
@@ -242,7 +244,7 @@ async def test_edit_to_weekly_with_no_day_raises_the_paired_error() -> None:
 
 
 async def test_edit_with_empty_text_names_the_description_field() -> None:
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
@@ -255,7 +257,7 @@ async def test_edit_with_empty_text_names_the_description_field() -> None:
 
 async def test_edit_of_a_one_time_reminder_into_the_past_is_refused() -> None:
     """The design's ReminderEditPast."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
@@ -274,7 +276,7 @@ async def test_edit_of_a_one_time_reminder_into_the_past_is_refused() -> None:
 
 async def test_edit_after_a_delete_elsewhere_says_it_was_deleted() -> None:
     """The design's ReminderEditGone."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
     await repository.soft_delete(user_id=user_id, reminder_id=reminder.id)
@@ -287,7 +289,7 @@ async def test_edit_after_a_delete_elsewhere_says_it_was_deleted() -> None:
 
 async def test_edit_of_another_users_reminder_is_not_found() -> None:
     """NFR-6: the same answer as a missing id."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     reminder = await _created(
         repository=repository, user_id=uuid.uuid4(), fields=_fields()
     )
@@ -299,7 +301,7 @@ async def test_edit_of_another_users_reminder_is_not_found() -> None:
 
 
 async def test_an_unchanged_monthly_edit_keeps_the_31st() -> None:
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(
         repository=repository,
@@ -323,7 +325,7 @@ async def test_an_unchanged_monthly_edit_keeps_the_31st() -> None:
 
 async def test_delete_clears_the_next_fire_time() -> None:
     """TC-1.18, FR-29, FR-30."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
@@ -338,7 +340,7 @@ async def test_delete_clears_the_next_fire_time() -> None:
 async def test_deleting_a_missing_reminder_is_not_found() -> None:
     with pytest.raises(ReminderNotFoundError):
         await DeleteReminderInteractor(
-            reminder_repository=FakeReminderRepository()
+            reminder_repository=FakeReminderRepository(now_provider=_now)
         ).delete_reminder(
             dto=DeleteReminderInputDTO(user_id=uuid.uuid4(), reminder_id=uuid.uuid4())
         )
@@ -346,7 +348,7 @@ async def test_deleting_a_missing_reminder_is_not_found() -> None:
 
 async def test_list_puts_upcoming_soonest_first() -> None:
     """TC-1.19's ordering, FR-26."""
-    repository = FakeReminderRepository()
+    repository = FakeReminderRepository(now_provider=_now)
     user_id = uuid.uuid4()
     later = await _created(
         repository=repository,

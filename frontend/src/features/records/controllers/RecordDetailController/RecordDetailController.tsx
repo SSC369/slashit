@@ -10,6 +10,7 @@ import { useResponseHandler } from "../../../../api/queries/GetRecordDetail/resp
 import { API_FETCHING } from "../../../../constants/apiConstants";
 import Button from "../../../../design-system/components/Button";
 import { useStore } from "../../../../stores/StoreProvider";
+import PageTopbar from "../../../../components/PageTopbar";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
 import RecordEditForm, { type EditableStatus } from "../../components/RecordEditForm";
 import * as RecordsStyles from "../../components/styles";
@@ -107,9 +108,7 @@ const RecordDetailController = (): ReactElement => {
   if (notFound) {
     return (
       <div className={Styles.pageStyles}>
-        <div className={Styles.topbarStyles}>
-          <div className={Styles.topbarTitleStyles}>Records</div>
-        </div>
+        <PageTopbar title="Records" />
         <div className={Styles.paneStyles}>
           <div className={Styles.contentStyles}>
             This record no longer exists.{" "}
@@ -128,9 +127,7 @@ const RecordDetailController = (): ReactElement => {
   if (!task) {
     return (
       <div className={Styles.pageStyles}>
-        <div className={Styles.topbarStyles}>
-          <div className={Styles.topbarTitleStyles}>Records</div>
-        </div>
+        <PageTopbar title="Records" />
         <div className={Styles.paneStyles}>
           <div className={Styles.contentStyles}>
             <div className={RecordsStyles.skeletonBlockStyles} style={{ width: "40%", height: 20 }} />
@@ -150,9 +147,7 @@ const RecordDetailController = (): ReactElement => {
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Records</div>
-      </div>
+      <PageTopbar title="Records" />
       <div className={Styles.paneStyles}>
         <div className={Styles.contentStyles}>
           <div className={RecordsStyles.breadcrumbStyles}>

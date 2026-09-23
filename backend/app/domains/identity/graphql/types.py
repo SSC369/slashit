@@ -9,10 +9,17 @@ from app.domains.identity.interfaces.dtos import AuthSessionDTO, ProfileDTO, Set
 class Settings:
     timezone: str
     updated_at: datetime
+    # Epic 003 slice 2: the snooze menu shows "Tomorrow, 9:00 AM" (FR-21).
+    # "HH:MM", 24-hour. Its control arrives with slice 3 (FR-31).
+    default_reminder_time: str
 
 
 def settings_dto_to_type(*, settings: SettingsDTO) -> Settings:
-    return Settings(timezone=settings.timezone, updated_at=settings.updated_at)
+    return Settings(
+        timezone=settings.timezone,
+        updated_at=settings.updated_at,
+        default_reminder_time=f"{settings.default_reminder_time:%H:%M}",
+    )
 
 
 @strawberry.type

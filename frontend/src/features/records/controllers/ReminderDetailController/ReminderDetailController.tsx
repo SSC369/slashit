@@ -12,6 +12,7 @@ import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
 import { useStore } from "../../../../stores/StoreProvider";
 import { formatReminderDateTime } from "../../../../utils/formatReminder";
 import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
+import PageTopbar from "../../../../components/PageTopbar";
 import {
   draftFromReminder,
   validateDraft,
@@ -231,9 +232,7 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Reminder</div>
-      </div>
+      <PageTopbar title="Reminder" />
       <div className={Styles.paneStyles}>
         <div className={Styles.contentStyles}>
           <div className={RecordsStyles.breadcrumbStyles}>

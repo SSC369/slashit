@@ -7,6 +7,7 @@ import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCap
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
+import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
 import { ARGUMENTLESS_COMMANDS, CAPTURE_COMMANDS } from "../../../../constants/captureCommands";
 import type { RootStore } from "../../../../stores/RootStore";
@@ -244,12 +245,19 @@ const CommandCenterController = (): ReactElement => {
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Capture</div>
-        <div className={Styles.historyButtonStyles} onClick={() => setIsHistoryOpen(true)}>
-          <History size={17} />
-        </div>
-      </div>
+      <PageTopbar
+        title="Capture"
+        actions={
+          <button
+            type="button"
+            aria-label="Capture history"
+            className={Styles.historyButtonStyles}
+            onClick={() => setIsHistoryOpen(true)}
+          >
+            <History size={17} />
+          </button>
+        }
+      />
 
       <HistoryPanel isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
 

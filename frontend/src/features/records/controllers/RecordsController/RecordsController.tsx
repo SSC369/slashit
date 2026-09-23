@@ -9,6 +9,7 @@ import { API_SUCCESS } from "../../../../constants/apiConstants";
 import { cn } from "../../../../utils/cn";
 import { useStore } from "../../../../stores/StoreProvider";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
+import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
@@ -91,9 +92,7 @@ const RecordsController = (): ReactElement => {
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Records</div>
-      </div>
+      <PageTopbar title="Records" />
 
       {showEmpty ? (
         <EmptyRecords onStartCapturing={() => navigate("/")} />

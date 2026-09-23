@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, time
 from uuid import UUID
 
+from app.domains.reminders.services.firing import SnoozeOption
 from app.domains.reminders.services.schedule import RepeatKind
 
 
@@ -37,3 +38,16 @@ class UpdateReminderInputDTO:
 class DeleteReminderInputDTO:
     user_id: UUID
     reminder_id: UUID
+
+
+@dataclass(frozen=True)
+class MarkReminderDoneInputDTO:
+    user_id: UUID
+    reminder_id: UUID
+
+
+@dataclass(frozen=True)
+class SnoozeReminderInputDTO:
+    user_id: UUID
+    reminder_id: UUID
+    option: SnoozeOption

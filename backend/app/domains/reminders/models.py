@@ -53,3 +53,28 @@ class Reminder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A snooze is a one-off extra firing; the series stays in next_fire_at.
+    snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+FIRING_LATENESS = ("on_time", "late", "missed")
+
+
+class ReminderFiring(Base):
+    """One occurrence that fired. ``UNIQUE (reminder_id, scheduled_for)`` is
+    what makes a repeated firing job a no-op (AD-3)."""
+
+    __tablename__ = "reminder_firings"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    reminder_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid)
+    scheduled_for: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    fired_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    lateness: Mapped[str] = mapped_column(
+        Enum(*FIRING_LATENESS, name="firing_lateness", create_type=False)
+    )
+    action: Mapped[str | None] = mapped_column(
+        Enum(*REMINDER_ACTIONS, name="reminder_action", create_type=False)
+    )
+    acted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

@@ -126,3 +126,7 @@ export const pillRepeatStyles = "border-accent-wash bg-accent-wash text-accent";
 export const detailSubValueStyles = "mt-0.5 text-[12.5px] text-foreground-tertiary";
 export const detailMetaStyles = "mt-[22px] text-[12.5px] text-foreground-tertiary";
 export const detailActionsInlineStyles = "flex shrink-0 gap-2.5";
+
+// Done and Snooze on a Needs attention row (Main)
+export const rowActionsStyles = "ml-2.5 inline-flex items-center gap-1.5 align-middle";
+export const rowActionErrorStyles = "text-[12px] text-destructive";

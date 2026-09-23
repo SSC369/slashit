@@ -9,13 +9,29 @@ import { buildReminder as reminder } from "../../../../testing/reminderFixture";
 import { StoreProvider } from "../../../../stores/StoreProvider";
 import RecordsController from "./RecordsController";
 
-const { mockUseGetRecords, mockUseRecordsViewOpened, mockUseGetReminders, mockUseOnlineStatus } =
-  vi.hoisted(() => ({
-    mockUseGetRecords: vi.fn(),
-    mockUseRecordsViewOpened: vi.fn(),
-    mockUseGetReminders: vi.fn(),
-    mockUseOnlineStatus: vi.fn(),
-  }));
+const {
+  mockUseGetRecords,
+  mockUseRecordsViewOpened,
+  mockUseGetReminders,
+  mockUseOnlineStatus,
+  mockMarkDone,
+  mockSnooze,
+} = vi.hoisted(() => ({
+  mockUseGetRecords: vi.fn(),
+  mockUseRecordsViewOpened: vi.fn(),
+  mockUseGetReminders: vi.fn(),
+  mockUseOnlineStatus: vi.fn(),
+  mockMarkDone: vi.fn(),
+  mockSnooze: vi.fn(),
+}));
+
+vi.mock("../../../../api/mutations/MarkReminderDone/useMarkReminderDone", () => ({
+  default: () => ({ triggerAPI: mockMarkDone, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("../../../../api/mutations/SnoozeReminder/useSnoozeReminder", () => ({
+  default: () => ({ triggerAPI: mockSnooze, apiStatus: 0, apiError: null }),
+}));
 
 vi.mock("../../../../api/queries/GetReminders/useGetReminders", () => ({
   default: () => mockUseGetReminders(),
@@ -215,6 +231,43 @@ describe("RecordsController", () => {
       openRemindersTab();
       fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: "dentist" } });
       expect(screen.getByText("No reminders match “dentist”")).toBeInTheDocument();
+    });
+
+    it("TC-2.19: Done on a row that needs attention moves it to Upcoming", () => {
+      const fired = reminder({ id: "r9", description: "Pay electricity bill", state: "FIRED", repeatKind: "MONTHLY" });
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ needsAttention: [fired] }),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      mockMarkDone.mockImplementation((args) => args.onReminderActed({ ...fired, state: "UPCOMING" }));
+      openRemindersTab();
+
+      expect(screen.getByText("Needs attention")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Done/ }));
+
+      expect(mockMarkDone).toHaveBeenCalledWith(expect.objectContaining({ id: "r9" }));
+      expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+      // The Upcoming group header, and the row's own Upcoming pill.
+      expect(screen.getAllByText("Upcoming")).toHaveLength(2);
+    });
+
+    it("keeps a failed Done on the row and says so", () => {
+      const fired = reminder({ id: "r9", state: "FIRED" });
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ needsAttention: [fired] }),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      mockMarkDone.mockImplementation((args) => args.onRequestFailed(new Error("network")));
+      openRemindersTab();
+
+      fireEvent.click(screen.getByRole("button", { name: /Done/ }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent("That didn't save. Try again.");
+      expect(screen.getByText("Needs attention")).toBeInTheDocument();
     });
 
     it("keeps the saved list when offline and says so", () => {

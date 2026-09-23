@@ -4,6 +4,8 @@ import { getMainDefinition } from "@apollo/client/utilities";
 import { createClient } from "graphql-ws";
 
 import { authLink } from "./authLink";
+import { announceLiveReconnected } from "./liveConnection";
+import { supabaseClient } from "./supabaseClient";
 
 const httpUrl = import.meta.env.VITE_GRAPHQL_HTTP_URL;
 const wsUrl = import.meta.env.VITE_GRAPHQL_WS_URL;
@@ -19,6 +21,21 @@ const httpLink = authLink.concat(new HttpLink({ uri: httpUrl }));
 const wsLink = new GraphQLWsLink(
   createClient({
     url: wsUrl,
+    // A browser cannot set headers on a WebSocket, so the token rides in
+    // `connection_init`. Read afresh on every (re)connect, so a refreshed
+    // session is what the server sees.
+    connectionParams: async () => {
+      const { data } = await supabaseClient.auth.getSession();
+      const accessToken = data.session?.access_token ?? null;
+      return accessToken ? { authorization: `Bearer ${accessToken}` } : {};
+    },
+    retryAttempts: Number.POSITIVE_INFINITY,
+    shouldRetry: () => true,
+    on: {
+      connected: (_socket, _payload, wasRetry) => {
+        if (wasRetry) announceLiveReconnected();
+      },
+    },
   }),
 );
 

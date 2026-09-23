@@ -28,6 +28,8 @@ Tables this feature touches, by migration:
 | `user_settings` | changed: four columns | `0017_reminder_settings` | 1 |
 | `pending_captures` | changed: enum value `remind_at` | `0018_pending_capture_remind` | 1 |
 | `reminder_firings`, `notifications`, `notification_deliveries` | new | `0019_firings_and_notifications` | 2 |
+| `reminders` | changed: `snoozed_until` | `0019_firings_and_notifications` | 2 |
+| Procrastinate's queue tables, schema `procrastinate` | new | `0020_procrastinate_schema` | 2 |
 
 ## 1. Scope recap
 
@@ -58,8 +60,8 @@ timezone moves and outages.
 
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
-| 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, building |
-| 2 | 04.2-fire-in-the-app.md | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | not started |
+| 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, built 2026-09-23; live pass owed |
+| 2 | [04.2-fire-in-the-app.md](./04.2-fire-in-the-app.md) | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | approved, built 2026-09-23; live pass owed |
 | 3 | 04.3-email-and-settings.md | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | not started |
 | 4 | 04.4-timezone-and-hardening.md | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | not started |
 
@@ -113,7 +115,8 @@ IdentityService.get_reminder_settings(*, user_id) -> ReminderSettingsDTO
 IdentityService.get_account_email(*, user_id) -> str          # slice 3
 
 # notifications/public.py — slice 2 creates, slice 3 adds email delivery
-NotificationService.publish(*, user_id, kind, source_id, title, detail, marker) -> NotificationDTO
+NotificationService.publish(*, publish: PublishNotification) -> NotificationDTO | None  # None: already published
+NotificationService.record_action(*, user_id, source_id, action, acted_at) -> None
 ```
 
 ### Live signal, slice 2
@@ -156,7 +159,8 @@ type Reminder {
 | `0016_reminders` | Create `reminders`, build plan §3 fields; index `(next_fire_at) WHERE deleted_at IS NULL AND state <> 'done'`; RLS enabled and forced, owner policy, grant to `authenticated` | yes | none | 1 |
 | `0017_reminder_settings` | `user_settings` gains `default_reminder_time time NOT NULL DEFAULT '09:00'`, `popups_enabled bool DEFAULT true`, `email_enabled bool DEFAULT true`, `channels_off_warned_at timestamptz NULL` | yes | defaults fill existing rows | 1 |
 | `0018_pending_capture_remind` | `ALTER TYPE pending_capture_missing_field ADD VALUE 'remind_at'`; `known_title` is reused for the reminder text | no: PostgreSQL cannot drop an enum value; downgrade leaves it | none | 1 |
-| `0019_firings_and_notifications` | Create `reminder_firings`, `notifications`, `notification_deliveries` with the three unique constraints of build plan §3, RLS and grants | yes | none | 2 |
+| `0019_firings_and_notifications` | Create `reminder_firings`, `notifications`, `notification_deliveries` with the three unique constraints of build plan §3, RLS and grants. `reminders` gains `snoozed_until timestamptz NULL` and a partial index on it | yes | none | 2 |
+| `0020_procrastinate_schema` | Install the job queue's tables in a `procrastinate` schema; jobs connect with that search path | yes | none | 2 |
 
 ## 6. State management
 
@@ -210,4 +214,6 @@ into the store, per `frontend/rules/repo-rules.md` §7.
 | 2026-09-23 | Created with sub-plan 1 | Build plan approved | user | none |
 | 2026-09-23 | Job table and cross-slice tests follow the build plan's amended AD-2: `fire_due` fans out one `fire_one` job per due reminder. X-4 reworded, X-7 added | Build plan change record, same day | user | none: sub-plan 2 is not yet written; 4.1 does not touch firing |
 | 2026-09-23 | Approved | User: "implementation plan approved, start slice 1" | user | none |
-| 2026-09-23 | §4 brought in line with slice 1 as built: `ScheduleSpec.repeat_month_day`; `ReminderDTO.when_note` and the GraphQL `whenNote`; `create_reminder` also returns `ReminderNeedsWhen`; the GraphQL type adds `repeatMonthDay` and `updatedAt`, names its enum `ReminderRepeatKind` and types `origin` as `String`, as `Task` does | Found while building slice 1; each is logged in `05-dev-log.md` (D-1 to D-4) | recorded during build, pending user review | none: sub-plans 2 to 4 are not yet written |
+| 2026-09-23 | §4 brought in line with slice 1 as built: `ScheduleSpec.repeat_month_day`; `ReminderDTO.when_note` and the GraphQL `whenNote`; `create_reminder` also returns `ReminderNeedsWhen`; the GraphQL type adds `repeatMonthDay` and `updatedAt`, names its enum `ReminderRepeatKind` and types `origin` as `String`, as `Task` does | Found while building slice 1; each is logged in `05-dev-log.md` (D-1 to D-4) | user, with slice 1's commit | none: sub-plans 2 to 4 are not yet written |
+| 2026-09-23 | `reminders.snoozed_until` added to migration 0019 and the table list | User chose, before 04.2 was drafted, that snoozing a recurring reminder adds a one-off firing and leaves the series alone (FR-21 with FR-24) | user, with 04.2 | 4.2 only; 4.1 is built and unaffected |
+| 2026-09-23 | §4 `NotificationService` signatures and §5 migration `0020_procrastinate_schema` brought in line with slice 2 as built | Dev log D-19 and D-22 | pending user review | none: 4.3 and 4.4 are not yet written |

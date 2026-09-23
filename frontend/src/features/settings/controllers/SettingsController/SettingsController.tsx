@@ -9,6 +9,7 @@ import Button from "../../../../design-system/components/Button";
 import { useStore } from "../../../../stores/StoreProvider";
 import { cn } from "../../../../utils/cn";
 import { detectTimezone } from "../../../../utils/detectTimezone";
+import PageTopbar from "../../../../components/PageTopbar";
 import {
   getThemePreference,
   setThemePreference,
@@ -80,9 +81,7 @@ const SettingsController = (): ReactElement => {
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Settings</div>
-      </div>
+      <PageTopbar title="Settings" />
       <div className={Styles.paneStyles}>
         <div className={Styles.contentStyles}>
           <div className={Styles.sectionTitleStyles}>Timezone</div>

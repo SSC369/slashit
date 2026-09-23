@@ -1,14 +1,19 @@
 import { AlertCircle, LogIn, SearchX, WifiOff } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 
+import useMarkReminderDone from "../../../../api/mutations/MarkReminderDone/useMarkReminderDone";
+import useSnoozeReminder from "../../../../api/mutations/SnoozeReminder/useSnoozeReminder";
 import useGetReminders from "../../../../api/queries/GetReminders/useGetReminders";
 import { useResponseHandler } from "../../../../api/queries/GetReminders/responseHandler";
 import { API_FAILED } from "../../../../constants/apiConstants";
 import { MAX_ACTIVE_REMINDERS } from "../../../../constants/reminderConstants";
 import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
+import type { ReminderFieldsFragment } from "../../../../fragments/ReminderFields.generated";
+import type { NotificationActionState } from "../../../../stores/NotificationsStore";
 import { useStore } from "../../../../stores/StoreProvider";
+import type { SnoozeOptionType } from "../../../../utils/formatNotification";
 import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
 import EmptyReminders from "../../components/EmptyReminders";
 import ReminderListNotice from "../../components/ReminderListNotice";
@@ -36,6 +41,45 @@ const RemindersController = (): ReactElement => {
   const isOnline = useOnlineStatus();
   const { triggerAPI, data, apiStatus, apiError } = useGetReminders();
   const { handleResponse } = useResponseHandler();
+  const { triggerAPI: triggerMarkDone } = useMarkReminderDone();
+  const { triggerAPI: triggerSnooze } = useSnoozeReminder();
+  const [rowActions, setRowActions] = useState<Map<string, NotificationActionState>>(new Map());
+
+  const setRowAction = (id: string, state: NotificationActionState | null): void => {
+    setRowActions((current) => {
+      const next = new Map(current);
+      if (state === null) next.delete(id);
+      else next.set(id, state);
+      return next;
+    });
+  };
+
+  const applyAction = (reminder: ReminderFieldsFragment, action: "DONE" | "SNOOZED"): void => {
+    store.reminders.upsert(reminder);
+    store.notifications.applyReminderAction(reminder.id, action);
+    setRowAction(reminder.id, null);
+  };
+
+  const handleDone = (reminder: ReminderFieldsFragment): void => {
+    setRowAction(reminder.id, { kind: "DONE", status: "ACTING" });
+    triggerMarkDone({
+      id: reminder.id,
+      onReminderActed: (updated) => applyAction(updated, "DONE"),
+      onReminderNotFound: () => store.reminders.remove(reminder.id),
+      onRequestFailed: () => setRowAction(reminder.id, { kind: "DONE", status: "FAILED" }),
+    });
+  };
+
+  const handleSnooze = (reminder: ReminderFieldsFragment, option: SnoozeOptionType): void => {
+    setRowAction(reminder.id, { kind: "SNOOZE", status: "ACTING" });
+    triggerSnooze({
+      id: reminder.id,
+      option,
+      onReminderActed: (updated) => applyAction(updated, "SNOOZED"),
+      onReminderNotFound: () => store.reminders.remove(reminder.id),
+      onRequestFailed: () => setRowAction(reminder.id, { kind: "SNOOZE", status: "FAILED" }),
+    });
+  };
 
   const { searchText } = store.records;
   const trimmedSearch = searchText.trim();
@@ -134,7 +178,12 @@ const RemindersController = (): ReactElement => {
             done={store.reminders.getGroup("DONE")}
             isLoading={listState === "LOADING"}
             footLeft={footLeft}
+            isOffline={!isOnline}
+            defaultReminderTime={store.settings.defaultReminderTime}
+            rowActions={rowActions}
             onOpenReminder={handleOpenReminder}
+            onDone={handleDone}
+            onSnooze={handleSnooze}
           />
         </>
       );

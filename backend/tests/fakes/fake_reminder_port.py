@@ -29,7 +29,7 @@ class FakeReminderPort:
         now_provider: Callable[[], datetime] = lambda: datetime.now(UTC),
         timezone: str = "Asia/Kolkata",
     ) -> None:
-        self.repository = FakeReminderRepository()
+        self.repository = FakeReminderRepository(now_provider=now_provider)
         self.create_interactor = CreateReminderInteractor(
             reminder_repository=self.repository,
             user_clock=FakeUserClockPort(timezone=timezone),

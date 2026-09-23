@@ -53,7 +53,7 @@ class ReminderService:
         active = [item for item in reminders if item.state != "done"]
         return sorted(
             active,
-            key=lambda item: (item.state != "fired", item.next_fire_at or _FAR_FUTURE),
+            key=lambda item: (item.state != "fired", item.next_due_at or _FAR_FUTURE),
         )
 
     async def list_for_records(
