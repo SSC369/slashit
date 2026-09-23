@@ -18,7 +18,7 @@
 | 4.1 Set and manage | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | approved | 2026-09-23 |
 | 4.2 Fire in the app | [04.2-fire-in-the-app.md](./04.2-fire-in-the-app.md) | approved | 2026-09-23 |
 | 4.3 Email and settings | [04.3-email-and-settings.md](./04.3-email-and-settings.md) | approved | 2026-09-23 |
-| 4.4 Timezone and hardening | 04.4-timezone-and-hardening.md | not started | |
+| 4.4 Timezone and hardening | [04.4-timezone-and-hardening.md](./04.4-timezone-and-hardening.md) | approved | 2026-09-23 |
 | 5 Dev | [05-dev-log.md](./05-dev-log.md) | slices 1 to 3 built; live browser passes owed (T-1.14, T-2.15); first real email owed (T-3.10) | |
 
 ## One-line summary

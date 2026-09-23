@@ -85,7 +85,7 @@ Identity depends on nothing.
 |---|---|---|---|---|
 | `reminders` | `id`, `user_id`, `description`, `repeat_kind` (none, daily, weekly, monthly, yearly), `repeat_interval`, `repeat_weekdays` smallint[], `local_time`, `anchor_local_date`, `one_time_at` timestamptz, `next_fire_at` timestamptz, `schedule_timezone`, `state` (upcoming, fired, done), `last_fired_at`, `last_action`, `origin`, `original_input`, `created_at`, `updated_at`, `deleted_at` | its firings | Soft-deleted, matching tasks since migration 0013. A deleted row never fires (FR-30) | `user_id` |
 | `reminder_firings` | `id`, `reminder_id`, `user_id`, `scheduled_for`, `fired_at`, `lateness` (on_time, late, missed), `action`, `acted_at` | one notification | Kept while its reminder exists | `user_id` |
-| `notifications` | `id`, `user_id`, `kind` (reminder, email_paused), `source_id`, `title`, `detail`, `marker` (none, late, missed), `created_at`, `read_at` | its deliveries | Purged 90 days after `created_at` (FR-40) | `user_id` |
+| `notifications` | `id`, `user_id`, `kind` (reminder, email_paused), `source_id`, `title`, `detail`, `marker` (none, late, missed), `created_at`, `read_at` | its deliveries | Soft-deleted 90 days after `created_at` (FR-40): `deleted_at` stamped, rows kept | `user_id` |
 | `notification_deliveries` | `id`, `notification_id`, `user_id`, `channel` (popup, email), `status` (queued, sent, failed, skipped), `attempts`, `provider_message_id`, `sent_at` | nothing | Deleted with its notification | `user_id` |
 | `user_settings` | adds `default_reminder_time` (09:00), `popups_enabled` (true), `email_enabled` (true), `channels_off_warned_at` | | existing | `user_id` |
 
@@ -152,7 +152,7 @@ one. This fixes task capture too, which today resolves "tomorrow" in UTC.
 | Caching | None. MobX stores hold server state; subscription payloads write into the same store method the list query uses |
 | Observability | structlog events for fired, late, missed, delivered and failed. Every firing logs its delay, from which NFR-1 is read. An hourly reconciliation job logs an error for any active reminder more than 5 minutes past `next_fire_at` with no firing (NFR-4). Product events go to 001's `events` table for G1 to G4 |
 | Failure and retry | Sweep: defers one `reminders.fire_one` job per due reminder and does no firing itself. Each firing job is its own transaction, so one bad row never blocks another, and a failed firing job retries. Email: a Procrastinate job per delivery, idempotency key = delivery id, 5 retries with backoff, `estimate`. `LISTEN` connection: reconnects with backoff; clients refetch on reconnect |
-| Data retention and privacy | Notifications purged at 90 days by a daily job. The email carries the reminder text, per PRD Q1; no reminder text in logs or analytics (T6) |
+| Data retention and privacy | Notifications soft-deleted at 90 days by a daily job; the rows are kept. The email carries the reminder text, per PRD Q1; no reminder text in logs or analytics (T6) |
 
 ## 7. Alternatives considered
 
@@ -222,3 +222,4 @@ Every question is answered, each as the recommended option: Q1 to Q8 before draf
 | 2026-09-23 | Q9 to Q11 answered: own sending domain, late after 5 minutes, first valid minute on a clock-change day | User chose the recommended options | user |
 | 2026-09-23 | Approved. AD-1 to AD-12 locked. AD-1, AD-4 and AD-9 copied into `tech-stack.md` in the same change | User: "build plan approved, start the implementation plan" | user |
 | 2026-09-23 | AD-2 amended: the sweep fans out one `reminders.fire_one` job per due reminder instead of firing inline with a 500-row cap. Exactly-once is unchanged: a queueing lock stops a double defer, the unique firing row stops a double fire. §1, §2, §6, §7 and §9 updated. Stale: `04-implementation-plan.md` §4 job table, updated in the same change; sub-plan 4.1 is not affected | User proposed fanning out firing so a burst of due reminders never delays the tail | user |
+| 2026-09-23 | §3 and §7: notifications leave the list at 90 days by soft delete, a `deleted_at` stamp, instead of being purged. Adds migration `0022_notifications_soft_delete` | User's standing rule, "use soft delete dont hard delete any data record", confirmed for this table while 04.4 was drafted. Stale: the index's migration table, now updated; 4.4 is written to it | user |

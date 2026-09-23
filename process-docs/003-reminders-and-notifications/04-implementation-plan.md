@@ -31,6 +31,7 @@ Tables this feature touches, by migration:
 | `reminders` | changed: `snoozed_until` | `0019_firings_and_notifications` | 2 |
 | Procrastinate's queue tables, schema `procrastinate` | new | `0020_procrastinate_schema` | 2 |
 | `notifications` | changed: `time_zone` | `0021_notification_time_zone` | 3 |
+| `notifications` | changed: `deleted_at`, unread index rebuilt | `0022_notifications_soft_delete` | 4 |
 
 ## 1. Scope recap
 
@@ -64,7 +65,7 @@ timezone moves and outages.
 | 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, built 2026-09-23; live pass owed |
 | 2 | [04.2-fire-in-the-app.md](./04.2-fire-in-the-app.md) | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | approved, built 2026-09-23; live pass owed |
 | 3 | [04.3-email-and-settings.md](./04.3-email-and-settings.md) | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | built; T-3.10 waits on a sending domain |
-| 4 | 04.4-timezone-and-hardening.md | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | not started |
+| 4 | [04.4-timezone-and-hardening.md](./04.4-timezone-and-hardening.md) | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | approved, building |
 
 Slices 3 and 4 are independent of each other and can be built in either order.
 
@@ -163,6 +164,7 @@ type Reminder {
 | `0019_firings_and_notifications` | Create `reminder_firings`, `notifications`, `notification_deliveries` with the three unique constraints of build plan §3, RLS and grants. `reminders` gains `snoozed_until timestamptz NULL` and a partial index on it | yes | none | 2 |
 | `0020_procrastinate_schema` | Install the job queue's tables in a `procrastinate` schema; jobs connect with that search path | yes | none | 2 |
 | `0021_notification_time_zone` | `notifications` gains `time_zone text NOT NULL DEFAULT 'UTC'`, the reminder's zone for the email (04.3 decision 3) | yes | default fills existing rows | 3 |
+| `0022_notifications_soft_delete` | `notifications` gains `deleted_at timestamptz NULL`; `ix_notifications_unread` rebuilt to skip deleted rows (04.4 decision 1) | yes | none: no row is older than 90 days | 4 |
 
 ## 6. State management
 
@@ -198,7 +200,7 @@ into the store, per `frontend/rules/repo-rules.md` §7.
 | Rollout stages | Each slice merges when its definition of done holds. The worker container is deployed with slice 2 |
 | Kill switch | `REMINDERS_FIRING_ENABLED=false` stops the sweep; `REMINDER_EMAIL_ENABLED=false` stops Resend calls, leaving the list working. Both read from `core/settings.py` |
 | Metrics to watch | Firing delay p95 (NFR-1), duplicates (NFR-3), reconciliation errors (NFR-4), email failures, bounces and complaints |
-| Rollback plan | Revert the slice. Migrations 0016, 0017 and 0019 downgrade; 0018 leaves one unused enum value |
+| Rollback plan | Revert the slice. Migrations 0016, 0017, 0019 to 0022 downgrade; 0018 leaves one unused enum value |
 
 ## 11. Definition of done
 
@@ -221,3 +223,4 @@ into the store, per `frontend/rules/repo-rules.md` §7.
 | 2026-09-23 | §4 `NotificationService` signatures and §5 migration `0020_procrastinate_schema` brought in line with slice 2 as built | Dev log D-19 and D-22 | pending user review | none: 4.3 and 4.4 are not yet written |
 | 2026-09-23 | Migration `0021_notification_time_zone` added to the table list and §5 | 04.3 decision 3: the email job reads the reminder's zone from the notification, since notifications may not call reminders | user, with 04.3 | 4.3 only |
 | 2026-09-23 | §4 `IdentityService.get_account_email` returns `str \| None` | Built with slice 3: an account may have no address, and 4.3 §8 plans for it. Dev log D-33 | pending user review | none: 4.3 is built to it; 4.4 does not use it |
+| 2026-09-23 | Migration `0022_notifications_soft_delete` added to the table list, §5 and §9 | 04.4 decision 1: the 90-day purge soft-deletes, per the user's standing rule; build plan change record the same day | user, with 04.4 decision 1 | 4.4 only |
