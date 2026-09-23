@@ -3,15 +3,17 @@ doc: prd
 feature: 003-reminders-and-notifications
 title: Reminders and Notifications
 stage: 1
-status: in-review
+status: approved
 owner: user
 created: 2026-09-23
 updated: 2026-09-23
-approved_on: null
+approved_on: 2026-09-23
 supersedes: null
 ---
 
 # Epic PRD — Reminders and Notifications
+
+> **Approved** by @user on 2026-09-23. Locked — changes require a change record (§7).
 
 Context: [Epic](./00-epic.md) · [Product](../product/product.md)
 
@@ -178,5 +180,6 @@ location-based reminders, and reminders shared with other users.
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
-| 2026-09-23 | Created from the approved epic. Firing precision (NFR-1), month-end rule (FR-8) and list retention (FR-40) set from the user's answers before drafting | Epic approved | pending |
+| 2026-09-23 | Created from the approved epic. Firing precision (NFR-1), month-end rule (FR-8) and list retention (FR-40) set from the user's answers before drafting | Epic approved | user |
 | 2026-09-23 | Q1 answered: the email shows the reminder text. FR-15 unchanged | User chose the recommended option | user |
+| 2026-09-23 | Approved | User: "PRD approved, start the design" | user |
