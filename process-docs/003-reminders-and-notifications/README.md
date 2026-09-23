@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Stage | 3 Build plan |
+| Stage | 4 Implementation plan |
 | Status | in-review |
 | Started | 2026-09-23 |
 | Owner | user |
@@ -13,8 +13,12 @@
 | 0 Epic | [00-epic.md](./00-epic.md) | approved | 2026-09-23 |
 | 1 PRD | [01-prd.md](./01-prd.md) | approved | 2026-09-23 |
 | 2 Design | [02-design.md](./02-design.md) | approved | 2026-09-23 |
-| 3 Build plan | [03-build-plan.md](./03-build-plan.md) | in-review | |
-| 4 Implementation plan | [04-implementation-plan.md](./04-implementation-plan.md) | not started | |
+| 3 Build plan | [03-build-plan.md](./03-build-plan.md) | approved | 2026-09-23 |
+| 4 Implementation plan (index) | [04-implementation-plan.md](./04-implementation-plan.md) | in-review | |
+| 4.1 Set and manage | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | in-review | |
+| 4.2 Fire in the app | 04.2-fire-in-the-app.md | not started | |
+| 4.3 Email and settings | 04.3-email-and-settings.md | not started | |
+| 4.4 Timezone and hardening | 04.4-timezone-and-hardening.md | not started | |
 | 5 Dev | [05-dev-log.md](./05-dev-log.md) | not started | |
 
 ## One-line summary
