@@ -3,15 +3,17 @@ doc: design
 feature: 003-reminders-and-notifications
 title: Reminders and Notifications
 stage: 2
-status: in-review
+status: approved
 owner: user
 created: 2026-09-23
 updated: 2026-09-23
-approved_on: null
+approved_on: 2026-09-23
 supersedes: null
 ---
 
 # Design — Reminders and Notifications
+
+> **Approved** by @user on 2026-09-23. Locked — changes require a change record (§7).
 
 Context: [PRD](./01-prd.md)
 Canvas: https://claude.ai/artifact/3FqQWwFBqv9wN1Q214wvNB
@@ -251,3 +253,4 @@ ignore CSS variables.
 | 2026-09-23 | Page 7, Loading and feedback, added: skeletons for Records, detail and Settings; spinners inside Save, Delete, pop-up Done and Settings switches; a success toast on create and on edit. Eleven artboards, states, deltas, accessibility and copy updated | User asked for skeleton loaders, button loaders and a success toast | user |
 | 2026-09-23 | Busy buttons show a spinner only, no "Saving…" or "Deleting…" text; width held. Pop-up Done follows the same rule. `ReminderEditSaving`, `DeleteReminderBusy`, `PopupActing` updated | User asked for the spinner alone | user |
 | 2026-09-23 | Page 8, States and errors, added: 16 artboards so every state in §4 is drawn, including offline, not found, invalid input, time passed, save and delete failures, deleted while editing, action failures and model unavailable. §4 rewritten to name the artboard for each state. "No permission" now shows 001's session-ended card rather than a redirect | User asked for every state to be designed, and made it a design rule | user |
+| 2026-09-23 | Approved | User: "design approved, start the build plan" | user |
