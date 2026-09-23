@@ -11,6 +11,12 @@ from uuid import UUID
 
 from app.domains.gateway.public import ExtractionResult
 from app.domains.records.public import TaskDTO
+from app.domains.reminders.public import (
+    ReminderDTO,
+    ReminderFields,
+    ReminderLimitReached,
+    ReminderNeedsWhen,
+)
 
 
 class TaskPort(Protocol):
@@ -46,3 +52,21 @@ class AnalyticsPort(Protocol):
     metric (PRD section 8) has no other data source."""
 
     async def record_no_command_input(self, *, user_id: UUID) -> None: ...
+
+
+class ReminderPort(Protocol):
+    """What capture needs from reminders: create one from what a sentence
+    said, and list the active ones for `/reminders` (epic 003, FR-1, FR-25)."""
+
+    async def create_reminder(
+        self, *, user_id: UUID, fields: ReminderFields, original_input: str
+    ) -> ReminderDTO | ReminderLimitReached | ReminderNeedsWhen: ...
+
+    async def list_active(self, *, user_id: UUID) -> list[ReminderDTO]: ...
+
+
+class LocalClockPort(Protocol):
+    """The user's local now and zone name. Every extraction reads relative
+    dates against it, tasks included (epic 003, build plan AD-7)."""
+
+    async def local_now(self, *, user_id: UUID) -> tuple[datetime, str]: ...

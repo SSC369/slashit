@@ -13,10 +13,12 @@ from app.domains.identity.graphql.mutations import IdentityMutations
 from app.domains.identity.graphql.queries import IdentityQueries
 from app.domains.records.graphql.mutations import RecordMutations
 from app.domains.records.graphql.queries import RecordQueries
+from app.domains.reminders.graphql.mutations import ReminderMutations
+from app.domains.reminders.graphql.queries import ReminderQueries
 
 
 @strawberry.type
-class Query(CaptureQueries, RecordQueries, IdentityQueries):
+class Query(CaptureQueries, RecordQueries, IdentityQueries, ReminderQueries):
     """Root query. Each domain's queries class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""
 
@@ -27,7 +29,7 @@ class Query(CaptureQueries, RecordQueries, IdentityQueries):
 
 
 @strawberry.type
-class Mutation(CaptureMutations, RecordMutations, IdentityMutations):
+class Mutation(CaptureMutations, RecordMutations, IdentityMutations, ReminderMutations):
     """Root mutation. Each domain's mutations class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""
 

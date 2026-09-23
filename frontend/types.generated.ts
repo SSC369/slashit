@@ -7,6 +7,8 @@ export type Scalars = {
   Boolean: { input: boolean; output: boolean; }
   Int: { input: number; output: number; }
   Float: { input: number; output: number; }
+  /** Date (isoformat) */
+  Date: { input: string; output: string; }
   /** Date with time (isoformat) */
   DateTime: { input: string; output: string; }
 };
@@ -33,7 +35,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = MalformedResult | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -44,6 +46,7 @@ export type CaptureTurn = {
   outcome: CaptureTurnOutcome;
   questionText?: Maybe<Scalars['String']['output']>;
   resultingPendingCaptureId?: Maybe<Scalars['ID']['output']>;
+  resultingReminderId?: Maybe<Scalars['ID']['output']>;
   resultingTaskId?: Maybe<Scalars['ID']['output']>;
 };
 
@@ -51,10 +54,19 @@ export type CaptureTurnOutcome =
   | 'DISCARDED'
   | 'QUESTION_ASKED'
   | 'REFUSED'
+  | 'REMINDER_CREATED'
   | 'TASK_CREATED';
+
+export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
 
 export type InvalidCredentials = {
   __typename?: 'InvalidCredentials';
+  message: Scalars['String']['output'];
+};
+
+export type InvalidReminder = {
+  __typename?: 'InvalidReminder';
+  field: Scalars['String']['output'];
   message: Scalars['String']['output'];
 };
 
@@ -81,11 +93,13 @@ export type Mutation = {
   __typename?: 'Mutation';
   answerPendingCapture: CaptureResult;
   completeTask: UpdateTaskResult;
+  deleteReminder: DeleteReminderResult;
   deleteTask: Scalars['Int']['output'];
   discardPendingCapture: Scalars['Boolean']['output'];
   recordsViewOpened: Scalars['Boolean']['output'];
   signIn: SignInResult;
   submitCapture: CaptureResult;
+  updateReminder: UpdateReminderResult;
   updateTask: UpdateTaskResult;
   updateTimezone: UpdateTimezoneResult;
 };
@@ -98,6 +112,11 @@ export type MutationAnswerPendingCaptureArgs = {
 
 
 export type MutationCompleteTaskArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteReminderArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -119,6 +138,12 @@ export type MutationSignInArgs = {
 
 export type MutationSubmitCaptureArgs = {
   rawInput: Scalars['String']['input'];
+};
+
+
+export type MutationUpdateReminderArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateReminderInput;
 };
 
 
@@ -165,7 +190,9 @@ export type Query = {
   captureHistory: CaptureHistoryPage;
   me: Me;
   record: RecordResult;
-  records: Array<Task>;
+  records: Array<RecordItem>;
+  reminder: ReminderResult;
+  reminders: ReminderGroups;
   settings: Settings;
   tasks: Array<Task>;
 };
@@ -187,9 +214,21 @@ export type QueryRecordsArgs = {
 };
 
 
+export type QueryReminderArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryRemindersArgs = {
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type QuerySettingsArgs = {
   detectedTimezone?: InputMaybe<Scalars['String']['input']>;
 };
+
+export type RecordItem = Reminder | Task;
 
 export type RecordNotFound = {
   __typename?: 'RecordNotFound';
@@ -203,6 +242,93 @@ export type RecordsFilterInput = {
   search?: InputMaybe<Scalars['String']['input']>;
   sortBy?: SortField;
   sortDesc?: Scalars['Boolean']['input'];
+};
+
+export type Reminder = {
+  __typename?: 'Reminder';
+  anchorLocalDate: Scalars['Date']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  lastAction?: Maybe<ReminderAction>;
+  lastFiredAt?: Maybe<Scalars['DateTime']['output']>;
+  localTime: Scalars['String']['output'];
+  nextFireAt?: Maybe<Scalars['DateTime']['output']>;
+  origin: Scalars['String']['output'];
+  originalInput?: Maybe<Scalars['String']['output']>;
+  repeatInterval: Scalars['Int']['output'];
+  repeatKind: ReminderRepeatKind;
+  repeatMonthDay?: Maybe<Scalars['Int']['output']>;
+  repeatText: Scalars['String']['output'];
+  repeatWeekdays: Array<Scalars['Int']['output']>;
+  scheduleTimezone: Scalars['String']['output'];
+  state: ReminderState;
+  updatedAt: Scalars['DateTime']['output'];
+  /** Why the time differs from what was typed. Only on create. */
+  whenNote?: Maybe<Scalars['String']['output']>;
+  whenText: Scalars['String']['output'];
+};
+
+export type ReminderAction =
+  | 'DONE'
+  | 'MISSED'
+  | 'SNOOZED';
+
+export type ReminderCreated = {
+  __typename?: 'ReminderCreated';
+  reminder: Reminder;
+};
+
+export type ReminderDeleteSucceeded = {
+  __typename?: 'ReminderDeleteSucceeded';
+  id: Scalars['ID']['output'];
+};
+
+export type ReminderDeleted = {
+  __typename?: 'ReminderDeleted';
+  message: Scalars['String']['output'];
+};
+
+export type ReminderGroups = {
+  __typename?: 'ReminderGroups';
+  done: Array<Reminder>;
+  needsAttention: Array<Reminder>;
+  upcoming: Array<Reminder>;
+};
+
+export type ReminderLimitReached = {
+  __typename?: 'ReminderLimitReached';
+  limit: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
+export type ReminderNotFound = {
+  __typename?: 'ReminderNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type ReminderRepeatKind =
+  | 'DAILY'
+  | 'MONTHLY'
+  | 'NONE'
+  | 'WEEKLY'
+  | 'YEARLY';
+
+export type ReminderResult = Reminder | ReminderNotFound;
+
+export type ReminderState =
+  | 'DONE'
+  | 'FIRED'
+  | 'UPCOMING';
+
+export type ReminderTimePassed = {
+  __typename?: 'ReminderTimePassed';
+  message: Scalars['String']['output'];
+};
+
+export type RemindersListed = {
+  __typename?: 'RemindersListed';
+  reminders: Array<Reminder>;
 };
 
 export type Settings = {
@@ -266,6 +392,17 @@ export type UnrecognisedCommand = {
   attemptedName: Scalars['String']['output'];
   closestMatches: Array<Scalars['String']['output']>;
 };
+
+export type UpdateReminderInput = {
+  description: Scalars['String']['input'];
+  localTime: Scalars['String']['input'];
+  repeatInterval?: Scalars['Int']['input'];
+  repeatKind: ReminderRepeatKind;
+  repeatWeekdays?: Array<Scalars['Int']['input']>;
+  startDate: Scalars['Date']['input'];
+};
+
+export type UpdateReminderResult = InvalidReminder | Reminder | ReminderDeleted | ReminderNotFound | ReminderTimePassed;
 
 export type UpdateTaskInput = {
   dueAt?: InputMaybe<Scalars['DateTime']['input']>;

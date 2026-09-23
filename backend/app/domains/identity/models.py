@@ -6,9 +6,9 @@ Supabase's ``auth`` schema).
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, time
 
-from sqlalchemy import DateTime, Integer, Text
+from sqlalchemy import Boolean, DateTime, Integer, Text, Time
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -21,6 +21,13 @@ class UserSettings(Base):
 
     user_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     timezone: Mapped[str] = mapped_column(Text)
+    # Epic 003, migration 0017. Server defaults fill a row created without them.
+    default_reminder_time: Mapped[time] = mapped_column(Time, server_default="09:00")
+    popups_enabled: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    email_enabled: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    channels_off_warned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 

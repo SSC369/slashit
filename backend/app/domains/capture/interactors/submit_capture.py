@@ -29,12 +29,22 @@ from app.domains.capture.interfaces.dtos import (
     MissingField,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
+    ReminderListDTO,
     UnrecognisedCommandDTO,
 )
-from app.domains.capture.interfaces.ports import AnalyticsPort, ExtractionPort, TaskPort
+from app.domains.capture.interfaces.ports import (
+    AnalyticsPort,
+    ExtractionPort,
+    ReminderPort,
+    TaskPort,
+)
 from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
+)
+from app.domains.capture.services.reminder_capture import (
+    ReminderCaptureService,
+    ReminderNeedsDescription,
 )
 from app.domains.gateway.public import (
     Extraction,
@@ -46,12 +56,20 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.records.public import TaskDTO
+from app.domains.reminders.public import (
+    ReminderDTO,
+    ReminderLimitReached,
+    ReminderNeedsWhen,
+)
 
 logger = structlog.get_logger(__name__)
 
 CaptureOutcome = (
     TaskDTO
     | list[TaskDTO]
+    | ReminderDTO
+    | ReminderListDTO
+    | ReminderLimitReached
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -72,12 +90,16 @@ class SubmitCaptureInteractor:
         task_port: TaskPort,
         extraction: ExtractionPort,
         analytics: AnalyticsPort,
+        reminder_port: ReminderPort,
+        reminder_capture: ReminderCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
         self.task_port = task_port
         self.extraction = extraction
         self.analytics = analytics
+        self.reminder_port = reminder_port
+        self.reminder_capture = reminder_capture
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
@@ -104,6 +126,16 @@ class SubmitCaptureInteractor:
 
         if command_name == "/tasks":
             return await self.task_port.list_open_tasks(user_id=user_id)
+
+        if command_name == "/reminders":
+            return ReminderListDTO(
+                reminders=await self.reminder_port.list_active(user_id=user_id)
+            )
+
+        if command_name == "/remind":
+            return await self._submit_remind(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
 
         return await self._submit_add_task(
             user_id=user_id, argument_text=argument_text, original_input=text
@@ -188,6 +220,46 @@ class SubmitCaptureInteractor:
         )
         return task
 
+    async def _submit_remind(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> CaptureOutcome:
+        """Epic 003, FR-1, FR-2, FR-38. Reading and creating is the shared
+        ReminderCaptureService's; turning its outcome into a question, a turn
+        and a result is this interactor's."""
+        outcome = await self.reminder_capture.capture_reminder(
+            user_id=user_id, argument_text=argument_text, original_input=original_input
+        )
+        if isinstance(outcome, ReminderNeedsDescription):
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name="/remind",
+                known_title=None,
+                missing_field="title",
+                question_text="What should I remind you about?",
+                original_input=original_input,
+            )
+        if isinstance(outcome, ReminderNeedsWhen):
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name="/remind",
+                known_title=outcome.description,
+                missing_field="remind_at",
+                question_text=when_question(description=outcome.description),
+                original_input=original_input,
+            )
+        if isinstance(outcome, ReminderDTO):
+            await self._record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="reminder_created",
+                resulting_reminder_id=outcome.id,
+            )
+            return outcome
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="refused"
+        )
+        return outcome
+
     def _parse_due_at(self, *, raw_due_at: object) -> datetime | None:
         if not isinstance(raw_due_at, str) or not raw_due_at:
             return None
@@ -241,6 +313,7 @@ class SubmitCaptureInteractor:
         resulting_task_id: UUID | None = None,
         resulting_pending_capture_id: UUID | None = None,
         question_text: str | None = None,
+        resulting_reminder_id: UUID | None = None,
     ) -> None:
         """FR-44. A capture-turn write failure never undoes an otherwise
         successful capture: NFR-9's "no capture is lost" binds the task or
@@ -254,8 +327,16 @@ class SubmitCaptureInteractor:
                 resulting_pending_capture_id=resulting_pending_capture_id,
                 question_text=question_text,
                 answer_text=None,
+                resulting_reminder_id=resulting_reminder_id,
             )
         except Exception:
             logger.exception(
                 "capture_turn.record_failed", user_id=str(user_id), outcome=outcome
             )
+
+
+def when_question(*, description: str) -> str:
+    """FR-2's one question, as the design's `RemindAsk` draws it, with the
+    description lowercased to sit mid-sentence."""
+    phrase = description[:1].lower() + description[1:]
+    return f"When should I remind you to {phrase}?"

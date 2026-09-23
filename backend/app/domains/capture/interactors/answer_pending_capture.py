@@ -12,8 +12,16 @@ from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
 )
+from app.domains.capture.services.reminder_capture import (
+    ReminderCaptureOutcome,
+    ReminderCaptureService,
+    ReminderNeedsDescription,
+)
 from app.domains.gateway.public import Extraction
 from app.domains.records.public import TaskDTO
+from app.domains.reminders.public import ReminderDTO, ReminderNeedsWhen
+
+AnswerOutcome = TaskDTO | ReminderCaptureOutcome
 
 logger = structlog.get_logger(__name__)
 
@@ -38,16 +46,19 @@ class AnswerPendingCaptureInteractor:
         capture_turn_repository: CaptureTurnRepository,
         task_port: TaskPort,
         extraction: ExtractionPort,
+        reminder_capture: ReminderCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
         self.task_port = task_port
         self.extraction = extraction
+        self.reminder_capture = reminder_capture
 
     async def answer_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID, answer: str
-    ) -> TaskDTO:
-        """Resolve a pending capture with the user's answer, creating the task.
+    ) -> AnswerOutcome:
+        """Resolve a pending capture with the user's answer, creating the task,
+        or, for a `/remind` question (epic 003, FR-2), the reminder.
 
         Raises:
             PendingCaptureNotFoundError: no such pending capture for this user.
@@ -64,6 +75,16 @@ class AnswerPendingCaptureInteractor:
         answer_text = answer.strip()
         if not answer_text:
             raise ValueError("answer is empty")
+
+        if pending_capture.command_name == "/remind":
+            return await self._answer_remind(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
+                known_description=pending_capture.known_title,
+                question_text=pending_capture.question_text,
+                original_input=pending_capture.original_input,
+                answer_text=answer_text,
+            )
 
         if pending_capture.missing_field == "title":
             title = answer_text
@@ -96,6 +117,49 @@ class AnswerPendingCaptureInteractor:
             user_id=user_id, pending_capture_id=pending_capture_id
         )
         return task
+
+    async def _answer_remind(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        known_description: str | None,
+        question_text: str,
+        original_input: str,
+        answer_text: str,
+    ) -> ReminderCaptureOutcome:
+        """The answer completes the sentence: the description asked for, or
+        the known description plus when. It is read exactly as a whole
+        sentence would be. An answer that still sets no time raises, and the
+        question stays open, as a due-date answer does."""
+        argument_text = (
+            f"{known_description} {answer_text}" if known_description else answer_text
+        )
+        outcome = await self.reminder_capture.capture_reminder(
+            user_id=user_id, argument_text=argument_text, original_input=original_input
+        )
+        if isinstance(outcome, ReminderNeedsWhen | ReminderNeedsDescription):
+            raise AnswerCouldNotBeUnderstoodError()
+        if not isinstance(outcome, ReminderDTO):
+            return outcome
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="reminder_created",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending_capture_id,
+                question_text=question_text,
+                answer_text=answer_text,
+                resulting_reminder_id=outcome.id,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the reminder.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return outcome
 
     async def _record_turn(
         self,

@@ -1,0 +1,22 @@
+fragment ReminderFields on Reminder {
+  id
+  description
+  state
+  nextFireAt
+  whenText
+  repeatText
+  repeatKind
+  repeatInterval
+  repeatWeekdays
+  repeatMonthDay
+  localTime
+  anchorLocalDate
+  scheduleTimezone
+  lastFiredAt
+  lastAction
+  origin
+  originalInput
+  createdAt
+  updatedAt
+  whenNote
+}

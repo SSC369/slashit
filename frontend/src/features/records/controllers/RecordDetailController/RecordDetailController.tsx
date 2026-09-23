@@ -233,8 +233,14 @@ const RecordDetailController = (): ReactElement => {
 
       {isDeleteConfirmOpen && (
         <DeleteConfirmModal
-          taskTitle={task.title}
-          count={1}
+          title="Delete this task?"
+          message={
+            <>
+              <span className={RecordsStyles.modalTaskNameStyles}>{task.title}</span> will be
+              removed from your records. This cannot be undone.
+            </>
+          }
+          confirmLabel="Delete task"
           onCancel={() => setIsDeleteConfirmOpen(false)}
           onConfirm={handleConfirmDelete}
         />

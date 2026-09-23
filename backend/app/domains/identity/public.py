@@ -1,9 +1,11 @@
 """The only names other domains may import from identity.
 
-Empty: no other domain needs identity's settings yet. Present per
-backend/.claude/rules/repo-rules.md section 6.2 — "a domain with no
-``public.py`` may not be imported" — kept as an empty file rather than
-omitted, so it exists the day something does need it.
+Epic 003 publishes the reminder settings (index §4). Adding a name here is a
+deliberate act, reviewed like an API change; see
+backend/.claude/rules/repo-rules.md section 6.2.
 """
 
-__all__: list[str] = []
+from app.domains.identity.interfaces.dtos import ReminderSettingsDTO
+from app.domains.identity.services.identity_service import IdentityService
+
+__all__ = ["IdentityService", "ReminderSettingsDTO"]

@@ -3,16 +3,18 @@ doc: implementation-plan
 feature: 003-reminders-and-notifications
 title: Reminders and Notifications
 stage: 4
-status: in-review
+status: approved
 owner: user
 created: 2026-09-23
 updated: 2026-09-23
-approved_on: null
+approved_on: 2026-09-23
 supersedes: null
 split: true
 ---
 
 # Implementation Plan (LLD) — Reminders and Notifications
+
+> **Approved** by @user on 2026-09-23. Locked — changes require a change record (§7).
 
 Context: [PRD](./01-prd.md) · [Design](./02-design.md) · [Build plan](./03-build-plan.md)
 
@@ -56,7 +58,7 @@ timezone moves and outages.
 
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
-| 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | in-review |
+| 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, building |
 | 2 | 04.2-fire-in-the-app.md | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | not started |
 | 3 | 04.3-email-and-settings.md | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | not started |
 | 4 | 04.4-timezone-and-hardening.md | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | not started |
@@ -79,8 +81,9 @@ class ScheduleSpec:
     repeat_kind: RepeatKind
     repeat_interval: int            # 1 or more; ignored for NONE
     repeat_weekdays: tuple[int, ...]  # 0=Mon..6=Sun; WEEKLY only, non-empty
+    repeat_month_day: int | None    # MONTHLY/YEARLY: the day asked for, kept past a clamp (FR-8)
     local_time: time                # minute precision
-    anchor_local_date: date         # first occurrence; day-of-month and yearly date come from it
+    anchor_local_date: date         # first occurrence; yearly month comes from it
     one_time_at: datetime | None    # NONE only, UTC instant (FR-11)
 
 def next_occurrence(*, spec: ScheduleSpec, timezone: ZoneInfo, after: datetime) -> datetime | None
@@ -97,8 +100,9 @@ changes). Slice 2's firing job and slice 4's recompute call it and nothing else.
 # reminders/public.py — slice 1 creates, slice 2 adds fire_due and act
 ReminderDTO(id, user_id, description, spec: ScheduleSpec, schedule_timezone: str,
             next_fire_at: datetime | None, state: ReminderState, last_fired_at, last_action,
-            summary: ScheduleSummary, origin, original_input, created_at, updated_at)
-ReminderService.create_reminder(*, user_id, fields: ReminderFields, origin, original_input) -> ReminderDTO | ReminderLimitReached
+            summary: ScheduleSummary, origin, original_input, created_at, updated_at,
+            when_note: str | None = None)   # set only on the DTO a create returns
+ReminderService.create_reminder(*, user_id, fields: ReminderFields, origin, original_input) -> ReminderDTO | ReminderLimitReached | ReminderNeedsWhen
 ReminderService.list_active(*, user_id) -> list[ReminderDTO]
 ReminderService.list_for_records(*, user_id, search: str | None) -> list[ReminderDTO]
 
@@ -137,10 +141,11 @@ sent:     after the transaction that wrote the notification commits
 type Reminder {
   id: ID!  description: String!  state: ReminderState!      # UPCOMING | FIRED | DONE
   nextFireAt: DateTime  whenText: String!  repeatText: String!
-  repeatKind: RepeatKind!  repeatInterval: Int!  repeatWeekdays: [Int!]!
-  localTime: String!  anchorLocalDate: Date!  scheduleTimezone: String!
+  repeatKind: ReminderRepeatKind!  repeatInterval: Int!  repeatWeekdays: [Int!]!
+  repeatMonthDay: Int  localTime: String!  anchorLocalDate: Date!  scheduleTimezone: String!
   lastFiredAt: DateTime  lastAction: ReminderAction           # slice 2 fills these
-  origin: RecordOrigin!  originalInput: String  createdAt: DateTime!
+  origin: String!  originalInput: String  createdAt: DateTime!  updatedAt: DateTime!
+  whenNote: String                                             # only on the create response
 }
 ```
 
@@ -202,5 +207,7 @@ into the store, per `frontend/rules/repo-rules.md` §7.
 
 | Date | Change | Why | Approved by | Sub-plans re-opened |
 |---|---|---|---|---|
-| 2026-09-23 | Created with sub-plan 1 | Build plan approved | pending | none |
+| 2026-09-23 | Created with sub-plan 1 | Build plan approved | user | none |
 | 2026-09-23 | Job table and cross-slice tests follow the build plan's amended AD-2: `fire_due` fans out one `fire_one` job per due reminder. X-4 reworded, X-7 added | Build plan change record, same day | user | none: sub-plan 2 is not yet written; 4.1 does not touch firing |
+| 2026-09-23 | Approved | User: "implementation plan approved, start slice 1" | user | none |
+| 2026-09-23 | §4 brought in line with slice 1 as built: `ScheduleSpec.repeat_month_day`; `ReminderDTO.when_note` and the GraphQL `whenNote`; `create_reminder` also returns `ReminderNeedsWhen`; the GraphQL type adds `repeatMonthDay` and `updatedAt`, names its enum `ReminderRepeatKind` and types `origin` as `String`, as `Task` does | Found while building slice 1; each is logged in `05-dev-log.md` (D-1 to D-4) | recorded during build, pending user review | none: sub-plans 2 to 4 are not yet written |

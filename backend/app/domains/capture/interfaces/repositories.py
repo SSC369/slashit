@@ -43,6 +43,7 @@ class CaptureTurnRepository(Protocol):
         resulting_pending_capture_id: UUID | None,
         question_text: str | None,
         answer_text: str | None,
+        resulting_reminder_id: UUID | None = None,
     ) -> None: ...
 
     async def list_turns_for_user(

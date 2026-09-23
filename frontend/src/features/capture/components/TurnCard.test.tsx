@@ -16,9 +16,13 @@ const pendingTurn: CaptureTurn = {
 const baseProps = {
   onAnswerDraftChange: vi.fn(),
   onAnswerSubmit: vi.fn(),
+  onQuickAnswer: vi.fn(),
   onDiscardPending: vi.fn(),
   onUseWithAddTask: vi.fn(),
   onRetry: vi.fn(),
+  onEditReminder: vi.fn(),
+  onOpenReminder: vi.fn(),
+  onOpenReminders: vi.fn(),
 };
 
 describe("TurnCard", () => {

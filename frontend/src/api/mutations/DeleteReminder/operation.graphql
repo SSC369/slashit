@@ -1,0 +1,11 @@
+mutation DeleteReminder($id: ID!) {
+  deleteReminder(id: $id) {
+    __typename
+    ... on ReminderDeleteSucceeded {
+      id
+    }
+    ... on ReminderNotFound {
+      message
+    }
+  }
+}

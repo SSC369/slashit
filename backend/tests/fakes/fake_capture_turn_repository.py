@@ -27,6 +27,7 @@ class FakeCaptureTurnRepository:
         resulting_pending_capture_id: uuid.UUID | None,
         question_text: str | None,
         answer_text: str | None,
+        resulting_reminder_id: uuid.UUID | None = None,
     ) -> None:
         turn = CaptureTurnDTO(
             id=uuid.uuid4(),
@@ -37,6 +38,7 @@ class FakeCaptureTurnRepository:
             question_text=question_text,
             answer_text=answer_text,
             created_at=datetime.now(UTC),
+            resulting_reminder_id=resulting_reminder_id,
         )
         self.rows.append(turn)
         self._owner_by_turn_id[turn.id] = user_id
@@ -45,11 +47,7 @@ class FakeCaptureTurnRepository:
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int
     ) -> CaptureHistoryPageDTO:
         newest_first = sorted(
-            (
-                row
-                for row in self.rows
-                if self._owner_by_turn_id.get(row.id) == user_id
-            ),
+            (row for row in self.rows if self._owner_by_turn_id.get(row.id) == user_id),
             key=lambda row: row.created_at,
             reverse=True,
         )

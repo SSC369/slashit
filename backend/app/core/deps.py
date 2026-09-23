@@ -6,6 +6,7 @@ whole job. See backend/.claude/rules/repo-rules.md section 9.
 """
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -21,7 +22,11 @@ from app.domains.capture.adapters.analytics_event_adapter import (
 from app.domains.capture.adapters.gateway_extraction_adapter import (
     GatewayExtractionAdapter,
 )
+from app.domains.capture.adapters.identity_clock_adapter import (
+    IdentityLocalClockAdapter,
+)
 from app.domains.capture.adapters.records_task_adapter import RecordsTaskAdapter
+from app.domains.capture.adapters.reminders_adapter import RemindersAdapter
 from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
 )
@@ -38,6 +43,7 @@ from app.domains.capture.repositories.capture_turn_repository import (
 from app.domains.capture.repositories.pending_capture_repository import (
     SqlPendingCaptureRepository,
 )
+from app.domains.capture.services.reminder_capture import ReminderCaptureService
 from app.domains.gateway.interactors.extract import ExtractInteractor
 from app.domains.gateway.repositories.usage_repository import SqlUsageRepository
 from app.domains.gateway.services.allowance_service import AllowanceService
@@ -57,10 +63,12 @@ from app.domains.identity.repositories.auth_attempt_repository import (
 )
 from app.domains.identity.repositories.profile_repository import SqlProfileRepository
 from app.domains.identity.repositories.settings_repository import SqlSettingsRepository
+from app.domains.identity.services.identity_service import IdentityService
 from app.domains.identity.services.supabase_auth_service import SupabaseAuthService
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
+from app.domains.records.adapters.reminders_adapter import ReminderRecordsAdapter
 from app.domains.records.interactors.delete_tasks import DeleteTasksInteractor
 from app.domains.records.interactors.get_record_detail import GetRecordDetailInteractor
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
@@ -70,6 +78,18 @@ from app.domains.records.interactors.log_records_view_opened import (
 from app.domains.records.interactors.update_task import UpdateTaskInteractor
 from app.domains.records.repositories.task_repository import SqlTaskRepository
 from app.domains.records.services.records_service import RecordsService
+from app.domains.reminders.adapters.identity_clock_adapter import (
+    IdentityUserClockAdapter,
+)
+from app.domains.reminders.interactors.create_reminder import CreateReminderInteractor
+from app.domains.reminders.interactors.delete_reminder import DeleteReminderInteractor
+from app.domains.reminders.interactors.get_reminder import GetReminderInteractor
+from app.domains.reminders.interactors.list_reminders import ListRemindersInteractor
+from app.domains.reminders.interactors.update_reminder import UpdateReminderInteractor
+from app.domains.reminders.repositories.reminder_repository import (
+    SqlReminderRepository,
+)
+from app.domains.reminders.services.reminder_service import ReminderService
 
 
 async def build_context(
@@ -135,13 +155,52 @@ def _build_extraction_port(*, context: Context) -> GatewayExtractionAdapter:
     extract_interactor = build_extract_interactor(
         session_factory=context.session_factory, settings=settings
     )
-    return GatewayExtractionAdapter(extract_interactor=extract_interactor)
+    return GatewayExtractionAdapter(
+        extract_interactor=extract_interactor,
+        # Epic 003 AD-7: relative dates read in the user's zone, tasks included.
+        local_clock=IdentityLocalClockAdapter(
+            identity_service=_build_identity_service(context=context)
+        ),
+    )
+
+
+def _utc_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def _build_identity_service(*, context: Context) -> IdentityService:
+    return IdentityService(settings_repository=SqlSettingsRepository(context.session))
+
+
+def _build_user_clock_port(*, context: Context) -> IdentityUserClockAdapter:
+    return IdentityUserClockAdapter(
+        identity_service=_build_identity_service(context=context)
+    )
+
+
+def build_reminder_service(context: Context) -> ReminderService:
+    reminder_repository = SqlReminderRepository(context.session)
+    return ReminderService(
+        reminder_repository=reminder_repository,
+        create_reminder_interactor=CreateReminderInteractor(
+            reminder_repository=reminder_repository,
+            user_clock=_build_user_clock_port(context=context),
+            now_provider=_utc_now,
+        ),
+    )
+
+
+def _build_reminder_capture(*, context: Context) -> ReminderCaptureService:
+    return ReminderCaptureService(
+        reminder_port=RemindersAdapter(
+            reminder_service=build_reminder_service(context)
+        ),
+        extraction=_build_extraction_port(context=context),
+    )
 
 
 def _build_record_event_interactor(*, context: Context) -> RecordEventInteractor:
-    return RecordEventInteractor(
-        event_repository=SqlEventRepository(context.session)
-    )
+    return RecordEventInteractor(event_repository=SqlEventRepository(context.session))
 
 
 def _build_capture_analytics_port(*, context: Context) -> CaptureAnalyticsAdapter:
@@ -170,6 +229,10 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
         task_port=_build_task_port(context=context),
         extraction=_build_extraction_port(context=context),
         analytics=_build_capture_analytics_port(context=context),
+        reminder_port=RemindersAdapter(
+            reminder_service=build_reminder_service(context)
+        ),
+        reminder_capture=_build_reminder_capture(context=context),
     )
 
 
@@ -181,6 +244,7 @@ def build_answer_pending_capture_interactor(
         capture_turn_repository=SqlCaptureTurnRepository(context.session),
         task_port=_build_task_port(context=context),
         extraction=_build_extraction_port(context=context),
+        reminder_capture=_build_reminder_capture(context=context),
     )
 
 
@@ -210,7 +274,38 @@ def build_records_service(context: Context) -> RecordsService:
 
 
 def build_list_tasks_interactor(context: Context) -> ListTasksInteractor:
-    return ListTasksInteractor(task_repository=SqlTaskRepository(context.session))
+    return ListTasksInteractor(
+        task_repository=SqlTaskRepository(context.session),
+        reminder_records=ReminderRecordsAdapter(
+            reminder_service=build_reminder_service(context)
+        ),
+    )
+
+
+def build_list_reminders_interactor(context: Context) -> ListRemindersInteractor:
+    return ListRemindersInteractor(
+        reminder_repository=SqlReminderRepository(context.session)
+    )
+
+
+def build_get_reminder_interactor(context: Context) -> GetReminderInteractor:
+    return GetReminderInteractor(
+        reminder_repository=SqlReminderRepository(context.session)
+    )
+
+
+def build_update_reminder_interactor(context: Context) -> UpdateReminderInteractor:
+    return UpdateReminderInteractor(
+        reminder_repository=SqlReminderRepository(context.session),
+        user_clock=_build_user_clock_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_delete_reminder_interactor(context: Context) -> DeleteReminderInteractor:
+    return DeleteReminderInteractor(
+        reminder_repository=SqlReminderRepository(context.session)
+    )
 
 
 def build_get_record_detail_interactor(context: Context) -> GetRecordDetailInteractor:

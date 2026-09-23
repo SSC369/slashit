@@ -8,11 +8,18 @@ import useRecordsViewOpened from "../../../../api/mutations/RecordsViewOpened/us
 import { API_SUCCESS } from "../../../../constants/apiConstants";
 import { cn } from "../../../../utils/cn";
 import { useStore } from "../../../../stores/StoreProvider";
-import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
+import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
 import EmptyRecords from "../../components/EmptyRecords";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
+import RemindersController from "../RemindersController/RemindersController";
 import * as Styles from "./styles";
+
+const TABS: { filter: RecordsKindFilter; label: string }[] = [
+  { filter: "ALL", label: "All" },
+  { filter: "TASKS", label: "Tasks" },
+  { filter: "REMINDERS", label: "Reminders" },
+];
 
 const RecordsController = (): ReactElement => {
   const store = useStore();
@@ -31,7 +38,11 @@ const RecordsController = (): ReactElement => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const isRemindersTab = kindFilter === "REMINDERS";
+
   useEffect(() => {
+    // The Reminders tab loads its own grouped query.
+    if (isRemindersTab) return;
     const timeoutId = window.setTimeout(() => {
       triggerAPI({
         filter: {
@@ -65,8 +76,12 @@ const RecordsController = (): ReactElement => {
     store.records.setSearchText(event.target.value);
   };
 
-  const handleOpenRecord = (id: string): void => {
-    navigate(`/records/${id}`);
+  const handleOpenRecord = (row: RecordRow): void => {
+    if (row.kind === "REMINDER") {
+      navigate(`/records/reminders/${row.reminder.id}`);
+      return;
+    }
+    navigate(`/records/${row.task.id}`);
   };
 
   const records = store.records.getVisible();
@@ -86,24 +101,20 @@ const RecordsController = (): ReactElement => {
         <div className={RecordsStyles.paneStyles}>
           <div className={RecordsStyles.toolbarStyles}>
             <div className={RecordsStyles.tabsStyles}>
-              <div
-                className={cn(
-                  RecordsStyles.tabStyles,
-                  kindFilter === "ALL" && RecordsStyles.tabOnStyles,
-                )}
-                onClick={() => handleTabClick("ALL")}
-              >
-                All
-              </div>
-              <div
-                className={cn(
-                  RecordsStyles.tabStyles,
-                  kindFilter === "TASKS" && RecordsStyles.tabOnStyles,
-                )}
-                onClick={() => handleTabClick("TASKS")}
-              >
-                Tasks
-              </div>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.filter}
+                  type="button"
+                  className={cn(
+                    RecordsStyles.tabStyles,
+                    kindFilter === tab.filter && RecordsStyles.tabOnStyles,
+                  )}
+                  onClick={() => handleTabClick(tab.filter)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+              <span className={RecordsStyles.tabHintStyles}>More types arrive with later epics</span>
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
               <div className={RecordsStyles.searchBoxStyles}>
@@ -117,11 +128,15 @@ const RecordsController = (): ReactElement => {
               </div>
             </div>
           </div>
-          <RecordTable
-            records={records}
-            onOpenRecord={handleOpenRecord}
-            isLoading={!hasLoadedOnce}
-          />
+          {isRemindersTab ? (
+            <RemindersController />
+          ) : (
+            <RecordTable
+              records={records}
+              onOpenRecord={handleOpenRecord}
+              isLoading={!hasLoadedOnce}
+            />
+          )}
         </div>
       )}
     </div>

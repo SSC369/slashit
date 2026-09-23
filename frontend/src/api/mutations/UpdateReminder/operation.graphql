@@ -1,0 +1,23 @@
+#import "../../../fragments/ReminderFields.graphql"
+
+mutation UpdateReminder($id: ID!, $input: UpdateReminderInput!) {
+  updateReminder(id: $id, input: $input) {
+    __typename
+    ... on Reminder {
+      ...ReminderFields
+    }
+    ... on InvalidReminder {
+      message
+      field
+    }
+    ... on ReminderTimePassed {
+      message
+    }
+    ... on ReminderDeleted {
+      message
+    }
+    ... on ReminderNotFound {
+      message
+    }
+  }
+}

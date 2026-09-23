@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -24,6 +24,7 @@ type CaptureTurn {
   outcome: CaptureTurnOutcome!
   resultingTaskId: ID
   resultingPendingCaptureId: ID
+  resultingReminderId: ID
   questionText: String
   answerText: String
   createdAt: DateTime!
@@ -34,13 +35,24 @@ enum CaptureTurnOutcome {
   QUESTION_ASKED
   DISCARDED
   REFUSED
+  REMINDER_CREATED
 }
+
+"""Date (isoformat)"""
+scalar Date
 
 """Date with time (isoformat)"""
 scalar DateTime
 
+union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
+
 type InvalidCredentials {
   message: String!
+}
+
+type InvalidReminder {
+  message: String!
+  field: String!
 }
 
 type InvalidTimezone {
@@ -69,6 +81,8 @@ type Mutation {
   recordsViewOpened: Boolean!
   updateTimezone(input: UpdateTimezoneInput!): UpdateTimezoneResult!
   signIn(input: SignInInput!): SignInResult!
+  updateReminder(id: ID!, input: UpdateReminderInput!): UpdateReminderResult!
+  deleteReminder(id: ID!): DeleteReminderResult!
 }
 
 type NoFieldsToUpdate {
@@ -95,13 +109,17 @@ type ProviderUnavailable {
 
 type Query {
   captureHistory(cursor: String = null, limit: Int = null): CaptureHistoryPage!
-  records(filter: RecordsFilterInput = null): [Task!]!
+  records(filter: RecordsFilterInput = null): [RecordItem!]!
   record(id: ID!): RecordResult!
   tasks: [Task!]!
   settings(detectedTimezone: String = null): Settings!
   me: Me!
+  reminders(search: String = null): ReminderGroups!
+  reminder(id: ID!): ReminderResult!
   apiVersion: String!
 }
+
+union RecordItem = Task | Reminder
 
 type RecordNotFound {
   message: String!
@@ -114,6 +132,88 @@ input RecordsFilterInput {
   search: String = null
   sortBy: SortField! = CREATED_AT
   sortDesc: Boolean! = false
+}
+
+type Reminder {
+  id: ID!
+  description: String!
+  state: ReminderState!
+  nextFireAt: DateTime
+  whenText: String!
+  repeatText: String!
+  repeatKind: ReminderRepeatKind!
+  repeatInterval: Int!
+  repeatWeekdays: [Int!]!
+  repeatMonthDay: Int
+  localTime: String!
+  anchorLocalDate: Date!
+  scheduleTimezone: String!
+  lastFiredAt: DateTime
+  lastAction: ReminderAction
+  origin: String!
+  originalInput: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  """Why the time differs from what was typed. Only on create."""
+  whenNote: String
+}
+
+enum ReminderAction {
+  DONE
+  SNOOZED
+  MISSED
+}
+
+type ReminderCreated {
+  reminder: Reminder!
+}
+
+type ReminderDeleteSucceeded {
+  id: ID!
+}
+
+type ReminderDeleted {
+  message: String!
+}
+
+type ReminderGroups {
+  needsAttention: [Reminder!]!
+  upcoming: [Reminder!]!
+  done: [Reminder!]!
+}
+
+type ReminderLimitReached {
+  message: String!
+  limit: Int!
+}
+
+type ReminderNotFound {
+  message: String!
+}
+
+enum ReminderRepeatKind {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+union ReminderResult = Reminder | ReminderNotFound
+
+enum ReminderState {
+  UPCOMING
+  FIRED
+  DONE
+}
+
+type ReminderTimePassed {
+  message: String!
+}
+
+type RemindersListed {
+  reminders: [Reminder!]!
 }
 
 type Settings {
@@ -172,6 +272,17 @@ type UnrecognisedCommand {
   attemptedName: String!
   closestMatches: [String!]!
 }
+
+input UpdateReminderInput {
+  description: String!
+  startDate: Date!
+  localTime: String!
+  repeatKind: ReminderRepeatKind!
+  repeatInterval: Int! = 1
+  repeatWeekdays: [Int!]! = []
+}
+
+union UpdateReminderResult = Reminder | InvalidReminder | ReminderTimePassed | ReminderDeleted | ReminderNotFound
 
 input UpdateTaskInput {
   title: String = null

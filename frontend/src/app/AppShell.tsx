@@ -6,6 +6,7 @@ import { Link, NavLink, Outlet } from "react-router";
 import { supabaseClient } from "../api/lib/supabaseClient";
 import InstallPrompt from "../components/InstallPrompt";
 import OfflineBanner from "../components/OfflineBanner";
+import Toast from "../components/Toast";
 import UpdateBanner from "../components/UpdateBanner";
 import Popover from "../design-system/components/Popover";
 import { useStore } from "../stores/StoreProvider";
@@ -128,6 +129,7 @@ const AppShell = (): ReactElement => {
         <OfflineBanner />
         <UpdateBanner />
         <Outlet />
+        <Toast toast={store.toast.current} onDismiss={store.toast.dismiss} />
       </div>
       <InstallPrompt />
     </div>

@@ -12,4 +12,9 @@ export interface CaptureCommand {
 export const CAPTURE_COMMANDS: CaptureCommand[] = [
   { name: "/add-task", description: "Create a task" },
   { name: "/tasks", description: "List your open tasks" },
+  { name: "/remind", description: "Set a reminder" },
+  { name: "/reminders", description: "List your active reminders" },
 ];
+
+/** Commands that take no argument, so picking one runs it at once. */
+export const ARGUMENTLESS_COMMANDS: readonly string[] = ["/tasks", "/reminders"];

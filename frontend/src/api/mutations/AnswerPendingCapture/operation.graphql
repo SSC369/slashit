@@ -1,4 +1,5 @@
 #import "../../../fragments/TaskFields.graphql"
+#import "../../../fragments/ReminderFields.graphql"
 
 mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
   answerPendingCapture(pendingCaptureId: $pendingCaptureId, answer: $answer) {
@@ -12,6 +13,20 @@ mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
       tasks {
         ...TaskFields
       }
+    }
+    ... on ReminderCreated {
+      reminder {
+        ...ReminderFields
+      }
+    }
+    ... on RemindersListed {
+      reminders {
+        ...ReminderFields
+      }
+    }
+    ... on ReminderLimitReached {
+      message
+      limit
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

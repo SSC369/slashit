@@ -1,46 +1,57 @@
 import { TrashIcon } from "lucide-react";
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
+import BusyButton from "../../../components/BusyButton";
 import Button from "../../../design-system/components/Button";
 import * as Styles from "./styles";
 
 interface DeleteConfirmModalProps {
-  taskTitle: string | null;
-  count: number;
+  title: string;
+  message: ReactNode;
+  confirmLabel: string;
+  /** While the delete runs: a spinner replaces the confirm label and Cancel
+   * locks (`DeleteReminderBusy`). */
+  isBusy?: boolean;
+  /** Shown inside the dialog when the delete failed; the confirm button then
+   * reads "Try again" (`DeleteReminderFailed`). */
+  errorMessage?: string | null;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
 const DeleteConfirmModal = (props: DeleteConfirmModalProps): ReactElement => {
-  const { taskTitle, count, onCancel, onConfirm } = props;
-  const isSingle = count <= 1 && taskTitle !== null;
+  const {
+    title,
+    message,
+    confirmLabel,
+    isBusy = false,
+    errorMessage = null,
+    onCancel,
+    onConfirm,
+  } = props;
 
   return (
     <div className={Styles.modalOverlayStyles}>
-      <div className={Styles.modalStyles}>
+      <div className={Styles.modalStyles} role="dialog" aria-modal="true" aria-label={title}>
         <div className={Styles.modalBodyStyles}>
           <TrashIcon size={22} className="shrink-0 text-destructive" />
           <div>
-            <div className={Styles.modalTitleStyles}>
-              Delete {isSingle ? "this task" : `${count} tasks`}?
-            </div>
-            <div className={Styles.modalMessageStyles}>
-              {isSingle ? (
-                <>
-                  <span className={Styles.modalTaskNameStyles}>{taskTitle}</span> will be
-                  removed from your records. This cannot be undone.
-                </>
-              ) : (
-                <>{count} tasks will be removed from your records. This cannot be undone.</>
-              )}
-            </div>
+            <div className={Styles.modalTitleStyles}>{title}</div>
+            <div className={Styles.modalMessageStyles}>{message}</div>
+            {errorMessage !== null && (
+              <div className={Styles.modalErrorStyles} role="alert">
+                {errorMessage}
+              </div>
+            )}
           </div>
         </div>
         <div className={Styles.modalActionsStyles}>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button variant="danger" onClick={onConfirm}>
-            Delete {isSingle ? "task" : "tasks"}
+          <Button onClick={onCancel} disabled={isBusy}>
+            Cancel
           </Button>
+          <BusyButton variant="danger" isBusy={isBusy} busyLabel="Deleting" onClick={onConfirm}>
+            {errorMessage !== null ? "Try again" : confirmLabel}
+          </BusyButton>
         </div>
       </div>
     </div>

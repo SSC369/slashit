@@ -43,6 +43,10 @@ def _settings_to_dto(*, settings: UserSettings) -> SettingsDTO:
     return SettingsDTO(
         user_id=settings.user_id,
         timezone=settings.timezone,
+        default_reminder_time=settings.default_reminder_time,
+        popups_enabled=settings.popups_enabled,
+        email_enabled=settings.email_enabled,
+        channels_off_warned_at=settings.channels_off_warned_at,
         created_at=settings.created_at,
         updated_at=settings.updated_at,
     )

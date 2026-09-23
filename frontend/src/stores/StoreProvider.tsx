@@ -6,11 +6,13 @@ const StoreContext = createContext<RootStore | null>(null);
 
 interface StoreProviderProps {
   children: ReactNode;
+  /** A test hands in its own store to read back what the page wrote. */
+  store?: RootStore;
 }
 
 export const StoreProvider = (props: StoreProviderProps): ReactElement => {
-  const { children } = props;
-  const [store] = useState(() => new RootStore());
+  const { children, store: injectedStore } = props;
+  const [store] = useState(() => injectedStore ?? new RootStore());
 
   return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>;
 };
