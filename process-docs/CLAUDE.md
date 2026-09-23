@@ -241,6 +241,13 @@ Rules:
 - Every screen maps to at least one FR from the PRD. Cite the FR ids.
 - Every interactive surface lists its five states. Missing states are the most
   common defect in this stage.
+- **Every state is drawn, not only described.** Each interactive surface gets
+  a canvas artboard for its empty, loading, error and success states, and the
+  doc's state tables name the artboard for each. Then walk the feature for
+  every other way it can go wrong, and draw each one: invalid input, a record
+  not found or already deleted, a save or delete that fails, a service or model
+  that is unavailable, a limit reached, and lost connection. A state that
+  exists only as a line in a table is a missing state.
 - Design system changes are listed as deltas: token added, token changed,
   component added. New one-off styles are a smell, call them out.
 - Link the Claude Design canvas and store exports in `assets/`.
