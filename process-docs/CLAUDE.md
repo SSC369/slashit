@@ -375,6 +375,12 @@ them names the features it makes stale.
    and, before a build plan, [`tech-stack.md`](./tech-stack.md). List the
    questions you actually need answered, at most a handful, grouped. Then draft.
    Do not interview the user one question at a time.
+   **Every question or uncertainty put to the user is multiple choice.** List
+   every defensible option, each with a one-line consequence. Put your
+   recommendation first, marked `(Recommended)`, and leave room for the user's
+   own answer. An open-ended question with no options is a defect. The same
+   holds for an Open Questions row in any document: it names the options and
+   the recommended one, so the user can answer by picking.
 2. **Never advance a gate on your own.** Approval is a user action, in words.
    Silence is not approval. "Looks good" is approval; record it with the date.
 3. **State assumptions inline.** Any gap you filled yourself is marked
