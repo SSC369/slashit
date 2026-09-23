@@ -17,8 +17,8 @@ Context: [PRD](./01-prd.md)
 Canvas: https://claude.ai/artifact/3FqQWwFBqv9wN1Q214wvNB
 Exports: `./assets/canvas/`
 
-Over the 200-line budget at about 240: five interactive surfaces each need all
-five states, plus the shared toast rules, and those tables are most of the length.
+Over the 200-line budget at about 255: every state of every surface is listed
+with its artboard, per the design rule, and those tables are most of the length.
 
 ## 1. Design intent
 
@@ -56,6 +56,7 @@ Four layout choices were settled by the user before drawing, 2026-09-23:
 | Settings, both off | The one-time warning | FR-34 | `SettingsBothOff` |
 | Email | On-time and late variants | FR-14, FR-15, FR-17 | `ReminderEmail` |
 | Mobile | Notifications full screen, Reminders tab, pop-up above the tab bar | as desktop | `MobileNotifications`, `MobileRecordsReminders`, `MobileReminderToast` |
+| States and errors | Every empty, error, offline, not-found, invalid-input and failed-save state | FR-2, FR-26 to FR-29, FR-32, FR-38 | page 8: 16 artboards, named in §4 |
 | Loading and feedback | Skeletons for Records, detail and Settings; spinners inside Save, Delete, pop-up Done and a Settings switch; success toasts on create and on edit | FR-1, FR-19, FR-28, FR-29, FR-31, FR-32 | page 7: `RecordsLoading`, `ReminderDetailLoading`, `SettingsLoading`, `ReminderEditSaving`, `DeleteReminderBusy`, `PopupActing`, `SettingsSaving`, `ReminderEditSaved`, `RemindCreatedToast`, `MobileReminderSaved` |
 
 ### Dark theme
@@ -90,62 +91,76 @@ flowchart LR
 
 ## 4. States
 
-"No permission" everywhere means a signed-out session: the app's existing
-sign-in redirect from 002, unchanged. A reminder id owned by another user
-renders the same not-found as a deleted one (NFR-6), so ownership is never
-revealed.
+Every state below has its own artboard, per the design rule added to
+`process-docs/CLAUDE.md` on 2026-09-23. "No permission" means a session that
+has ended: 001's in-place "Your session ended" card, drawn as
+`RemindersSessionEnded`. A reminder id owned by another user renders the same
+not-found as a deleted one (NFR-6), so ownership is never revealed. Every
+failure says what did not change and keeps what the user typed.
 
 ### Records, Reminders tab
-| State | What the user sees | Copy |
+| State | What the user sees | Artboard |
 |---|---|---|
-| Empty | 001's records empty card | "No reminders yet. Try `/remind Call Mom tomorrow at 7pm`." |
-| Loading | Skeleton rows under the real group headers and table header, as `RecordsLoading`. Never a full-page spinner | none |
-| Error | 001's error note with Try again | "Couldn't load reminders. Try again." |
-| Success | Grouped table, as `Main` | Group names below |
-| No permission | Sign-in redirect | none |
+| Empty | "No reminders yet", with the `/remind` example | `RemindersEmpty` |
+| Loading | Skeleton rows under the real headers. Never a full-page spinner | `RecordsLoading` |
+| Error | "Couldn't load your reminders. They are safe, and they still fire on time." Try again | `RemindersError` |
+| Success | Grouped table | `Main` |
+| No permission | "Your session ended", Sign in | `RemindersSessionEnded` |
+| No search match | "No reminders match "dentist"", Clear search | `RemindersNoMatch` |
+| Offline | Amber bar: reminders still fire and email still arrives; Done, Snooze and edits disabled; last-synced time in the footer | `RemindersOffline` |
 
 ### Notification panel
-| State | What the user sees | Copy |
+| State | What the user sees | Artboard |
 |---|---|---|
-| Empty | Bell icon tile, centred | "Nothing here yet. When a reminder fires, it lands here." |
-| Loading | Four skeleton items | none |
-| Error | Red note; reminders still fire | "Couldn't load notifications. Your reminders still fire. This only affects the list." |
-| Success | List, as `NotificationPanel` | Markers below |
-| No permission | Sign-in redirect | none |
-
-Empty, loading and error are drawn side by side on `NotificationStates`.
+| Empty | "Nothing here yet. When a reminder fires, it lands here." | `NotificationStates` |
+| Loading | Four skeleton items | `NotificationStates` |
+| Error | "Couldn't load notifications. Your reminders still fire." Try again | `NotificationStates` |
+| Success | List with unread, Late, Missed and the email-cap notice | `NotificationPanel` |
+| No permission | Never open when signed out; the page shows the session card | `RemindersSessionEnded` |
+| Action failed | Inline under the item: "Couldn't mark it done. Try again." | `PanelActionFailed` |
 
 ### Pop-up
-| State | What the user sees | Copy |
+| State | What the user sees | Artboard |
 |---|---|---|
-| Empty | Nothing rendered | none |
-| Loading | The pressed button shows a spinner in place; the other two dim and lock, as `PopupActing` | none |
-| Error | Card stays, note under the buttons | "That didn't save. Try again." |
-| Success | Card leaves; the panel item updates | none |
-| No permission | Never shown signed out | none |
+| Empty | Nothing rendered | none needed |
+| Loading | A spinner replaces the pressed button's label; the others dim and lock | `PopupActing` |
+| Error | Card stays: "That didn't save. The reminder is still open. Try again." | `PopupFailed` |
+| Success | Card leaves; the panel item updates | `ReminderToast` |
+| No permission | Never shown signed out | none needed |
+| Offline | Done and Snooze disabled, Open still works: "You're offline. Done and Snooze need a connection." | `PopupOffline` |
 
-### Reminder detail and Edit
-| State | What the user sees | Copy |
+### Reminder detail, edit and delete
+| State | What the user sees | Artboard |
 |---|---|---|
-| Empty | Not applicable; a missing reminder is not-found | "This reminder doesn't exist or was deleted." |
-| Loading | Detail: skeleton title, pills and field grid, as `ReminderDetailLoading`. Save: spinner and "Saving…" in the button, fields and Cancel locked, as `ReminderEditSaving`. Delete: spinner and "Deleting…" in the confirm button, as `DeleteReminderBusy` | "Saving…" · "Deleting…" |
-| Error | Error note above the form, fields kept | "Couldn't save. Your changes are still here." |
-| Success | Detail, as `ReminderDetail`. After save: back to detail with a success toast, as `ReminderEditSaved` | "Reminder updated. Next: Wed 24 Sep, 9:00 AM" |
-| No permission | Sign-in redirect, or not-found for another user's id | as Empty |
+| Not found | "This reminder doesn't exist or was deleted." Back to reminders | `ReminderNotFound` |
+| Loading | Skeleton title, pills and field grid | `ReminderDetailLoading` |
+| Saving | A spinner replaces the Save label; fields and Cancel lock | `ReminderEditSaving` |
+| Invalid input | Field errors: "Give the reminder a name.", "Pick at least one day."; Save disabled | `ReminderEditInvalid` |
+| Time already passed | On a one-time reminder: "That time has already passed. Pick a later time." | `ReminderEditPast` |
+| Save failed | "Couldn't save your changes. Your edits are still here." Save becomes Try again | `ReminderEditFailed` |
+| Deleted while editing | "This reminder was deleted from another tab or device." Save disabled | `ReminderEditGone` |
+| Success | Detail with the success toast | `ReminderEditSaved` |
+| Deleting | A spinner replaces the confirm label | `DeleteReminderBusy` |
+| Delete failed | Inside the dialog: "Couldn't delete it. The reminder is unchanged." Try again | `DeleteReminderFailed` |
+| No permission | Session card, or not-found for another user's id | `RemindersSessionEnded`, `ReminderNotFound` |
 
 ### Settings, Reminders
-| State | What the user sees | Copy |
+| State | What the user sees | Artboard |
 |---|---|---|
-| Empty | Defaults shown: 9:00 AM, both switches on | none |
-| Loading | Page: skeleton rows, as `SettingsLoading`. A change: small spinner beside the control until saved, as `SettingsSaving` | none |
-| Error | Switch flips back, note under the section | "Couldn't save that setting. Try again." |
-| Success | Value persists after reload | none |
-| No permission | Sign-in redirect | none |
+| Empty | Defaults: 9:00 AM, both switches on | `SettingsReminders` |
+| Loading | Page: skeleton rows. A change: small spinner beside the control | `SettingsLoading`, `SettingsSaving` |
+| Error | The switch flips back: "Couldn't turn email off. It is still on. Try again." | `SettingsFailed` |
+| Success | Value persists after reload | `SettingsReminders` |
+| No permission | Session card | `RemindersSessionEnded` |
 
 ### Capture, `/remind`
-Reuses 001's capture states unchanged: loading, quota refusal and the
-pending question. New: the cap refusal on `RemindAsk`, which keeps the input,
-and a success toast above the confirmation card, as `RemindCreatedToast`.
+| State | What the user sees | Artboard |
+|---|---|---|
+| Success | Confirmation card and the success toast | `RemindCapture`, `RemindCreatedToast` |
+| No date | One question, nothing saved until answered | `RemindAsk` |
+| Cap reached | Refusal, input kept | `RemindAsk` |
+| Model unavailable | "Slashit can't read that right now. Nothing was saved." Input kept, Try again | `RemindModelDown` |
+| Loading, offline | 001's capture loading and "Capture needs a connection", unchanged | 001's `CaptureLoading`, `PWAOffline` |
 
 ### Success toast
 One shared behaviour, added 2026-09-23 at the user's request.
@@ -178,7 +193,7 @@ One shared behaviour, added 2026-09-23 at the user's request.
 | Group header row | added | component | 001's table has no sections |
 | Switch | added | component | 001's settings used a segmented control; a two-state setting reads better as a switch |
 | Weekday chips | added | component | Repeat needs multi-select on seven days |
-| Button busy state | added | component state | 001's buttons had no in-place loader; a spinner replaces the icon and the label reads "Saving…" or "Deleting…" |
+| Button busy state | added | component state | 001's buttons had no in-place loader. A spinner alone replaces the label, no text, and the button keeps its width so nothing shifts |
 | Success toast | added | component | Nothing in 001 confirmed a save outside the chat stream. Uses `--ink` as its ground, so it inverts in dark with no new token |
 | `late`, `miss`, `rep` pills | added | pill variants | Reuse existing wash tokens; no new colour |
 | Reminder type marker | added | round `dot` variant, blue | Tells reminders from tasks in the All tab |
@@ -193,7 +208,7 @@ ignore CSS variables.
 |---|---|
 | Contrast | The new pills reuse 001's wash and text pairs. They and the red badge's white 10.5 px text are measured against 4.5:1 at build, in both themes, and darkened if short. Not yet measured |
 | Keyboard path | Bell, panel items, pop-up buttons and the snooze menu are real buttons. Esc closes the panel and the menu. Focus returns to the bell |
-| Screen reader labels | Bell: "Notifications, 3 unread". A new pop-up is announced through a polite live region: "Reminder: Call Mom, 7:00 PM". A success toast is a `status` region. A busy button carries `aria-busy` and keeps its accessible name |
+| Screen reader labels | Bell: "Notifications, 3 unread". A new pop-up is announced through a polite live region: "Reminder: Call Mom, 7:00 PM". A success toast is a `status` region. A busy button carries `aria-busy` and an `aria-label` of "Saving", "Deleting" or "Marking done", since its visible label is gone |
 | Motion and reduced motion | Panel slides in 180 ms and the pop-up fades in; both are instant under reduced motion. Skeleton shimmer and button spinners stop under reduced motion, leaving static grey bars and a still ring. No sound, per Q3 |
 | Focus order | A pop-up never steals focus. Its buttons follow page content in tab order. No shortcut in V1, per Q2 |
 
@@ -216,7 +231,6 @@ ignore CSS variables.
 | Both-off warning | Nothing will reach you outside Slashit. With both off, reminders only land in your notification list. | FR-34 |
 | Toast, created | Reminder set for tomorrow, 7:00 PM · View in Records | Resolved time in words, as FR-5 |
 | Toast, updated | Reminder updated. Next: Wed 24 Sep, 9:00 AM · View | |
-| Busy buttons | Saving… · Deleting… | |
 | Email subject | Reminder: Call Mom · Late reminder: Submit timesheet | |
 | Email footer | You get this because email reminders are on. Change email settings | |
 
@@ -235,3 +249,5 @@ ignore CSS variables.
 | 2026-09-23 | Created with 22 artboards on a new canvas, after the user picked the four layout choices in §1 | PRD approved | user |
 | 2026-09-23 | Q1 to Q3 answered: unread count in the tab title, no shortcut, no sound. Accessibility and deltas updated to match | User chose the recommended options | user |
 | 2026-09-23 | Page 7, Loading and feedback, added: skeletons for Records, detail and Settings; spinners inside Save, Delete, pop-up Done and Settings switches; a success toast on create and on edit. Eleven artboards, states, deltas, accessibility and copy updated | User asked for skeleton loaders, button loaders and a success toast | user |
+| 2026-09-23 | Busy buttons show a spinner only, no "Saving…" or "Deleting…" text; width held. Pop-up Done follows the same rule. `ReminderEditSaving`, `DeleteReminderBusy`, `PopupActing` updated | User asked for the spinner alone | user |
+| 2026-09-23 | Page 8, States and errors, added: 16 artboards so every state in §4 is drawn, including offline, not found, invalid input, time passed, save and delete failures, deleted while editing, action failures and model unavailable. §4 rewritten to name the artboard for each state. "No permission" now shows 001's session-ended card rather than a redirect | User asked for every state to be designed, and made it a design rule | user |

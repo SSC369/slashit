@@ -37,6 +37,10 @@
   {
    "id": "page-7",
    "name": "Loading and feedback"
+  },
+  {
+   "id": "page-8",
+   "name": "States and errors"
   }
  ],
  "boards": {
@@ -303,6 +307,134 @@
    "h": 900,
    "title": "Dark edit saved, success toast",
    "page": "page-6"
+  },
+  "RemindersEmpty.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, empty",
+   "page": "page-8"
+  },
+  "RemindersError.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, failed to load",
+   "page": "page-8"
+  },
+  "RemindersNoMatch.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, search with no match",
+   "page": "page-8"
+  },
+  "RemindersSessionEnded.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, session ended",
+   "page": "page-8"
+  },
+  "RemindersOffline.dc.html": {
+   "x": 6240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, offline",
+   "page": "page-8"
+  },
+  "ReminderNotFound.dc.html": {
+   "x": 7800,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder not found or deleted",
+   "page": "page-8"
+  },
+  "ReminderEditInvalid.dc.html": {
+   "x": 9360,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, missing name and no day",
+   "page": "page-8"
+  },
+  "ReminderEditPast.dc.html": {
+   "x": 10920,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, time already passed",
+   "page": "page-8"
+  },
+  "ReminderEditFailed.dc.html": {
+   "x": 12480,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, save failed",
+   "page": "page-8"
+  },
+  "ReminderEditGone.dc.html": {
+   "x": 14040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, deleted while editing",
+   "page": "page-8"
+  },
+  "DeleteReminderFailed.dc.html": {
+   "x": 15600,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Delete failed",
+   "page": "page-8"
+  },
+  "PopupFailed.dc.html": {
+   "x": 17160,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pop-up, action failed",
+   "page": "page-8"
+  },
+  "PopupOffline.dc.html": {
+   "x": 18720,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pop-up, offline",
+   "page": "page-8"
+  },
+  "PanelActionFailed.dc.html": {
+   "x": 20280,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Panel, action failed",
+   "page": "page-8"
+  },
+  "SettingsFailed.dc.html": {
+   "x": 21840,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings, save failed",
+   "page": "page-8"
+  },
+  "RemindModelDown.dc.html": {
+   "x": 23400,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "/remind, model unavailable",
+   "page": "page-8"
   }
  },
  "order": [
@@ -338,7 +470,23 @@
   "PopupActing.dc.html",
   "SettingsSaving.dc.html",
   "MobileReminderSaved.dc.html",
-  "DarkEditSaved.dc.html"
+  "DarkEditSaved.dc.html",
+  "RemindersEmpty.dc.html",
+  "RemindersError.dc.html",
+  "RemindersNoMatch.dc.html",
+  "RemindersSessionEnded.dc.html",
+  "RemindersOffline.dc.html",
+  "ReminderNotFound.dc.html",
+  "ReminderEditInvalid.dc.html",
+  "ReminderEditPast.dc.html",
+  "ReminderEditFailed.dc.html",
+  "ReminderEditGone.dc.html",
+  "DeleteReminderFailed.dc.html",
+  "PopupFailed.dc.html",
+  "PopupOffline.dc.html",
+  "PanelActionFailed.dc.html",
+  "SettingsFailed.dc.html",
+  "RemindModelDown.dc.html"
  ],
  "notes": {
   "n-cap": {
@@ -396,6 +544,14 @@
    "page": "page-7",
    "fill": "blue",
    "text": "Added 2026-09-23 at the user's request.\nSkeletons: Records, reminder detail and Settings load as grey bars in the final layout, never a spinner page.\nButton loaders: Save, Delete, pop-up Done and a Settings switch show a spinner in place and lock the form until the call returns.\nSuccess toast: dark bar, top-centre under the header, hides after 4 seconds, with a View link. Shown on reminder created and reminder updated. Top-centre keeps it clear of reminder pop-ups (bottom-right) and the command bar."
+  },
+  "n-states": {
+   "x": 0,
+   "y": -380,
+   "w": 560,
+   "page": "page-8",
+   "fill": "blue",
+   "text": "Added 2026-09-23: every state and error drawn, not only described.\nReminders tab: empty, failed to load, search with no match, session ended, offline.\nDetail and edit: not found, missing name, no weekday, time already passed, save failed, deleted while editing.\nDelete failed. Pop-up: action failed, offline. Panel: action failed. Settings: save failed, switch flips back.\n/remind: model unavailable, input kept. Cap reached is on page 1 (RemindAsk).\nEvery failure says what did not change, and keeps what the user typed."
   }
  },
  "designSystems": []
