@@ -3,15 +3,17 @@ doc: build-plan
 feature: 003-reminders-and-notifications
 title: Reminders and Notifications
 stage: 3
-status: in-review
+status: approved
 owner: user
 created: 2026-09-23
 updated: 2026-09-23
-approved_on: null
+approved_on: 2026-09-23
 supersedes: null
 ---
 
 # Build Plan (HLD) — Reminders and Notifications
+
+> **Approved** by @user on 2026-09-23. Locked — changes require a change record (§7).
 
 Context: [PRD](./01-prd.md) · [Design](./02-design.md) · [Tech stack](../tech-stack.md)
 
@@ -30,8 +32,10 @@ Tables this feature touches:
 
 Two new backend domains. `reminders` owns the record, its schedule and the
 firing. `notifications` owns the list, read state and the two delivery channels.
-A Procrastinate job runs every minute in a separate worker process. It fires due
-reminders into `notifications`, which writes the list row, signals open apps
+A Procrastinate job runs every minute in a separate worker process. It only finds
+due reminders and defers one firing job for each, so a spike is spread across
+worker concurrency. Each firing job fires one reminder into `notifications`,
+which writes the list row, signals open apps
 through PostgreSQL `LISTEN/NOTIFY` and a GraphQL subscription, and queues one
 email job per notification to Resend. `/remind` goes through capture and the
 gateway, as `/add-task` does. The model returns plain fields, and the server
@@ -63,7 +67,8 @@ flowchart LR
     SUB[subscription resolver] -. LISTEN .-> PG
   end
   subgraph W[Worker process]
-    SWEEP[reminders.fire_due, every minute] --> NOT2[notifications service]
+    SWEEP[reminders.fire_due, every minute] --> ONE[reminders.fire_one, one per due reminder]
+    ONE --> NOT2[notifications service]
     EMAIL[notifications.send_email] --> RS[Resend]
   end
   NOT2 -- NOTIFY after commit --> PG[(PostgreSQL)]
@@ -146,14 +151,14 @@ one. This fixes task capture too, which today resolves "tomorrow" in UTC.
 | Cost controls | The email cap bounds Resend spend. One model call per `/remind`, none per firing |
 | Caching | None. MobX stores hold server state; subscription payloads write into the same store method the list query uses |
 | Observability | structlog events for fired, late, missed, delivered and failed. Every firing logs its delay, from which NFR-1 is read. An hourly reconciliation job logs an error for any active reminder more than 5 minutes past `next_fire_at` with no firing (NFR-4). Product events go to 001's `events` table for G1 to G4 |
-| Failure and retry | Sweep: each reminder in its own transaction, so one bad row never blocks the batch. Email: a Procrastinate job per delivery, idempotency key = delivery id, 5 retries with backoff, `estimate`. `LISTEN` connection: reconnects with backoff; clients refetch on reconnect |
+| Failure and retry | Sweep: defers one `reminders.fire_one` job per due reminder and does no firing itself. Each firing job is its own transaction, so one bad row never blocks another, and a failed firing job retries. Email: a Procrastinate job per delivery, idempotency key = delivery id, 5 retries with backoff, `estimate`. `LISTEN` connection: reconnects with backoff; clients refetch on reconnect |
 | Data retention and privacy | Notifications purged at 90 days by a daily job. The email carries the reminder text, per PRD Q1; no reminder text in logs or analytics (T6) |
 
 ## 7. Alternatives considered
 
 | Decision | Chosen | Alternatives | Why they lost | Reversibility |
 |---|---|---|---|---|
-| Firing | Every-minute sweep | A timed job per reminder; `pg_cron` | Cancel-on-edit is where duplicates and ghosts come from; `pg_cron` moves logic into SQL, away from tests | cheap |
+| Firing | Every-minute sweep that fans out one firing job per due reminder | A timed job per reminder; `pg_cron`; a sweep that fires inline | Cancel-on-edit is where duplicates and ghosts come from; `pg_cron` moves logic into SQL, away from tests; inline firing capped at 500 a run fires late on a 9:00 AM default-time spike | cheap |
 | Live transport backplane | `LISTEN/NOTIFY` | Redis pub/sub; polling every 30 s | Redis is a new stateful service the stack removed; polling misses NFR-5 | cheap |
 | Domain shape | New `reminders` and `notifications` domains | Reminders inside `records` | `records` would grow with every record type in 006 to 009 | costly once built on |
 | Outage catch-up | One missed notice, then the next future occurrence | One per occurrence; skip silently | A flood after an outage; skipping breaks FR-18 | cheap |
@@ -166,25 +171,25 @@ one. This fixes task capture too, which today resolves "tomorrow" in UTC.
 
 | # | Decision | Status | Graduates to tech-stack.md or product.md |
 |---|---|---|---|
-| AD-1 | Two new domains, `reminders` and `notifications`, with the acyclic graph in §2. Future record types get their own domain the same way | proposed | yes, tech stack §3 |
-| AD-2 | `reminders.fire_due` runs every minute as a Procrastinate periodic task. It claims due rows with `FOR UPDATE SKIP LOCKED`, at most 500 a run, `estimate` | proposed | no |
-| AD-3 | Exactly-once rests on the three unique constraints in §3 and Resend's idempotency key, never on job scheduling | proposed | no |
-| AD-4 | Live delivery uses `LISTEN/NOTIFY` on one channel, payload `{user_id, notification_id}` only. Each API instance holds one listening connection and filters by the subscriber's user. This answers tech stack T-Q3 | proposed | yes, closes T-Q3 |
-| AD-5 | A schedule is stored in local terms plus `schedule_timezone`, with `next_fire_at` computed by one pure function over `zoneinfo`. Month-end and February 29 clamp to the last day (FR-8) | proposed | no |
-| AD-6 | A timezone change reaches reminders as a Procrastinate job deferred by name, `reminders.timezone_changed`, so identity never imports reminders (repo rules §6.3, option 3). Recurring reminders recompute; one-time reminders keep their instant (FR-10, FR-11) | proposed | no |
-| AD-7 | Capture passes the user's timezone and local now to every extraction, `/add-task` included. This changes 001's behaviour and is logged against 001 | proposed | no |
-| AD-8 | Resend is called only from `notifications/services/`, the one place a vendor SDK may sit (repo rules §6.3) | proposed | no |
-| AD-9 | The worker runs as its own container, `procrastinate worker`, separate from the API | proposed | yes, tech stack §1 hosting |
-| AD-10 | Reminder settings are columns on identity's `user_settings`, read by the other domains through identity's `public.py` | proposed | no |
-| AD-11 | Lateness is set at firing. On time within 5 minutes of `scheduled_for`; late up to 24 hours; missed beyond. A recurring reminder past 24 hours produces one missed notice for its latest occurrence, then moves to the next future one | proposed | no |
-| AD-12 | A local time that does not exist on a clock-change day fires at the first valid minute after it. A time that occurs twice fires once, at the first | proposed | no |
+| AD-1 | Two new domains, `reminders` and `notifications`, with the acyclic graph in §2. Future record types get their own domain the same way | locked | yes, tech stack §3 |
+| AD-2 | `reminders.fire_due` runs every minute as a Procrastinate periodic task. It selects due rows (`next_fire_at <= now()` on the partial index) and defers `reminders.fire_one(reminder_id, scheduled_for)` for each, with queueing lock `fire:{reminder_id}:{scheduled_for}` so a still-queued firing is never queued twice. `fire_one` writes the firing, the notification and the next occurrence in one transaction; the unique firing row makes a repeat a no-op. Amended 2026-09-23 | locked | no |
+| AD-3 | Exactly-once rests on the three unique constraints in §3 and Resend's idempotency key, never on job scheduling | locked | no |
+| AD-4 | Live delivery uses `LISTEN/NOTIFY` on one channel, payload `{user_id, notification_id}` only. Each API instance holds one listening connection and filters by the subscriber's user. This answers tech stack T-Q3 | locked | yes, closes T-Q3 |
+| AD-5 | A schedule is stored in local terms plus `schedule_timezone`, with `next_fire_at` computed by one pure function over `zoneinfo`. Month-end and February 29 clamp to the last day (FR-8) | locked | no |
+| AD-6 | A timezone change reaches reminders as a Procrastinate job deferred by name, `reminders.timezone_changed`, so identity never imports reminders (repo rules §6.3, option 3). Recurring reminders recompute; one-time reminders keep their instant (FR-10, FR-11) | locked | no |
+| AD-7 | Capture passes the user's timezone and local now to every extraction, `/add-task` included. This changes 001's behaviour and is logged against 001 | locked | no |
+| AD-8 | Resend is called only from `notifications/services/`, the one place a vendor SDK may sit (repo rules §6.3) | locked | no |
+| AD-9 | The worker runs as its own container, `procrastinate worker`, separate from the API | locked | yes, tech stack §1 hosting |
+| AD-10 | Reminder settings are columns on identity's `user_settings`, read by the other domains through identity's `public.py` | locked | no |
+| AD-11 | Lateness is set at firing. On time within 5 minutes of `scheduled_for`; late up to 24 hours; missed beyond. A recurring reminder past 24 hours produces one missed notice for its latest occurrence, then moves to the next future one | locked | no |
+| AD-12 | A local time that does not exist on a clock-change day fires at the first valid minute after it. A time that occurs twice fires once, at the first | locked | no |
 
 ## 9. Risks
 
 | Risk | Impact | Mitigation | Trigger to revisit |
 |---|---|---|---|
 | The worker stops and nobody notices | Every reminder silently late | Hourly reconciliation (NFR-4) logs an error; the host restarts a dead container | Any reconciliation error in production |
-| The sweep takes longer than a minute | Firing drifts past NFR-1 | 500-row cap, per-row transactions, delay logged per firing | p95 delay over 30 s |
+| A burst of due reminders, such as many at the 9:00 AM default | Firing drifts past NFR-1 | The sweep only defers jobs; worker concurrency absorbs the burst; delay logged per firing | p95 delay over 30 s |
 | The `LISTEN` connection drops quietly | Pop-ups stop; the list is still correct | Reconnect with backoff; clients refetch on reconnect | A gap between firings and pop-up receipts |
 | Reminder email lands in spam | Channel useless for that user | `reminders@` on the user's own verified domain with SPF and DKIM, Q9; bounce and complaint events logged | Complaint rate above zero in week one |
 | Supabase free tier pauses the project | Nothing fires | Open as tech stack T-Q6; move to Pro before real users | Before launch |
@@ -213,5 +218,7 @@ Every question is answered, each as the recommended option: Q1 to Q8 before draf
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
-| 2026-09-23 | Created after design approval, with Q1 to Q8 answered by the user before drafting | Design approved | pending |
+| 2026-09-23 | Created after design approval, with Q1 to Q8 answered by the user before drafting | Design approved | user |
 | 2026-09-23 | Q9 to Q11 answered: own sending domain, late after 5 minutes, first valid minute on a clock-change day | User chose the recommended options | user |
+| 2026-09-23 | Approved. AD-1 to AD-12 locked. AD-1, AD-4 and AD-9 copied into `tech-stack.md` in the same change | User: "build plan approved, start the implementation plan" | user |
+| 2026-09-23 | AD-2 amended: the sweep fans out one `reminders.fire_one` job per due reminder instead of firing inline with a 500-row cap. Exactly-once is unchanged: a queueing lock stops a double defer, the unique firing row stops a double fire. §1, §2, §6, §7 and §9 updated. Stale: `04-implementation-plan.md` §4 job table, updated in the same change; sub-plan 4.1 is not affected | User proposed fanning out firing so a burst of due reminders never delays the tail | user |
