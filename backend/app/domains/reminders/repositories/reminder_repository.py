@@ -25,6 +25,7 @@ from app.domains.reminders.interfaces.repositories import (
     RecordedFiring,
     ReminderStateWrite,
     ReminderWrite,
+    RezoneWrite,
 )
 from app.domains.reminders.models import Reminder, ReminderFiring
 from app.domains.reminders.services.firing import summarize_reminder
@@ -130,6 +131,39 @@ class SqlReminderRepository:
         if reminder is None:
             return None
         return _reminder_to_dto(reminder=reminder, now=now)
+
+    async def rezone(
+        self,
+        *,
+        user_id: uuid.UUID,
+        reminder_id: uuid.UUID,
+        expected_updated_at: datetime,
+        write: RezoneWrite,
+    ) -> bool:
+        now = datetime.now(UTC)
+        spec = write.spec
+        async with user_transaction(self.session, user_id) as scoped:
+            result = await scoped.execute(
+                update(Reminder)
+                .where(
+                    Reminder.id == reminder_id,
+                    Reminder.user_id == user_id,
+                    Reminder.deleted_at.is_(None),
+                    Reminder.state != "done",
+                    Reminder.updated_at == expected_updated_at,
+                )
+                .values(
+                    local_time=spec.local_time,
+                    anchor_local_date=spec.anchor_local_date,
+                    one_time_at=spec.one_time_at,
+                    schedule_timezone=write.schedule_timezone,
+                    next_fire_at=write.next_fire_at,
+                    updated_at=now,
+                )
+                .returning(Reminder.id)
+            )
+            moved_id = result.scalar_one_or_none()
+        return moved_id is not None
 
     async def soft_delete(self, *, user_id: uuid.UUID, reminder_id: uuid.UUID) -> bool:
         now = datetime.now(UTC)

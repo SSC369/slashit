@@ -25,5 +25,10 @@ EMAIL_PAUSED_DETAIL: Final[str] = (
     "You reached 50 reminder emails today. Reminders keep landing here."
 )
 
+# FR-40: a notification leaves the list this long after it was created.
+NOTIFICATION_RETENTION_DAYS: Final[int] = 90
+# The daily purge stamps this many rows per transaction.
+PURGE_BATCH_SIZE: Final[int] = 5000
+
 RESEND_EMAILS_URL: Final[str] = "https://api.resend.com/emails"
 RESEND_TIMEOUT_SECONDS: Final[float] = 10.0

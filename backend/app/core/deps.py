@@ -68,6 +68,9 @@ from app.domains.identity.repositories.profile_repository import SqlProfileRepos
 from app.domains.identity.repositories.settings_repository import SqlSettingsRepository
 from app.domains.identity.services.identity_service import IdentityService
 from app.domains.identity.services.supabase_auth_service import SupabaseAuthService
+from app.domains.identity.services.timezone_change_queue import (
+    ProcrastinateTimezoneChangeQueue,
+)
 from app.domains.notifications.adapters.identity_settings_adapter import (
     IdentityDeliverySettingsAdapter,
     IdentityRecipientAdapter,
@@ -79,6 +82,9 @@ from app.domains.notifications.interactors.list_notifications import (
 from app.domains.notifications.interactors.mark_all_read import MarkAllReadInteractor
 from app.domains.notifications.interactors.mark_notification_read import (
     MarkNotificationReadInteractor,
+)
+from app.domains.notifications.interactors.purge_old_notifications import (
+    PurgeOldNotificationsInteractor,
 )
 from app.domains.notifications.interactors.send_email import SendEmailInteractor
 from app.domains.notifications.interactors.stream_notifications import (
@@ -118,6 +124,12 @@ from app.domains.reminders.interactors.get_reminder import GetReminderInteractor
 from app.domains.reminders.interactors.list_reminders import ListRemindersInteractor
 from app.domains.reminders.interactors.mark_reminder_done import (
     MarkReminderDoneInteractor,
+)
+from app.domains.reminders.interactors.reconcile_reminders import (
+    ReconcileRemindersInteractor,
+)
+from app.domains.reminders.interactors.rezone_reminders import (
+    RezoneRemindersInteractor,
 )
 from app.domains.reminders.interactors.snooze_reminder import SnoozeReminderInteractor
 from app.domains.reminders.interactors.update_reminder import UpdateReminderInteractor
@@ -388,7 +400,8 @@ def build_get_settings_interactor(context: Context) -> GetSettingsInteractor:
 
 def build_update_timezone_interactor(context: Context) -> UpdateTimezoneInteractor:
     return UpdateTimezoneInteractor(
-        settings_repository=SqlSettingsRepository(context.session)
+        settings_repository=SqlSettingsRepository(context.session),
+        timezone_change_queue=ProcrastinateTimezoneChangeQueue(),
     )
 
 
@@ -448,6 +461,32 @@ def build_fire_due_interactor(session: AsyncSession) -> FireDueInteractor:
     return FireDueInteractor(
         reminder_repository=SqlReminderRepository(session),
         firing_queue=ProcrastinateFiringQueue(),
+        now_provider=_utc_now,
+        is_firing_enabled=get_settings().reminders_firing_enabled,
+    )
+
+
+def build_rezone_reminders_interactor(
+    session: AsyncSession,
+) -> RezoneRemindersInteractor:
+    """Wired outside a request `Context`, for `reminders/jobs.py`."""
+    return RezoneRemindersInteractor(
+        reminder_repository=SqlReminderRepository(session),
+        user_clock=IdentityUserClockAdapter(
+            identity_service=IdentityService(
+                settings_repository=SqlSettingsRepository(session)
+            )
+        ),
+        now_provider=_utc_now,
+    )
+
+
+def build_reconcile_reminders_interactor(
+    session: AsyncSession,
+) -> ReconcileRemindersInteractor:
+    """Wired outside a request `Context`, for `reminders/jobs.py`."""
+    return ReconcileRemindersInteractor(
+        reminder_repository=SqlReminderRepository(session),
         now_provider=_utc_now,
     )
 
@@ -533,6 +572,16 @@ def build_send_email_interactor(session: AsyncSession) -> SendEmailInteractor:
             api_key=settings.resend_api_key, sender=settings.reminder_email_from
         ),
         app_base_url=settings.app_base_url,
+        now_provider=_utc_now,
+    )
+
+
+def build_purge_old_notifications_interactor(
+    session: AsyncSession,
+) -> PurgeOldNotificationsInteractor:
+    """Wired outside a request `Context`, for `notifications/jobs.py`."""
+    return PurgeOldNotificationsInteractor(
+        notification_repository=SqlNotificationRepository(session),
         now_provider=_utc_now,
     )
 

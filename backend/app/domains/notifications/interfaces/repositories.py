@@ -93,3 +93,10 @@ class NotificationRepository(Protocol):
     ) -> None:
         """Stamps what was done about the firing, and marks it read."""
         ...
+
+    async def soft_delete_created_before(
+        self, *, cutoff: datetime, now: datetime, limit: int
+    ) -> int:
+        """Stamps ``deleted_at`` on up to ``limit`` live rows created before
+        ``cutoff``, for every user. Service-role only (T3). Returns how many."""
+        ...

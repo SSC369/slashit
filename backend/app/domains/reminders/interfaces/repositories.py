@@ -30,6 +30,16 @@ class ReminderWrite:
 
 
 @dataclass(frozen=True)
+class RezoneWrite:
+    """A reminder moved to a new timezone (FR-10, FR-11). Description, state
+    and a pending snooze are not part of it: they do not move."""
+
+    spec: ScheduleSpec
+    schedule_timezone: str
+    next_fire_at: datetime | None
+
+
+@dataclass(frozen=True)
 class FiringWrite:
     """The firing row an interactor decided on."""
 
@@ -91,6 +101,19 @@ class ReminderRepository(Protocol):
     async def update_series(
         self, *, user_id: UUID, reminder_id: UUID, write: ReminderWrite
     ) -> ReminderDTO | None: ...
+
+    async def rezone(
+        self,
+        *,
+        user_id: UUID,
+        reminder_id: UUID,
+        expected_updated_at: datetime,
+        write: RezoneWrite,
+    ) -> bool:
+        """Writes ``write`` only if the reminder is live, not done, and its
+        ``updated_at`` is still ``expected_updated_at``. False otherwise, so a
+        change made since the read wins."""
+        ...
 
     async def soft_delete(self, *, user_id: UUID, reminder_id: UUID) -> bool:
         """Sets ``deleted_at`` and clears ``next_fire_at``. False if not found."""

@@ -259,7 +259,7 @@ class SqlNotificationRepository:
     ) -> NotificationPageDTO:
         statement = (
             _select_with_popup()
-            .where(Notification.user_id == user_id)
+            .where(Notification.user_id == user_id, Notification.deleted_at.is_(None))
             .order_by(Notification.created_at.desc(), Notification.id.desc())
             .limit(limit + 1)
         )
@@ -287,7 +287,11 @@ class SqlNotificationRepository:
             count = await scoped.scalar(
                 select(func.count())
                 .select_from(Notification)
-                .where(Notification.user_id == user_id, Notification.read_at.is_(None))
+                .where(
+                    Notification.user_id == user_id,
+                    Notification.read_at.is_(None),
+                    Notification.deleted_at.is_(None),
+                )
             )
         return int(count or 0)
 
@@ -300,6 +304,7 @@ class SqlNotificationRepository:
                     _select_with_popup().where(
                         Notification.id == notification_id,
                         Notification.user_id == user_id,
+                        Notification.deleted_at.is_(None),
                     )
                 )
             ).one_or_none()
@@ -315,6 +320,7 @@ class SqlNotificationRepository:
                     Notification.id == notification_id,
                     Notification.user_id == user_id,
                     Notification.read_at.is_(None),
+                    Notification.deleted_at.is_(None),
                 )
                 .values(read_at=now)
             )
@@ -323,6 +329,7 @@ class SqlNotificationRepository:
                     _select_with_popup().where(
                         Notification.id == notification_id,
                         Notification.user_id == user_id,
+                        Notification.deleted_at.is_(None),
                     )
                 )
             ).one_or_none()
@@ -332,7 +339,11 @@ class SqlNotificationRepository:
         async with user_transaction(self.session, user_id) as scoped:
             result = await scoped.execute(
                 update(Notification)
-                .where(Notification.user_id == user_id, Notification.read_at.is_(None))
+                .where(
+                    Notification.user_id == user_id,
+                    Notification.read_at.is_(None),
+                    Notification.deleted_at.is_(None),
+                )
                 .values(read_at=now)
                 .returning(Notification.id)
             )
@@ -354,6 +365,7 @@ class SqlNotificationRepository:
                     Notification.user_id == user_id,
                     Notification.source_id == source_id,
                     Notification.kind == "reminder",
+                    Notification.deleted_at.is_(None),
                 )
                 .values(
                     action=action,
@@ -361,6 +373,27 @@ class SqlNotificationRepository:
                     read_at=func.coalesce(Notification.read_at, acted_at),
                 )
             )
+
+    async def soft_delete_created_before(
+        self, *, cutoff: datetime, now: datetime, limit: int
+    ) -> int:
+        # No user_transaction: the daily purge runs for every user at once on
+        # the service-role connection, as a background job may (T3).
+        batch = (
+            select(Notification.id)
+            .where(Notification.deleted_at.is_(None), Notification.created_at < cutoff)
+            .limit(limit)
+            .scalar_subquery()
+        )
+        async with self.session.begin():
+            result = await self.session.execute(
+                update(Notification)
+                .where(Notification.id.in_(batch))
+                .values(deleted_at=now)
+                .returning(Notification.id)
+            )
+            stamped_ids = result.scalars().all()
+        return len(stamped_ids)
 
 
 def _select_with_popup() -> Select[Any]:

@@ -189,7 +189,9 @@ const SettingsController = (): ReactElement => {
                 <InfoIcon size={17} className="shrink-0 text-accent" />
                 <div className={Styles.noteInfoTextStyles}>
                   Detected from your browser. Changing it affects how Slashit reads dates from
-                  here on. Dates already recorded stay exactly as they are.
+                  here on. Dates already recorded stay exactly as they are. Repeating reminders
+                  keep their clock time in the new timezone. One-time reminders keep their
+                  moment.
                 </div>
               </div>
             )}

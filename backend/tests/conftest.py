@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from sqlalchemy.sql import text
 
 from app.core.db import create_engine, create_session_factory
+from app.core.jobs import procrastinate_app
 from app.core.settings import Settings, get_settings
 from app.main import create_app
 
@@ -76,3 +77,26 @@ async def two_users(engine: AsyncEngine) -> AsyncIterator[tuple[uuid.UUID, uuid.
                 text("DELETE FROM auth.users WHERE id = ANY(:ids)"),
                 {"ids": [user_a, user_b]},
             )
+
+
+@pytest.fixture
+async def job_queue(
+    engine: AsyncEngine, two_users: tuple[uuid.UUID, uuid.UUID]
+) -> AsyncIterator[None]:
+    """The real job queue, open as the API's lifespan opens it. Jobs the test
+    queued for its two users are removed afterwards."""
+    locks = [f"tz:{user_id}" for user_id in two_users]
+    async with procrastinate_app.open_async():
+        try:
+            yield
+        finally:
+            async with engine.begin() as conn:
+                # The queue's triggers name its tables unqualified (0020).
+                await conn.execute(text("SET LOCAL search_path TO procrastinate"))
+                await conn.execute(
+                    text(
+                        "DELETE FROM procrastinate.procrastinate_jobs "
+                        "WHERE queueing_lock = ANY(:locks)"
+                    ),
+                    {"locks": locks},
+                )

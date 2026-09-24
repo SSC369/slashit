@@ -29,6 +29,15 @@ class FakeNotificationRepository:
     def __init__(self) -> None:
         self.rows: dict[uuid.UUID, NotificationDTO] = {}
         self.emails: dict[uuid.UUID, FakeEmailDelivery] = {}
+        # Ids stamped by the 90-day purge; the reads below skip them.
+        self.deleted_ids: set[uuid.UUID] = set()
+
+    def _live_rows_for(self, *, user_id: uuid.UUID) -> list[NotificationDTO]:
+        return [
+            row
+            for row in self.rows.values()
+            if row.user_id == user_id and row.id not in self.deleted_ids
+        ]
 
     async def insert_notification(
         self,
@@ -148,7 +157,7 @@ class FakeNotificationRepository:
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int
     ) -> NotificationPageDTO:
         items = sorted(
-            (row for row in self.rows.values() if row.user_id == user_id),
+            self._live_rows_for(user_id=user_id),
             key=lambda row: row.created_at,
             reverse=True,
         )
@@ -156,16 +165,16 @@ class FakeNotificationRepository:
 
     async def count_unread(self, *, user_id: uuid.UUID) -> int:
         return sum(
-            1
-            for row in self.rows.values()
-            if row.user_id == user_id and row.read_at is None
+            1 for row in self._live_rows_for(user_id=user_id) if row.read_at is None
         )
 
     async def get(
         self, *, user_id: uuid.UUID, notification_id: uuid.UUID
     ) -> NotificationDTO | None:
         row = self.rows.get(notification_id)
-        return row if row is not None and row.user_id == user_id else None
+        if row is None or row.user_id != user_id or row.id in self.deleted_ids:
+            return None
+        return row
 
     async def mark_read(
         self, *, user_id: uuid.UUID, notification_id: uuid.UUID, now: datetime
@@ -180,9 +189,7 @@ class FakeNotificationRepository:
 
     async def mark_all_read(self, *, user_id: uuid.UUID, now: datetime) -> int:
         unread = [
-            row
-            for row in self.rows.values()
-            if row.user_id == user_id and row.read_at is None
+            row for row in self._live_rows_for(user_id=user_id) if row.read_at is None
         ]
         for row in unread:
             self.rows[row.id] = replace(row, read_at=now)
@@ -196,11 +203,22 @@ class FakeNotificationRepository:
         action: NotificationActionValue,
         acted_at: datetime,
     ) -> None:
-        for row in list(self.rows.values()):
-            if row.user_id == user_id and row.source_id == source_id:
+        for row in self._live_rows_for(user_id=user_id):
+            if row.source_id == source_id:
                 self.rows[row.id] = replace(
                     row,
                     action=action,
                     acted_at=acted_at,
                     read_at=row.read_at or acted_at,
                 )
+
+    async def soft_delete_created_before(
+        self, *, cutoff: datetime, now: datetime, limit: int
+    ) -> int:
+        old_ids = [
+            row.id
+            for row in self.rows.values()
+            if row.id not in self.deleted_ids and row.created_at < cutoff
+        ][:limit]
+        self.deleted_ids.update(old_ids)
+        return len(old_ids)

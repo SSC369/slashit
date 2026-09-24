@@ -65,7 +65,7 @@ timezone moves and outages.
 | 1 | [04.1-set-and-manage.md](./04.1-set-and-manage.md) | `/remind` sets a reminder in the user's timezone; `/reminders` lists them; the Reminders tab, detail, edit and delete work, with every drawn state. Task dates read in the user's timezone | — | approved, built 2026-09-23; live pass owed |
 | 2 | [04.2-fire-in-the-app.md](./04.2-fire-in-the-app.md) | A due reminder fires within a minute: the bell counts it, the panel lists it, an open app pops it up; Done and Snooze work; late and missed are marked | 1 | approved, built 2026-09-23; live pass owed |
 | 3 | [04.3-email-and-settings.md](./04.3-email-and-settings.md) | Reminders also arrive by email; the default time and both switches work in Settings; the email cap and both-off warning hold | 2 | built; T-3.10 waits on a sending domain |
-| 4 | [04.4-timezone-and-hardening.md](./04.4-timezone-and-hardening.md) | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | approved, building |
+| 4 | [04.4-timezone-and-hardening.md](./04.4-timezone-and-hardening.md) | A timezone change moves recurring reminders; the reconciliation alert and 90-day purge run | 2 | approved, built 2026-09-23 |
 
 Slices 3 and 4 are independent of each other and can be built in either order.
 

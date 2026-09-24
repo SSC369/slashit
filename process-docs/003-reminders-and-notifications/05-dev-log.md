@@ -13,7 +13,7 @@ supersedes: null
 
 # Dev Log — Reminders and Notifications
 
-Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md) · [04.2](./04.2-fire-in-the-app.md) · [04.3](./04.3-email-and-settings.md)
+Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-set-and-manage.md) · [04.2](./04.2-fire-in-the-app.md) · [04.3](./04.3-email-and-settings.md) · [04.4](./04.4-timezone-and-hardening.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -235,6 +235,80 @@ Supabase project.
 | I-7 | `ruff format app` reformatted three old files outside this slice | The command was run on the whole folder | Reverted with `git checkout`; only changed files are formatted |
 | I-8 | `mypy` flagged the purge test's fake as not an `AuthAccountRepository` | The Protocol gained `get_email` | The fake gained it too |
 
+## Slice 4 — Timezone and hardening
+
+Backend and frontend built 2026-09-23. Verified against a real local
+PostgreSQL 16 and a real Procrastinate worker, in unit, integration and
+component tests. This is the last slice; what the feature still owes is under
+"What the feature still owes".
+
+### Tasks
+
+| # | Task | Status | Note |
+|---|---|---|---|
+| T-4.1 | Migration 0022; notification reads skip deleted rows | **done** | Downgrade to 0021 and upgrade to head run clean. List, count, get, mark read, mark all read and Done's stamp skip deleted rows. One more index than planned (D-45) |
+| T-4.2 | Purge interactor and daily job | **done** | TC-4.8 in memory and against the database: 91 days stamped and kept, 89 days listed |
+| T-4.3 | Rezone repository method and interactor | **done** | TC-4.1 to TC-4.3, including a daylight-saving change in New York and a firing landing mid-move (D-43) |
+| T-4.4 | Identity's queue port, `updateTimezone`, the `timezone_changed` job | **done** | TC-4.4; TC-4.7 and TC-4.9 over the API with the real queue |
+| T-4.5 | Reconcile interactor and hourly job | **done** | TC-4.5: 6 minutes overdue logs `reminders.lost`, 4 minutes does not; no reminder text in the log |
+| T-4.6 | `REMINDERS_FIRING_ENABLED` | **done** | TC-4.6. Default true |
+| T-4.7 | Timezone note sentence | **done** | TC-4.11 |
+| T-4.8 | Cross-slice cases X-1, X-2, X-5 | **done** | X-1 and X-2 new in `test_timezone_and_hardening.py`; X-5 cited from existing tests (D-48) |
+| T-4.9 | Worker run | **done** | All four periodic jobs registered. A daily 7 PM Kolkata reminder moved to 7 PM London 1 s after `updateTimezone`, by the worker. `reconcile` and `purge_old` each ran once on it: 0 lost, 0 purged |
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `pytest -m "not live"` against local PostgreSQL 16 | **276 passed**: 196 unit, 71 integration, 9 settings and logging |
+| `mypy app tests` | The same 3 errors a clean `HEAD` shows, in files not touched; `app` alone is clean |
+| `ruff check .` | Clean. Every changed file formatted |
+| `alembic downgrade 0021_notification_time_zone` then `upgrade head` | Clean |
+| Real worker | T-4.9 above |
+| `tsc -b`, `oxlint`, `npm run build` | Clean; oxlint's one warning is still the old `StrictMode` import |
+| `vitest run` | **148 passed** (147 after slice 3) |
+
+### Deviations
+
+| # | Deviation | Why | Consequence |
+|---|---|---|---|
+| D-42 | No `list_live_for_rezone` or `select_overdue`, which 4.4 §8 listed. The rezone reads `list_for_user` and keeps what is not done and not yet in the new zone; reconcile calls `select_due` with a cutoff 5 minutes back. `RezoneWrite` carries the whole spec | The existing methods already return exactly those rows. Two methods that only forward would be ceremony | Two fewer repository methods |
+| D-43 | The rezone re-reads and retries, up to 3 passes, when a reminder changed between its read and its write; `reminders.rezone_incomplete` is logged if any are still in the old zone | A firing bumps `updated_at`. Without a retry, a reminder firing at that moment would stay in the old zone for good. An edit made meanwhile still wins: it was saved in the new zone, so the re-read skips it | TC-4.3 covers both |
+| D-44 | `reminders.lost` logs the reminder id, due time and minutes overdue, not the user id 4.4 §6 listed | The due-row DTO the sweep uses carries no user id, and the reminder id finds it | Minor |
+| D-45 | Migration 0022 also adds `ix_notifications_live_created`, a partial index on `created_at` for live rows | Without it the daily purge scans the whole table | Additive |
+| D-46 | The email cap's counts and a firing's email status still read soft-deleted rows | Both look at today or at one firing; a row older than 90 days never matters to either | None |
+| D-47 | `tests/conftest.py` gains a `job_queue` fixture, and 002's `updateTimezone` integration test uses it | The mutation now defers a job, and the test client does not run the API's lifespan, which opens the queue | An API process must open the queue at start, as `main.py` already does |
+| D-48 | X-1 starts from the fields capture yields, not from typing the `/remind` sentence; X-5 is cited, not re-tested | Reading the sentence needs the model, and slice 1's `test_remind_capture.py` covers it. X-5's isolation is already tested over HTTP, the panel and the WebSocket | The index's X-1 to X-6 all run against a real database |
+| D-49 | `updateTimezone` reads the stored settings before saving, and announces the change only when the zone differs, or when no settings row existed | Saving the same zone must not queue a move (TC-4.4) | One extra read per timezone save |
+| D-50 | The timezone note keeps "Dates already recorded stay exactly as they are." and adds decision 3's two sentences after it | Decision 3 was to add, not replace | Copy not on the canvas; to review |
+
+### Incidents and defects
+
+| # | What broke | Cause | Fix |
+|---|---|---|---|
+| I-9 | `ruff format app`, and later `ruff format tests/fakes`, reformatted five old files outside this slice | I-7 again: formatting a folder instead of the changed files | Reverted with `git checkout`. Format changed files by name only |
+| I-10 | 43 integration tests failed to connect mid-session | The local PostgreSQL had stopped | Restarted; the suite passed |
+| I-11 | 002's `updateTimezone` integration test failed with `AppNotOpen` | D-47 | The `job_queue` fixture |
+
+## What the feature still owes
+
+All four slices are built. The index's definition of done, checked 2026-09-23:
+
+| Item | State |
+|---|---|
+| Every task shipped or dropped | Shipped, except T-1.14, T-2.15 and T-3.10 |
+| X-1 to X-6 against a real database | **Pass.** X-7 measured in slice 2 |
+| Every artboard matched | Not confirmed. No browser pass has run; mobile and dark artboards are unchecked (D-31) |
+| Firing delay, duplicates, reconciliation and email outcomes logged | **Yes**: `reminders.fire_one` delay, the unique constraints, `reminders.lost`, `notifications.email_*` |
+| 001's dev log records AD-7 | **Yes**, as 001's D-44 (see D-8) |
+| `index.md` shows `shipped` | **No.** Blocked on the three items below |
+
+| Owed | Blocked on |
+|---|---|
+| T-1.14, T-2.15: live browser passes, with the artboard check | A Supabase project reachable from the test environment, and a model key |
+| T-3.10: first real email | A verified sending domain and a Resend key |
+| Supabase Redirect URLs allow paths under the site URL (D-39) | Dashboard access |
+
 ## Change log
 
 | Date | Change | Why | Approved by |
@@ -242,3 +316,4 @@ Supabase project.
 | 2026-09-23 | Created. Slice 1 built: 3 migrations, the `reminders` domain, identity and capture extended, records union, 4 frontend operations, 2 stores, 3 shared components, the Reminders tab, detail, edit and delete with every drawn state. 210 backend and 112 frontend tests pass. Live browser pass blocked in this environment | User: "implementation plan approved, start slice 1" | user |
 | 2026-09-23 | Slice 2 built: migrations 0019 and 0020, the `notifications` domain, firing, Done and Snooze, the live feed over LISTEN/NOTIFY and a WebSocket, the bell, panel, pop-ups and row actions. 243 backend and 128 frontend tests pass; a real worker fired a reminder; 2,000 due at once fired at p95 28.5 s. Live browser pass blocked in this environment | User: "Proceed", approving 4.2 | user |
 | 2026-09-23 | Slice 3 built: migration 0021, email delivery with its daily cap and paused notice, the `send_email` job, `updateReminderSettings`, the Settings reminders section with every drawn state, the `email_paused` notice, return to the link after sign-in, and the "Change default time" link. 260 backend and 147 frontend tests pass. Email ships off; the first real send (T-3.10) waits on a sending domain | User: "Commit and proceed with next", approving 4.3 | user |
+| 2026-09-23 | Slice 4 built: migration 0022, timezone moves through `reminders.timezone_changed`, hourly reconciliation, the 90-day soft delete, the firing kill switch, and cross-slice cases X-1 and X-2. 276 backend and 148 frontend tests pass; a real worker moved a reminder from Kolkata to London time. The feature's definition of done is checked; three live checks remain owed | User: "1", approving 4.4 | user |

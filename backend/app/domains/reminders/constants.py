@@ -24,3 +24,15 @@ FIRE_DUE_BATCH: Final = 5000
 
 # FR-16: a failed firing job retries, and the unique firing row makes it safe.
 FIRE_ONE_MAX_ATTEMPTS: Final = 5
+
+# NFR-4: a live reminder this far past due with no firing is lost. The same
+# 5 minutes after which a firing counts as late.
+LOST_AFTER: Final = ON_TIME_WINDOW
+# At most this many lost reminders are read and logged per reconciliation.
+RECONCILE_BATCH: Final = 1000
+
+# A firing can land between a rezone's read and its write; the rezone then
+# re-reads and tries again this many times in all.
+REZONE_MAX_PASSES: Final = 3
+# A failed timezone_changed job retries; each run skips what already moved.
+REZONE_MAX_ATTEMPTS: Final = 5

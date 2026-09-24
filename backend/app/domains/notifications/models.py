@@ -41,6 +41,8 @@ class Notification(Base):
         Enum(*NOTIFICATION_ACTIONS, name="notification_action", create_type=False)
     )
     acted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Stamped by the 90-day purge (FR-40); every list read skips it.
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class NotificationDelivery(Base):

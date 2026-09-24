@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     # Kill switch, off by default (sub-plan 4.3 decision 2): no email leaves
     # until a sending domain is verified. Off, every email delivery is written
     # `skipped` and Resend is never called.
+    # Index §9's kill switch: false stops the every-minute sweep, so nothing
+    # fires. Reminders keep their times and fire late once it is back on.
+    reminders_firing_enabled: bool = True
     reminder_email_enabled: bool = False
     # Empty is allowed only while email is off; the validator below refuses
     # an enabled switch with no key rather than failing at the first send.

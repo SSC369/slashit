@@ -195,4 +195,14 @@ describe("SettingsController, reminders", () => {
     expect(screen.getByRole("combobox", { name: "Default reminder time" })).toHaveValue("09:00");
     expect(screen.getByRole("alert")).toHaveTextContent("Pick a time.");
   });
+
+  it("TC-4.11: the timezone note says what a change does to reminders", () => {
+    renderSettings();
+
+    expect(
+      screen.getByText(
+        /Repeating reminders keep their clock time in the new timezone\. One-time reminders keep their moment\./,
+      ),
+    ).toBeInTheDocument();
+  });
 });

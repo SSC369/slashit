@@ -18,6 +18,7 @@ from app.domains.reminders.interfaces.repositories import (
     RecordedFiring,
     ReminderStateWrite,
     ReminderWrite,
+    RezoneWrite,
 )
 from app.domains.reminders.services.firing import summarize_reminder
 
@@ -38,6 +39,9 @@ class FakeReminderRepository:
         self.rows: dict[uuid.UUID, ReminderDTO] = {}
         self.deleted_ids: set[uuid.UUID] = set()
         self.firings: dict[uuid.UUID, FiringDTO] = {}
+        # Runs before each rezone write, so a test can change the row between
+        # the interactor's read and its write, as a firing or an edit would.
+        self.before_rezone: Callable[[uuid.UUID], None] | None = None
 
     async def create_reminder(
         self,
@@ -122,6 +126,34 @@ class FakeReminderRepository:
         )
         self.rows[reminder_id] = updated
         return updated
+
+    async def rezone(
+        self,
+        *,
+        user_id: uuid.UUID,
+        reminder_id: uuid.UUID,
+        expected_updated_at: datetime,
+        write: RezoneWrite,
+    ) -> bool:
+        if self.before_rezone is not None:
+            self.before_rezone(reminder_id)
+        existing = await self.get_by_id(user_id=user_id, reminder_id=reminder_id)
+        if (
+            existing is None
+            or existing.state == "done"
+            or existing.updated_at != expected_updated_at
+        ):
+            return False
+        self.rows[reminder_id] = self._redescribe(
+            reminder=replace(
+                existing,
+                spec=write.spec,
+                schedule_timezone=write.schedule_timezone,
+                next_fire_at=write.next_fire_at,
+                updated_at=self.now_provider(),
+            )
+        )
+        return True
 
     async def soft_delete(self, *, user_id: uuid.UUID, reminder_id: uuid.UUID) -> bool:
         existing = await self.get_by_id(user_id=user_id, reminder_id=reminder_id)
