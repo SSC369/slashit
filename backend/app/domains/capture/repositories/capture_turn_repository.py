@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import cast
 
-from sqlalchemy import literal, select, tuple_
+from sqlalchemy import literal, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -40,6 +40,8 @@ def _turn_to_dto(*, turn: CaptureTurn) -> CaptureTurnDTO:
         created_at=turn.created_at,
         resulting_reminder_id=turn.resulting_reminder_id,
         resulting_memory_id=turn.resulting_memory_id,
+        forgotten=turn.forgotten_at is not None,
+        affected_count=turn.affected_count,
     )
 
 
@@ -61,6 +63,7 @@ class SqlCaptureTurnRepository:
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
         resulting_memory_id: uuid.UUID | None = None,
+        affected_count: int | None = None,
     ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
             scoped.add(
@@ -73,11 +76,37 @@ class SqlCaptureTurnRepository:
                     resulting_pending_capture_id=resulting_pending_capture_id,
                     resulting_reminder_id=resulting_reminder_id,
                     resulting_memory_id=resulting_memory_id,
+                    affected_count=affected_count,
                     question_text=question_text,
                     answer_text=answer_text,
                     created_at=datetime.now(UTC),
                 )
             )
+
+    async def scrub_turns_for_memories(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> int:
+        """The one UPDATE this table permits (AD-3). The check constraint in
+        migration 0028 refuses a scrubbed row that keeps any words."""
+        if not memory_ids:
+            return 0
+        async with user_transaction(self.session, user_id) as scoped:
+            scrubbed_ids = await scoped.scalars(
+                update(CaptureTurn)
+                .where(
+                    CaptureTurn.user_id == user_id,
+                    CaptureTurn.resulting_memory_id.in_(memory_ids),
+                    CaptureTurn.forgotten_at.is_(None),
+                )
+                .values(
+                    input_text="",
+                    question_text=None,
+                    answer_text=None,
+                    forgotten_at=datetime.now(UTC),
+                )
+                .returning(CaptureTurn.id)
+            )
+            return len(list(scrubbed_ids))
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

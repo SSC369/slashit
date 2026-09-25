@@ -58,6 +58,25 @@ class MemoryRepository(Protocol):
         refills it. None when it is not this user's live memory."""
         ...
 
+    async def filter_live_ids(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> list[UUID]:
+        """The subset of ids that are this user's live memories."""
+        ...
+
+    async def list_live_ids(self, *, user_id: UUID) -> list[UUID]:
+        """Every live memory id this user holds, for forget-all."""
+        ...
+
+    async def count_by_terms(self, *, user_id: UUID, terms: list[str]) -> int:
+        """How many live memories match any term, for "{n} more match"."""
+        ...
+
+    async def tombstone_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
+        """Stamp ``deleted_at`` and set every readable column to NULL, in one
+        UPDATE (AD-2). Returns how many live rows it changed."""
+        ...
+
     async def set_embedding(
         self, *, user_id: UUID, memory_id: UUID, embedding: tuple[float, ...]
     ) -> None:

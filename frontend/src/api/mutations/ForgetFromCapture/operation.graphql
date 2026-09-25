@@ -1,0 +1,15 @@
+mutation ForgetFromCapture($memoryIds: [ID!]!, $forgetAll: Boolean!, $expectedCount: Int!) {
+  forgetFromCapture(memoryIds: $memoryIds, forgetAll: $forgetAll, expectedCount: $expectedCount) {
+    __typename
+    ... on MemoriesForgotten {
+      count
+    }
+    ... on MemoryCountChanged {
+      message
+      count
+    }
+    ... on ForgetTargetGone {
+      message
+    }
+  }
+}

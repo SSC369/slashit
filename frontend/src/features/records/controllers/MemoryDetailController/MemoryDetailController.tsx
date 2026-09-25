@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useEffect, useState, type ReactElement } from "react";
 import { useNavigate, useParams } from "react-router";
 
+import useForgetMemory from "../../../../api/mutations/ForgetMemory/useForgetMemory";
 import useUpdateMemory from "../../../../api/mutations/UpdateMemory/useUpdateMemory";
 import useGetMemory from "../../../../api/queries/GetMemory/useGetMemory";
 import { useResponseHandler } from "../../../../api/queries/GetMemory/responseHandler";
@@ -11,6 +12,7 @@ import { API_FAILED, API_FETCHING } from "../../../../constants/apiConstants";
 import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
 import { useStore } from "../../../../stores/StoreProvider";
 import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
+import ForgetConfirmModal from "../../components/ForgetConfirmModal";
 import MemoryDetailView, { MemoryDetailSkeleton } from "../../components/MemoryDetailView";
 import MemoryEditForm, {
   type MemoryDraft,
@@ -28,7 +30,7 @@ interface MemoryDetailControllerProps {
 
 /**
  * One memory at `/records/memories/:id` (FR-17) and its edit form at
- * `.../edit` (FR-18). Forget is slice 3's (sub-plan 4.3).
+ * `.../edit` (FR-18), and Forget from the detail (FR-21, sub-plan 4.2).
  */
 const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElement => {
   const { mode } = props;
@@ -45,6 +47,9 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
   const { triggerAPI: triggerGetMemory, data, apiStatus, apiError } = useGetMemory();
   const { handleResponse } = useResponseHandler();
   const { triggerAPI: triggerUpdateMemory, apiStatus: updateApiStatus } = useUpdateMemory();
+  const { triggerAPI: triggerForgetMemory, apiStatus: forgetApiStatus } = useForgetMemory();
+  const [isForgetOpen, setIsForgetOpen] = useState(false);
+  const [forgetError, setForgetError] = useState<string | null>(null);
 
   const memory = store.memories.get(id);
   const isEditing = mode === "EDIT";
@@ -108,6 +113,33 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
     });
   };
 
+  const openForget = (): void => {
+    setForgetError(null);
+    setIsForgetOpen(true);
+  };
+
+  const handleConfirmForget = (): void => {
+    setForgetError(null);
+    const forgotten = (): void => {
+      setIsForgetOpen(false);
+      store.memories.remove(id);
+      store.toast.show({
+        message: "Memory forgotten. It is gone from your records and your capture history.",
+        linkLabel: "",
+        linkTo: "",
+      });
+      goToMemories();
+    };
+    triggerForgetMemory({
+      id,
+      onMemoriesForgotten: forgotten,
+      // Forgotten from another tab first: the outcome the user asked for.
+      onMemoryNotFound: forgotten,
+      onRequestFailed: () =>
+        setForgetError("This memory could not be forgotten. Nothing was changed. Try again."),
+    });
+  };
+
   const isSessionEnded = apiStatus === API_FAILED && isSessionEndedError(apiError);
   const hasLoadFailed = apiStatus === API_FAILED && memory === null;
 
@@ -165,6 +197,7 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
         memory={memory}
         isOffline={!isOnline}
         onEdit={() => navigate(`/records/memories/${id}/edit`)}
+        onForget={openForget}
       />
     );
   };
@@ -193,6 +226,16 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
           {renderBody()}
         </div>
       </div>
+
+      {isForgetOpen && memory !== null && (
+        <ForgetConfirmModal
+          memoryText={memory.text}
+          isBusy={forgetApiStatus === API_FETCHING}
+          errorMessage={forgetError}
+          onCancel={() => setIsForgetOpen(false)}
+          onConfirm={handleConfirmForget}
+        />
+      )}
     </div>
   );
 };

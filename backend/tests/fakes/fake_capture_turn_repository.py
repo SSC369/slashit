@@ -1,6 +1,7 @@
 """An in-memory CaptureTurnRepository."""
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.domains.capture.interfaces.dtos import (
@@ -29,6 +30,7 @@ class FakeCaptureTurnRepository:
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
         resulting_memory_id: uuid.UUID | None = None,
+        affected_count: int | None = None,
     ) -> None:
         turn = CaptureTurnDTO(
             id=uuid.uuid4(),
@@ -41,9 +43,30 @@ class FakeCaptureTurnRepository:
             created_at=datetime.now(UTC),
             resulting_reminder_id=resulting_reminder_id,
             resulting_memory_id=resulting_memory_id,
+            affected_count=affected_count,
         )
         self.rows.append(turn)
         self._owner_by_turn_id[turn.id] = user_id
+
+    async def scrub_turns_for_memories(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> int:
+        scrubbed = 0
+        for index, row in enumerate(self.rows):
+            if (
+                self._owner_by_turn_id.get(row.id) == user_id
+                and row.resulting_memory_id in memory_ids
+                and not row.forgotten
+            ):
+                self.rows[index] = replace(
+                    row,
+                    input_text="",
+                    question_text=None,
+                    answer_text=None,
+                    forgotten=True,
+                )
+                scrubbed += 1
+        return scrubbed
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

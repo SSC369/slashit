@@ -50,6 +50,15 @@ export class MemoriesStoreModel {
     this.order = this.order.filter((memoryId) => memoryId !== id);
   }
 
+  /** Forget (FR-22): the rows leave the tab and every reader at once. */
+  removeMany(ids: string[]): void {
+    const gone = new Set(ids);
+    for (const id of ids) {
+      this.memories.delete(id);
+    }
+    this.order = this.order.filter((memoryId) => !gone.has(memoryId));
+  }
+
   setCategoryFilter(filter: MemoryCategoryFilterType): void {
     this.categoryFilter = filter;
   }

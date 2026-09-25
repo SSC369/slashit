@@ -44,6 +44,7 @@ CaptureTurnOutcome = Literal[
     # Epic 004, migration 0025.
     "memory_saved",
     "memory_listed",
+    "memory_forgotten",
 ]
 
 
@@ -64,6 +65,9 @@ class CaptureTurnDTO:
     resulting_reminder_id: UUID | None = None
     # Epic 004. Slice 3's forget scrubs the turns that point at a memory.
     resulting_memory_id: UUID | None = None
+    # Epic 004, sub-plan 4.2: a scrubbed turn, and a `/forget` turn's count.
+    forgotten: bool = False
+    affected_count: int | None = None
 
 
 @dataclass(frozen=True)

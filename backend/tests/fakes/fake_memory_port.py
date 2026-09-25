@@ -6,6 +6,9 @@ from uuid import UUID
 
 from app.domains.capture.interfaces.ports import MemorySaveOutcome
 from app.domains.memories.public import (
+    ForgetCandidatesDTO,
+    MemoriesForgottenDTO,
+    MemoryCountChangedDTO,
     MemoryDTO,
     MemoryListDTO,
     MemorySavedDTO,
@@ -36,6 +39,7 @@ class FakeMemoryPort:
         self.refusal = refusal
         self.saved: list[MemoryDTO] = []
         self.lookups: list[str] = []
+        self.forgotten: list[UUID] = []
 
     async def save_memory(
         self, *, user_id: UUID, text: str, original_input: str
@@ -57,6 +61,41 @@ class FakeMemoryPort:
     async def look_up_memories(self, *, user_id: UUID, text: str) -> MemoryListDTO:
         self.lookups.append(text)
         return MemoryListDTO(memories=[], search_text=text)
+
+    async def find_forget_candidates(
+        self, *, user_id: UUID, text: str
+    ) -> ForgetCandidatesDTO:
+        matches = [
+            memory
+            for memory in self.saved
+            if memory.user_id == user_id
+            and text
+            and text.lower() in memory.text.lower()
+        ]
+        return ForgetCandidatesDTO(
+            search_text=text,
+            candidates=matches[:5],
+            total_matches=len(matches),
+            forget_all=text.lower() == "all",
+            all_count=len(self.saved) if text.lower() == "all" else 0,
+        )
+
+    async def forget_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> MemoriesForgottenDTO:
+        live = [memory for memory in self.saved if memory.id in memory_ids]
+        self.saved = [memory for memory in self.saved if memory.id not in memory_ids]
+        self.forgotten.extend(memory.id for memory in live)
+        return MemoriesForgottenDTO(count=len(live))
+
+    async def forget_all(
+        self, *, user_id: UUID, expected_count: int
+    ) -> MemoriesForgottenDTO | MemoryCountChangedDTO:
+        if len(self.saved) != expected_count:
+            return MemoryCountChangedDTO(count=len(self.saved))
+        return await self.forget_memories(
+            user_id=user_id, memory_ids=[memory.id for memory in self.saved]
+        )
 
 
 class FakeMemoryRecordsPort:

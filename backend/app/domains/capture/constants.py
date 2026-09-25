@@ -29,6 +29,8 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     "/remember",
     "/add-memory",
     "/memories",
+    # Epic 004, sub-plan 4.2 (FR-24 to FR-28).
+    "/forget",
 )
 
 # Epic 004, FR-1: two names for one action.

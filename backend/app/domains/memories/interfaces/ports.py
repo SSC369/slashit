@@ -47,6 +47,19 @@ class MemoryAnalyticsPort(Protocol):
     ) -> None: ...
 
 
+class TurnScrubPort(Protocol):
+    """FR-23: erase the words of every capture turn that saved these memories.
+
+    Owned by memories, implemented by capture's ``CaptureTurnScrubber``, which
+    satisfies it structurally and imports nothing from memories, so the domain
+    graph stays acyclic (build plan §2). Wired in ``core/deps.py``.
+    """
+
+    async def scrub_turns_for_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> int: ...
+
+
 class ReembedQueue(Protocol):
     """Queues the vector's refresh after an edit, so an edit never waits on,
     or fails with, the model (build plan §7)."""

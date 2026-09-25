@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Text, Uuid
+from sqlalchemy import DateTime, Enum, Integer, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -17,6 +17,7 @@ CAPTURE_TURN_OUTCOMES = (
     "reminder_created",
     "memory_saved",
     "memory_listed",
+    "memory_forgotten",
 )
 
 
@@ -56,6 +57,11 @@ class CaptureTurn(Base):
     resulting_reminder_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 004, migration 0025. No foreign key, as for resulting_task_id.
     resulting_memory_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 004, migration 0028. Set by the forget scrub, the one UPDATE this
+    # table permits (AD-3); a check constraint keeps a scrubbed row wordless.
+    forgotten_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A confirmed `/forget`: how many memories it removed (FR-28).
+    affected_count: Mapped[int | None] = mapped_column(Integer)
     question_text: Mapped[str | None] = mapped_column(Text)
     answer_text: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

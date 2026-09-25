@@ -5,6 +5,8 @@ fragment CaptureTurnFields on CaptureTurn {
   resultingTaskId
   resultingPendingCaptureId
   resultingMemoryId
+  forgotten
+  affectedCount
   questionText
   answerText
   createdAt

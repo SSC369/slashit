@@ -60,6 +60,7 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ForgetCandidatesDTO,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLongDTO,
@@ -82,6 +83,7 @@ CaptureOutcome = (
     | MemorySavedDTO
     | MemoryListDTO
     | MemoryTooLongDTO
+    | ForgetCandidatesDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -156,6 +158,14 @@ class SubmitCaptureInteractor:
         if command_name == "/memories":
             return await self._list_memories(
                 user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name == "/forget":
+            # FR-24 to FR-27: candidates only. Nothing is forgotten, and no
+            # turn is written, until the user confirms (ConfirmForgetInteractor),
+            # so the words typed here are never stored (FR-28).
+            return await self.memory_port.find_forget_candidates(
+                user_id=user_id, text=argument_text
             )
 
         if command_name in MEMORY_SAVE_COMMANDS:

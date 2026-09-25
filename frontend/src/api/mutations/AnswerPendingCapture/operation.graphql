@@ -46,6 +46,15 @@ mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
       length
       limit
     }
+    ... on ForgetCandidates {
+      forgetText: searchText
+      totalMatches
+      forgetAll
+      allCount
+      candidates {
+        ...MemoryFields
+      }
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question

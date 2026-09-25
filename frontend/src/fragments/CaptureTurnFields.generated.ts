@@ -5,6 +5,7 @@ import * as Types from '../../types.generated';
 import { gql } from '@apollo/client';
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
   | 'MEMORY_SAVED'
   | 'QUESTION_ASKED'
@@ -12,7 +13,7 @@ export type CaptureTurnOutcome =
   | 'REMINDER_CREATED'
   | 'TASK_CREATED';
 
-export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, questionText: string | null, answerText: string | null, createdAt: string };
+export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string };
 
 export const CaptureTurnFieldsFragmentDoc = gql`
     fragment CaptureTurnFields on CaptureTurn {
@@ -22,6 +23,8 @@ export const CaptureTurnFieldsFragmentDoc = gql`
   resultingTaskId
   resultingPendingCaptureId
   resultingMemoryId
+  forgotten
+  affectedCount
   questionText
   answerText
   createdAt

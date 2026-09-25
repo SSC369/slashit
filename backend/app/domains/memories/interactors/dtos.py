@@ -34,3 +34,9 @@ class UpdateMemoryInputDTO:
 class ReembedMemoryInputDTO:
     user_id: UUID
     memory_id: UUID
+
+
+@dataclass(frozen=True)
+class ForgetMemoryInputDTO:
+    user_id: UUID
+    memory_id: UUID

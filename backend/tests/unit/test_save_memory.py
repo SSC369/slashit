@@ -15,6 +15,7 @@ from tests.fakes.fake_memory_repository import (
     FakeMemoryAnalytics,
     FakeMemoryModel,
     FakeMemoryRepository,
+    FakeTurnScrub,
 )
 
 USER = uuid.uuid4()
@@ -31,6 +32,7 @@ def _service(
         embedding=memory_model,
         judgement=memory_model,
         analytics=analytics,
+        turn_scrub=FakeTurnScrub(repository=repository),
     )
     return service, repository, memory_model, analytics
 

@@ -11,6 +11,15 @@ import {
   MemorySavedCard,
   MemoryTooLongNote,
 } from "./MemoryCards";
+import {
+  ForgetAllCard,
+  ForgetCancelledNote,
+  ForgetConfirmCard,
+  ForgetGoneNote,
+  ForgetNoMatchNote,
+  ForgetPickCard,
+  ForgottenNote,
+} from "./ForgetCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import * as Styles from "./styles";
 
@@ -29,6 +38,11 @@ interface TurnCardProps {
   onEditMemory: (id: string) => void;
   onOpenMemory: (id: string) => void;
   onOpenMemories: () => void;
+  isForgetting?: boolean;
+  onForgetSelect: (id: string, memoryId: string) => void;
+  onForgetContinue: (id: string) => void;
+  onForgetConfirm: (id: string) => void;
+  onForgetCancel: (id: string) => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
@@ -69,6 +83,11 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onEditMemory,
     onOpenMemory,
     onOpenMemories,
+    isForgetting = false,
+    onForgetSelect,
+    onForgetContinue,
+    onForgetConfirm,
+    onForgetCancel,
   } = props;
   const isRemind = isRemindCommand(turn.said);
 
@@ -206,6 +225,53 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "memoryModelDown":
       return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;
+
+    case "forgetPick":
+      return (
+        <ForgetPickCard
+          candidates={turn.candidates}
+          totalMatches={turn.totalMatches}
+          selectedId={turn.selectedId}
+          onSelect={(memoryId) => onForgetSelect(turn.id, memoryId)}
+          onContinue={() => onForgetContinue(turn.id)}
+          onCancel={() => onForgetCancel(turn.id)}
+        />
+      );
+
+    case "forgetConfirm":
+      return (
+        <ForgetConfirmCard
+          memory={turn.memory}
+          error={turn.error}
+          isBusy={isForgetting}
+          onConfirm={() => onForgetConfirm(turn.id)}
+          onCancel={() => onForgetCancel(turn.id)}
+        />
+      );
+
+    case "forgetAll":
+      return (
+        <ForgetAllCard
+          count={turn.count}
+          countChanged={turn.countChanged}
+          error={turn.error}
+          isBusy={isForgetting}
+          onConfirm={() => onForgetConfirm(turn.id)}
+          onCancel={() => onForgetCancel(turn.id)}
+        />
+      );
+
+    case "forgetNoMatch":
+      return <ForgetNoMatchNote searchText={turn.searchText} />;
+
+    case "forgotten":
+      return <ForgottenNote count={turn.count} />;
+
+    case "forgetGone":
+      return <ForgetGoneNote />;
+
+    case "forgetCancelled":
+      return <ForgetCancelledNote />;
 
     case "modelDown":
       return (

@@ -1,4 +1,5 @@
 import type { MemoryFieldsFragment } from "../../../fragments/MemoryFields.generated";
+import type { ForgetCandidatesArgs } from "../../../constants/memoryConstants";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
 import type { SecretKind } from "../../../../types.generated";
 import type { TaskFieldsFragment } from "../../../fragments/TaskFields.generated";
@@ -13,6 +14,7 @@ export interface AnswerPendingCaptureCallbacks {
   onMemorySaved?: (args: { memory: MemoryFieldsFragment; secretCaution: SecretKind | null }) => void;
   onMemoriesListed?: (args: { memories: MemoryFieldsFragment[]; searchText: string | null }) => void;
   onMemoryTooLong?: (args: { message: string; length: number; limit: number }) => void;
+  onForgetCandidates?: (args: ForgetCandidatesArgs) => void;
   onPendingQuestionCreated?: (args: { pendingCaptureId: string; question: string }) => void;
   onNonCommandGuidance?: (originalInput: string) => void;
   onUnrecognisedCommand?: (args: { attemptedName: string; closestMatches: string[] }) => void;
@@ -64,6 +66,15 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
           message: result.message,
           length: result.length,
           limit: result.limit,
+        });
+        return;
+      case "ForgetCandidates":
+        callbacks.onForgetCandidates?.({
+          searchText: result.forgetText,
+          candidates: result.candidates,
+          totalMatches: result.totalMatches,
+          forgetAll: result.forgetAll,
+          allCount: result.allCount,
         });
         return;
       case "PendingQuestionCreated":

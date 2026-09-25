@@ -31,6 +31,7 @@ from app.domains.capture.adapters.reminders_adapter import RemindersAdapter
 from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
 )
+from app.domains.capture.interactors.confirm_forget import ConfirmForgetInteractor
 from app.domains.capture.interactors.discard_pending_capture import (
     DiscardPendingCaptureInteractor,
 )
@@ -45,6 +46,7 @@ from app.domains.capture.repositories.pending_capture_repository import (
     SqlPendingCaptureRepository,
 )
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
+from app.domains.capture.services.turn_scrubber import CaptureTurnScrubber
 from app.domains.gateway.interactors.embed import EmbedInteractor
 from app.domains.gateway.interactors.extract import ExtractInteractor
 from app.domains.gateway.repositories.usage_repository import SqlUsageRepository
@@ -75,6 +77,7 @@ from app.domains.identity.services.timezone_change_queue import (
 )
 from app.domains.memories.adapters.analytics_adapter import MemoryAnalyticsAdapter
 from app.domains.memories.adapters.gateway_adapter import GatewayMemoryModelAdapter
+from app.domains.memories.interactors.forget_memory import ForgetMemoryInteractor
 from app.domains.memories.interactors.get_memory import GetMemoryInteractor
 from app.domains.memories.interactors.list_memories import ListMemoriesInteractor
 from app.domains.memories.interactors.reembed_memory import ReembedMemoryInteractor
@@ -662,6 +665,22 @@ def build_memory_service(context: Context) -> MemoryService:
         embedding=model_port,
         judgement=model_port,
         analytics=_build_memory_analytics_port(session=context.session),
+        # Sub-plan 4.2: capture's scrubber, handed in here so memories never
+        # imports capture (build plan §2).
+        turn_scrub=CaptureTurnScrubber(
+            capture_turn_repository=SqlCaptureTurnRepository(context.session)
+        ),
+    )
+
+
+def build_forget_memory_interactor(context: Context) -> ForgetMemoryInteractor:
+    return ForgetMemoryInteractor(memory_service=build_memory_service(context))
+
+
+def build_confirm_forget_interactor(context: Context) -> ConfirmForgetInteractor:
+    return ConfirmForgetInteractor(
+        memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
+        capture_turn_repository=SqlCaptureTurnRepository(context.session),
     )
 
 

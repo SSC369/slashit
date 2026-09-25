@@ -14,10 +14,13 @@ from strawberry.types import Info
 from app.core.context import Context
 from app.core.deps import (
     build_answer_pending_capture_interactor,
+    build_confirm_forget_interactor,
     build_discard_pending_capture_interactor,
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
+    ForgetCandidates,
+    ForgetTargetGone,
     MemoriesListed,
     MemorySaved,
     NonCommandGuidance,
@@ -45,6 +48,10 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ForgetCandidatesDTO,
+    MemoriesForgotten,
+    MemoriesForgottenDTO,
+    MemoryCountChanged,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLong,
@@ -68,6 +75,7 @@ CaptureResult = Annotated[
     | MemorySaved
     | MemoriesListed
     | MemoryTooLong
+    | ForgetCandidates
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -168,7 +176,26 @@ def _memory_outcome_to_result(
         )
     if isinstance(outcome, MemoryTooLongDTO):
         return cast(CaptureResult, memory_too_long_to_type(too_long=outcome))
+    if isinstance(outcome, ForgetCandidatesDTO):
+        return cast(
+            CaptureResult,
+            ForgetCandidates(
+                search_text=outcome.search_text,
+                candidates=[
+                    memory_dto_to_type(memory=memory) for memory in outcome.candidates
+                ],
+                total_matches=outcome.total_matches,
+                forget_all=outcome.forget_all,
+                all_count=outcome.all_count,
+            ),
+        )
     return None
+
+
+ForgetFromCaptureResult = Annotated[
+    MemoriesForgotten | MemoryCountChanged | ForgetTargetGone,
+    strawberry.union("ForgetFromCaptureResult"),
+]
 
 
 @strawberry.type
@@ -206,3 +233,38 @@ class CaptureMutations:
             user_id=user_id, pending_capture_id=UUID(str(pending_capture_id))
         )
         return True
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    async def forget_from_capture(
+        self,
+        info: Info,
+        memory_ids: list[strawberry.ID],
+        forget_all: bool,
+        expected_count: int,
+    ) -> ForgetFromCaptureResult:
+        """Epic 004, FR-24 to FR-28: the confirm step of `/forget`."""
+        context = cast(Context, info.context)
+        user_id = cast(UUID, context.user_id)
+        interactor = build_confirm_forget_interactor(context)
+        outcome = await interactor.confirm_forget(
+            user_id=user_id,
+            memory_ids=[UUID(str(memory_id)) for memory_id in memory_ids],
+            forget_all=forget_all,
+            expected_count=expected_count,
+        )
+        if isinstance(outcome, MemoriesForgottenDTO):
+            if outcome.count == 0:
+                return cast(
+                    ForgetFromCaptureResult,
+                    ForgetTargetGone(message="That memory was already forgotten."),
+                )
+            return cast(ForgetFromCaptureResult, MemoriesForgotten(count=outcome.count))
+        noun = "memory" if outcome.count == 1 else "memories"
+        return cast(
+            ForgetFromCaptureResult,
+            MemoryCountChanged(
+                message=f"You now have {outcome.count} {noun}. Confirm again to "
+                "forget them all.",
+                count=outcome.count,
+            ),
+        )

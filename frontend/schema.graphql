@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | ForgetCandidates | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -26,6 +26,8 @@ type CaptureTurn {
   resultingPendingCaptureId: ID
   resultingReminderId: ID
   resultingMemoryId: ID
+  forgotten: Boolean!
+  affectedCount: Int
   questionText: String
   answerText: String
   createdAt: DateTime!
@@ -39,6 +41,7 @@ enum CaptureTurnOutcome {
   REMINDER_CREATED
   MEMORY_SAVED
   MEMORY_LISTED
+  MEMORY_FORGOTTEN
 }
 
 """Date (isoformat)"""
@@ -48,6 +51,22 @@ scalar Date
 scalar DateTime
 
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
+
+type ForgetCandidates {
+  searchText: String!
+  candidates: [Memory!]!
+  totalMatches: Int!
+  forgetAll: Boolean!
+  allCount: Int!
+}
+
+union ForgetFromCaptureResult = MemoriesForgotten | MemoryCountChanged | ForgetTargetGone
+
+union ForgetMemoryResult = MemoriesForgotten | MemoryNotFound
+
+type ForgetTargetGone {
+  message: String!
+}
 
 type InvalidCredentials {
   message: String!
@@ -95,6 +114,10 @@ input MemoriesFilterInput {
   search: String = null
 }
 
+type MemoriesForgotten {
+  count: Int!
+}
+
 type MemoriesListed {
   memories: [Memory!]!
   searchText: String
@@ -115,6 +138,11 @@ enum MemoryCategory {
   PEOPLE
   PROFESSIONAL
   LIFE
+}
+
+type MemoryCountChanged {
+  message: String!
+  count: Int!
 }
 
 type MemoryNotFound {
@@ -138,6 +166,7 @@ type Mutation {
   submitCapture(rawInput: String!): CaptureResult!
   answerPendingCapture(pendingCaptureId: ID!, answer: String!): CaptureResult!
   discardPendingCapture(pendingCaptureId: ID!): Boolean!
+  forgetFromCapture(memoryIds: [ID!]!, forgetAll: Boolean!, expectedCount: Int!): ForgetFromCaptureResult!
   updateTask(id: ID!, input: UpdateTaskInput!): UpdateTaskResult!
   completeTask(id: ID!): UpdateTaskResult!
   deleteTask(ids: [ID!]!): Int!
@@ -152,6 +181,7 @@ type Mutation {
   markNotificationRead(id: ID!): MarkNotificationReadResult!
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded!
   updateMemory(id: ID!, input: UpdateMemoryInput!): UpdateMemoryResult!
+  forgetMemory(id: ID!): ForgetMemoryResult!
 }
 
 type NoFieldsToUpdate {

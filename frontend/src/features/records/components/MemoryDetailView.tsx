@@ -1,4 +1,4 @@
-import { Pencil } from "lucide-react";
+import { Eraser, Pencil } from "lucide-react";
 import type { ReactElement } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
@@ -12,13 +12,14 @@ interface MemoryDetailViewProps {
   memory: MemoryFieldsFragment;
   isOffline: boolean;
   onEdit: () => void;
+  onForget: () => void;
 }
 
 const isEdited = (memory: MemoryFieldsFragment): boolean => memory.origin === "edit";
 
-/** 004 `MemoryDetail` (FR-17). Forget arrives with slice 3 (sub-plan 4.3). */
+/** 004 `MemoryDetail` (FR-17), with Forget (FR-21). */
 const MemoryDetailView = (props: MemoryDetailViewProps): ReactElement => {
-  const { memory, isOffline, onEdit } = props;
+  const { memory, isOffline, onEdit, onForget } = props;
   return (
     <>
       <div className={Styles.detailTitleStyles}>{memory.text}</div>
@@ -53,6 +54,9 @@ const MemoryDetailView = (props: MemoryDetailViewProps): ReactElement => {
       <div className={Styles.detailActionsRowStyles}>
         <Button onClick={onEdit} disabled={isOffline}>
           <Pencil size={15} /> Edit
+        </Button>
+        <Button onClick={onForget} disabled={isOffline}>
+          <Eraser size={15} /> Forget
         </Button>
       </div>
     </>

@@ -43,6 +43,7 @@ export type SubmitCaptureMutationVariables = Exact<{
 
 
 export type SubmitCaptureMutation = { submitCapture:
+    | { __typename: 'ForgetCandidates', totalMatches: number, forgetAll: boolean, allCount: number, forgetText: string, candidates: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
     | { __typename: 'MalformedResult', message: string, reason: string }
     | { __typename: 'MemoriesListed', searchText: string | null, memories: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
     | { __typename: 'MemorySaved', secretCaution: Types.SecretKind | null, memory: { id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string } }
@@ -106,6 +107,15 @@ export const SubmitCaptureDocument = gql`
       message
       length
       limit
+    }
+    ... on ForgetCandidates {
+      forgetText: searchText
+      totalMatches
+      forgetAll
+      allCount
+      candidates {
+        ...MemoryFields
+      }
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

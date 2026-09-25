@@ -21,6 +21,14 @@ PRODUCT_STOP_WORDS: Final = frozenset(
 # FR-20. How many matches one lookup returns. Enough for a chat card.
 LOOKUP_LIMIT: Final = 20
 
+# Sub-plan 4.2, Q2: `/forget <which>` offers at most this many to pick from.
+FORGET_PICK_LIMIT: Final = 5
+
+# Sub-plan 4.2, Q4 and FR-27: the only arguments that mean "forget everything".
+# Compared after lowercasing and trimming; anything else is a word match, so a
+# forget-all never starts by accident.
+FORGET_ALL_PHRASES: Final = frozenset({"all", "everything", "all my memories"})
+
 # Build plan §6: the reembed job's attempts before leaving the vector NULL.
 REEMBED_MAX_ATTEMPTS: Final = 3
 

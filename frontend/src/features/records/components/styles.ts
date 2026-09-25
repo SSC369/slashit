@@ -143,3 +143,4 @@ export const textareaStyles =
 export const counterStyles = "mt-1 text-right text-[11.5px] text-foreground-tertiary";
 export const counterOverStyles = "text-destructive";
 export const formHintStyles = "text-[12.5px] text-foreground-tertiary";
+export const modalBackupStyles = "mt-2.5 text-[12.5px] text-foreground-tertiary";

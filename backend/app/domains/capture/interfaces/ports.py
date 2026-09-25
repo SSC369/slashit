@@ -18,6 +18,9 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ForgetCandidatesDTO,
+    MemoriesForgottenDTO,
+    MemoryCountChangedDTO,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLongDTO,
@@ -107,3 +110,15 @@ class MemoryPort(Protocol):
     async def list_memories(self, *, user_id: UUID) -> MemoryListDTO: ...
 
     async def look_up_memories(self, *, user_id: UUID, text: str) -> MemoryListDTO: ...
+
+    async def find_forget_candidates(
+        self, *, user_id: UUID, text: str
+    ) -> ForgetCandidatesDTO: ...
+
+    async def forget_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> MemoriesForgottenDTO: ...
+
+    async def forget_all(
+        self, *, user_id: UUID, expected_count: int
+    ) -> MemoriesForgottenDTO | MemoryCountChangedDTO: ...

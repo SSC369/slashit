@@ -21,6 +21,8 @@ class FakeMemoryRepository:
     def __init__(self) -> None:
         self.rows: dict[UUID, MemoryDTO] = {}
         self.embeddings: dict[UUID, tuple[float, ...] | None] = {}
+        self.forgotten_ids: list[UUID] = []
+        self.tombstone_should_fail = False
 
     async def create_memory(self, *, user_id: UUID, write: MemoryWrite) -> MemoryDTO:
         now = datetime.now(UTC)
@@ -87,6 +89,33 @@ class FakeMemoryRepository:
         self.embeddings[memory_id] = None
         return updated
 
+    async def filter_live_ids(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> list[UUID]:
+        return [
+            memory_id
+            for memory_id in memory_ids
+            if await self.get_by_id(user_id=user_id, memory_id=memory_id)
+        ]
+
+    async def list_live_ids(self, *, user_id: UUID) -> list[UUID]:
+        return [row.id for row in self.rows.values() if row.user_id == user_id]
+
+    async def count_by_terms(self, *, user_id: UUID, terms: list[str]) -> int:
+        return len(await self.find_by_terms(user_id=user_id, terms=terms, limit=10_000))
+
+    async def tombstone_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
+        if self.tombstone_should_fail:
+            raise RuntimeError("simulated tombstone failure")
+        forgotten = 0
+        for memory_id in memory_ids:
+            if await self.get_by_id(user_id=user_id, memory_id=memory_id):
+                del self.rows[memory_id]
+                self.embeddings[memory_id] = None
+                self.forgotten_ids.append(memory_id)
+                forgotten += 1
+        return forgotten
+
     async def set_embedding(
         self, *, user_id: UUID, memory_id: UUID, embedding: tuple[float, ...]
     ) -> None:
@@ -143,3 +172,23 @@ class FakeReembedQueue:
 
     async def enqueue_reembed(self, *, user_id: UUID, memory_id: UUID) -> None:
         self.queued.append(memory_id)
+
+
+class FakeTurnScrub:
+    """Records which memories' turns were scrubbed, and in what order relative
+    to the tombstone (sub-plan 4.2 §5: scrub first)."""
+
+    def __init__(self, *, repository: FakeMemoryRepository | None = None) -> None:
+        self.repository = repository
+        self.scrubbed: list[UUID] = []
+        self.live_when_scrubbed: list[bool] = []
+
+    async def scrub_turns_for_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> int:
+        self.scrubbed.extend(memory_ids)
+        if self.repository is not None:
+            self.live_when_scrubbed.extend(
+                memory_id in self.repository.rows for memory_id in memory_ids
+            )
+        return len(memory_ids)

@@ -11,7 +11,14 @@ from app.domains.gateway.public import (
     SharedQuotaExhausted,
     UserLimitReached,
 )
-from app.domains.memories.public import MemoryListDTO, MemoryService, ModelRefused
+from app.domains.memories.public import (
+    ForgetCandidatesDTO,
+    MemoriesForgottenDTO,
+    MemoryCountChangedDTO,
+    MemoryListDTO,
+    MemoryService,
+    ModelRefused,
+)
 
 _GATEWAY_FAILURES = (
     UserLimitReached,
@@ -45,3 +52,24 @@ class MemoriesAdapter:
 
     async def look_up_memories(self, *, user_id: UUID, text: str) -> MemoryListDTO:
         return await self.memory_service.look_up_memories(user_id=user_id, text=text)
+
+    async def find_forget_candidates(
+        self, *, user_id: UUID, text: str
+    ) -> ForgetCandidatesDTO:
+        return await self.memory_service.find_forget_candidates(
+            user_id=user_id, text=text
+        )
+
+    async def forget_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> MemoriesForgottenDTO:
+        return await self.memory_service.forget_memories(
+            user_id=user_id, memory_ids=memory_ids
+        )
+
+    async def forget_all(
+        self, *, user_id: UUID, expected_count: int
+    ) -> MemoriesForgottenDTO | MemoryCountChangedDTO:
+        return await self.memory_service.forget_all(
+            user_id=user_id, expected_count=expected_count
+        )

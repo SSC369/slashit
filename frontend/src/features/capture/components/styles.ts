@@ -112,3 +112,19 @@ export const cautionInCardStyles = "mx-4 my-3 rounded-[9px]";
 export const memoryListRowStyles =
   "flex cursor-pointer items-center justify-between gap-4 px-4 py-2.5 hover:bg-background";
 export const memoryHintStyles = "px-4 py-3 text-[13px] text-foreground-secondary";
+
+// Forget (004 design: ForgetPick, ForgetConfirm, ForgetAll, HistoryForgotten)
+export const historyForgottenStyles =
+  "mt-2 rounded-[10px] border border-dashed border-border-strong px-3.5 py-2.5 text-[13px] italic text-foreground-tertiary";
+export const forgetPickRowStyles = "flex cursor-pointer items-center gap-3 border-t border-border px-4 py-3";
+export const forgetPickRowOnStyles = "bg-accent-wash";
+export const forgetRadioStyles = "h-4 w-4 shrink-0 accent-[var(--color-accent)]";
+export const forgetConfirmCardStyles = "overflow-hidden rounded-lg border border-destructive-wash bg-card";
+export const forgetConfirmBodyStyles = "flex gap-3.5 px-[18px] pb-3.5 pt-[18px]";
+export const forgetConfirmIconStyles =
+  "flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-destructive-wash text-destructive";
+export const forgetConfirmTitleStyles = "text-base font-semibold text-foreground";
+export const forgetConfirmTextStyles = "mt-1.5 text-[13.5px] text-foreground-secondary";
+export const forgetConfirmBackupStyles = "mt-2.5 text-[12.5px] text-foreground-tertiary";
+export const forgetActionsStyles = "flex justify-end gap-2.5 border-t border-border bg-background px-4 py-3";
+export const forgetErrorStyles = "px-4 pb-3 text-[13px] text-destructive";

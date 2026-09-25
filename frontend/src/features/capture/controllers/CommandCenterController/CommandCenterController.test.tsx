@@ -4,12 +4,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RootStore } from "@/stores/RootStore";
 import { StoreProvider } from "@/stores/StoreProvider";
+import { buildMemory } from "@/testing/memoryFixture";
 import { buildReminder } from "@/testing/reminderFixture";
 import CommandCenterController from "./CommandCenterController";
 
-const { mockUseOnlineStatus, mockTriggerSubmitCapture } = vi.hoisted(() => ({
+const { mockUseOnlineStatus, mockTriggerSubmitCapture, mockTriggerForgetFromCapture } = vi.hoisted(() => ({
   mockUseOnlineStatus: vi.fn(),
   mockTriggerSubmitCapture: vi.fn(),
+  mockTriggerForgetFromCapture: vi.fn(),
 }));
 
 vi.mock("@/hooks/useOnlineStatus", () => ({
@@ -26,6 +28,10 @@ vi.mock("@/api/mutations/AnswerPendingCapture/useAnswerPendingCapture", () => ({
 
 vi.mock("@/api/mutations/DiscardPendingCapture/useDiscardPendingCapture", () => ({
   default: () => ({ triggerAPI: vi.fn(), apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("@/api/mutations/ForgetFromCapture/useForgetFromCapture", () => ({
+  default: () => ({ triggerAPI: mockTriggerForgetFromCapture, apiStatus: 0, apiError: null }),
 }));
 
 vi.mock("@/api/queries/GetCaptureHistory/useGetCaptureHistory", () => ({
@@ -155,5 +161,115 @@ describe("CommandCenterController /remind", () => {
     expect(screen.getByText("2 active reminders · soonest first")).toBeInTheDocument();
     const names = screen.getAllByText(/Call Mom|Water the plants/).map((node) => node.textContent);
     expect(names).toEqual(["Call Mom", "Water the plants"]);
+  });
+});
+
+describe("CommandCenterController /forget, F-2.1 of sub-plan 4.2", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const runCommand = (command: string): void => {
+    const input = screen.getByPlaceholderText("Type / to begin");
+    fireEvent.change(input, { target: { value: command } });
+    fireEvent.keyDown(input, { key: "Enter" });
+  };
+
+  const airline = buildMemory({ id: "m1", text: "Preferred airline is Emirates" });
+  const miles = buildMemory({ id: "m2", text: "Airline miles number is EK 204 551 902" });
+  const offerBoth = (args: { onForgetCandidates: (value: unknown) => void }) =>
+    args.onForgetCandidates({
+      searchText: "airline",
+      candidates: [airline, miles],
+      totalMatches: 2,
+      forgetAll: false,
+      allCount: 0,
+    });
+
+  it("picks one, continues to a confirm naming it, and forgets only on confirm (FR-25)", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation(offerBoth);
+    mockTriggerForgetFromCapture.mockImplementation((args) => args.onMemoriesForgotten(1));
+    const store = new RootStore();
+    store.memories.setMemories([airline, miles]);
+    renderWithProviders(store);
+
+    runCommand("/forget airline");
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: "Preferred airline is Emirates" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+
+    expect(screen.getByText("Forget this memory?")).toBeInTheDocument();
+    expect(screen.getByText(/Copies in backups are erased/)).toBeInTheDocument();
+    expect(mockTriggerForgetFromCapture).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Forget memory" }));
+
+    expect(mockTriggerForgetFromCapture).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryIds: ["m1"], forgetAll: false, expectedCount: 1 }),
+    );
+    expect(screen.getByText("Forgot 1 memory")).toBeInTheDocument();
+    expect(store.memories.get("m1")).toBeNull();
+    expect(store.memories.get("m2")).not.toBeNull();
+  });
+
+  it("Cancel on the pick list forgets nothing", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation(offerBoth);
+    renderWithProviders();
+
+    runCommand("/forget airline");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText("Nothing was forgotten.")).toBeInTheDocument();
+    expect(mockTriggerForgetFromCapture).not.toHaveBeenCalled();
+  });
+
+  it("says so when nothing matches, and explains a bare /forget (FR-26)", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation((args) =>
+      args.onForgetCandidates({
+        searchText: args.rawInput === "/forget" ? "" : "visa",
+        candidates: [],
+        totalMatches: 0,
+        forgetAll: false,
+        allCount: 0,
+      }),
+    );
+    renderWithProviders();
+
+    runCommand("/forget visa");
+    // The trailing space closes the palette, so Enter sends the bare command.
+    runCommand("/forget ");
+
+    expect(screen.getByText("No memory matches “visa”. Nothing was forgotten.")).toBeInTheDocument();
+    expect(screen.getByText(/Type what to forget/)).toBeInTheDocument();
+  });
+
+  it("forget-all confirms by count, and asks again when the count changed (FR-27)", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation((args) =>
+      args.onForgetCandidates({
+        searchText: "all",
+        candidates: [],
+        totalMatches: 0,
+        forgetAll: true,
+        allCount: 23,
+      }),
+    );
+    mockTriggerForgetFromCapture.mockImplementationOnce((args) =>
+      args.onMemoryCountChanged({ message: "changed", count: 24 }),
+    );
+    renderWithProviders();
+
+    runCommand("/forget all");
+    expect(screen.getByText("Forget all 23 memories?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Forget 23 memories" }));
+
+    expect(mockTriggerForgetFromCapture).toHaveBeenCalledWith(
+      expect.objectContaining({ memoryIds: [], forgetAll: true, expectedCount: 23 }),
+    );
+    expect(screen.getByText("Forget all 24 memories?")).toBeInTheDocument();
+    expect(screen.getByText(/You now have 24/)).toBeInTheDocument();
   });
 });

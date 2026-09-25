@@ -111,6 +111,72 @@ class SqlMemoryRepository:
             await scoped.flush()
             return _memory_to_dto(memory=memory)
 
+    async def filter_live_ids(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> list[uuid.UUID]:
+        if not memory_ids:
+            return []
+        async with user_transaction(self.session, user_id) as scoped:
+            live_ids = await scoped.scalars(
+                select(Memory.id).where(
+                    Memory.user_id == user_id,
+                    Memory.deleted_at.is_(None),
+                    Memory.id.in_(memory_ids),
+                )
+            )
+            return list(live_ids)
+
+    async def list_live_ids(self, *, user_id: uuid.UUID) -> list[uuid.UUID]:
+        async with user_transaction(self.session, user_id) as scoped:
+            live_ids = await scoped.scalars(
+                select(Memory.id).where(
+                    Memory.user_id == user_id, Memory.deleted_at.is_(None)
+                )
+            )
+            return list(live_ids)
+
+    async def count_by_terms(self, *, user_id: uuid.UUID, terms: list[str]) -> int:
+        if not terms:
+            return 0
+        text_query = func.to_tsquery("english", " | ".join(terms))
+        async with user_transaction(self.session, user_id) as scoped:
+            matched_count = await scoped.scalar(
+                select(func.count())
+                .select_from(Memory)
+                .where(
+                    Memory.user_id == user_id,
+                    Memory.deleted_at.is_(None),
+                    Memory.search_vector.op("@@")(text_query),
+                )
+            )
+        return int(matched_count or 0)
+
+    async def tombstone_memories(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> int:
+        if not memory_ids:
+            return 0
+        now = datetime.now(UTC)
+        async with user_transaction(self.session, user_id) as scoped:
+            forgotten_ids = await scoped.scalars(
+                update(Memory)
+                .where(
+                    Memory.user_id == user_id,
+                    Memory.deleted_at.is_(None),
+                    Memory.id.in_(memory_ids),
+                )
+                .values(
+                    deleted_at=now,
+                    updated_at=now,
+                    text=None,
+                    original_input=None,
+                    category=None,
+                    embedding=None,
+                )
+                .returning(Memory.id)
+            )
+            return len(list(forgotten_ids))
+
     async def set_embedding(
         self,
         *,

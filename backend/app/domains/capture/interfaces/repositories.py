@@ -45,7 +45,14 @@ class CaptureTurnRepository(Protocol):
         answer_text: str | None,
         resulting_reminder_id: UUID | None = None,
         resulting_memory_id: UUID | None = None,
+        affected_count: int | None = None,
     ) -> None: ...
+
+    async def scrub_turns_for_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> int:
+        """FR-23: blank every turn that saved one of these memories."""
+        ...
 
     async def list_turns_for_user(
         self, *, user_id: UUID, cursor: str | None, limit: int

@@ -64,6 +64,27 @@ class MemoriesListed:
 
 
 @strawberry.type
+class ForgetCandidates:
+    """Epic 004, FR-24 to FR-27: what `/forget <which>` offers. Nothing is
+    forgotten yet. An empty `searchText` means `/forget` came with no words,
+    and the card explains how to use it."""
+
+    search_text: str
+    candidates: list[Memory]
+    total_matches: int
+    forget_all: bool
+    all_count: int
+
+
+@strawberry.type
+class ForgetTargetGone:
+    """The memories picked were already forgotten, from another tab or device,
+    before the confirm arrived. Nothing was forgotten by this request."""
+
+    message: str
+
+
+@strawberry.type
 class ReminderLimitReached:
     """FR-38. Nothing was saved; the input is kept by the client."""
 
@@ -97,6 +118,7 @@ class CaptureTurnOutcome(Enum):
     REMINDER_CREATED = "reminder_created"
     MEMORY_SAVED = "memory_saved"
     MEMORY_LISTED = "memory_listed"
+    MEMORY_FORGOTTEN = "memory_forgotten"
 
 
 @strawberry.type
@@ -108,6 +130,8 @@ class CaptureTurn:
     resulting_pending_capture_id: strawberry.ID | None
     resulting_reminder_id: strawberry.ID | None
     resulting_memory_id: strawberry.ID | None
+    forgotten: bool
+    affected_count: int | None
     question_text: str | None
     answer_text: str | None
     created_at: datetime
@@ -144,6 +168,8 @@ def capture_turn_dto_to_type(*, turn: CaptureTurnDTO) -> CaptureTurn:
             if turn.resulting_memory_id
             else None
         ),
+        forgotten=turn.forgotten,
+        affected_count=turn.affected_count,
         question_text=turn.question_text,
         answer_text=turn.answer_text,
         created_at=turn.created_at,

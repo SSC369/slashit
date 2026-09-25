@@ -56,9 +56,11 @@ export const Toast = (props: ToastProps): ReactElement | null => {
         <Check size={13} />
       </span>
       <span className={Styles.toastMessageStyles}>{toast.message}</span>
-      <Link to={toast.linkTo} className={Styles.toastLinkStyles} onClick={() => onDismiss(toast.id)}>
-        {toast.linkLabel}
-      </Link>
+      {toast.linkLabel !== "" && (
+        <Link to={toast.linkTo} className={Styles.toastLinkStyles} onClick={() => onDismiss(toast.id)}>
+          {toast.linkLabel}
+        </Link>
+      )}
       <button
         type="button"
         aria-label="Dismiss"
