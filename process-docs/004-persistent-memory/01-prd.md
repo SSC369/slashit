@@ -44,7 +44,7 @@ one and remove any of them for good.
 | G1 | Users save facts in Slashit | Memories saved per active user per week |
 | G2 | Saved facts are returned to | Memory lookups per active user per week, by `/memories` or the Memories filter |
 | G3 | Memory stays free of contradictions without silent changes | Conflict questions answered, split by the three answers |
-| G4 | Forget is trusted | Forgets followed by a re-save of similar text within five minutes |
+| G4 | Forget is trusted | Forgets followed by any memory save within five minutes. Revised 2026-09-25: a forgotten text is erased, so similarity cannot be measured |
 
 > Assumption: no numeric targets, following the product decision of
 > 2026-09-08 (`product.md` §9). Every goal is instrumented from launch.
@@ -137,13 +137,13 @@ one and remove any of them for good.
 | NFR-1 | A user's memories are never readable by another user, in storage or in a model prompt | Zero incidents | Authorisation tests on every memory path |
 | NFR-2 | After a forget, the memory's text is found in no store the product reads | Zero matches | Test that forgets a memory, then searches every store for its text |
 | NFR-3 | Memory text never appears in application logs or analytics events | Zero occurrences | Log and event review, and a test asserting it |
-| NFR-4 | A save is confirmed, or its conflict question shown, promptly | Under 2 s at p95 for a user with 1,000 memories | Server timing from submit to response |
+| NFR-4 | A save is confirmed, or its conflict question shown, promptly | Under 8 s at p95 for a user with 1,000 memories. Revised 2026-09-25 from 2 s: every save makes one model call, and 001 measured those at 5.3 to 8.5 s (001 dev log, I-1 and I-2) | Server timing from submit to response |
 | NFR-5 | `/memories` and the Memories filter respond promptly | Under 1 s at p95 for a user with 1,000 memories | Load test |
 | NFR-6 | Categories are right on everyday facts | Over 85% correct | Labelled evaluation set, built before build plan approval |
 | NFR-7 | The conflict check catches real contradictions and rarely flags true pairs | Catches over 80%, flags under 10% of non-contradicting pairs | Labelled evaluation set, built before build plan approval |
 
-> Assumption: NFR-4 to NFR-7's numbers are proposed defaults, not user-given.
-> 1,000 memories is `estimate` of a heavy V1 user. Q5 below.
+> NFR-4 was set by the user on 2026-09-25, and NFR-5 to NFR-7 confirmed the
+> same day. 1,000 memories is `estimate` of a heavy V1 user.
 
 ## 8. Success metrics
 
@@ -154,7 +154,7 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | Memories saved per active user per week | Save events | Whether memory earns a habit (G1, H1) |
 | Memory lookups per active user per week | `/memories` and filter events | Whether facts come back out (G2, H3) |
 | Conflict answers by type | Conflict question events | A high "both are correct" share means the check over-flags (G3) |
-| Forgets followed by a similar re-save within five minutes | Forget and save events | Whether `/forget` picks the wrong memory (G4) |
+| Forgets followed by any memory save within five minutes | Forget and save events | Whether `/forget` picks the wrong memory (G4). An upper bound: some re-saves are unrelated |
 | Share of memories whose category is edited | Edit events | Whether categories are trusted |
 | Saves carrying the secret caution | FR-8 events | How much sensitive data users put in |
 
@@ -187,7 +187,7 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | ~~Q2~~ | Can a memory be saved while the model is down? | PRD | user | **Answered 2026-09-25.** No. Refuse and keep the text. FR-9 |
 | ~~Q3~~ | What does capture history show where a forgotten memory was saved? | PRD | user | **Answered 2026-09-25.** A placeholder, no words. FR-23 |
 | ~~Q4~~ | How are backups handled after forget? | PRD | user | **Answered 2026-09-25.** Disclose the retention window. FR-29 |
-| Q5 | Are NFR-4 to NFR-7's numbers acceptable? | build plan | user | Open |
+| ~~Q5~~ | Are NFR-4 to NFR-7's numbers acceptable? | build plan | user | **NFR-4 answered 2026-09-25:** 8 s, matching 001. NFR-5 to NFR-7 kept as drafted, answered in the build plan's Q6 the same day |
 | Q6 | What is the backup retention window FR-29 states? | build plan | tech-stack | Open |
 
 ## 12. Out of scope
@@ -205,3 +205,5 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 |---|---|---|---|
 | 2026-09-25 | Created | Drafted after epic approval and PRD questions Q1 to Q4 were answered | pending |
 | 2026-09-25 | Approved | User approved, proceed to design | user |
+| 2026-09-25 | NFR-4 revised from 2 s to 8 s at p95, and Q5 updated. Found while drafting the build plan: every save needs a model call, measured at 5.3 to 8.5 s in 001. Stale downstream: none. The approved design already shows 001's loading turn during a save, and no screen promises a time | User chose to match 001's 8 s budget | user |
+| 2026-09-25 | G4 and its metric now count any memory save within five minutes of a forget, not a similar one. Q5 closed: NFR-5 to NFR-7 stand. Stale downstream: none; the design draws no metric | Build plan Q8: the tombstone erases the text a similarity check would need. User accepted | user |

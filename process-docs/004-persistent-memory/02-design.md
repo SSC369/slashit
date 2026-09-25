@@ -3,15 +3,17 @@ doc: design
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 2
-status: draft
+status: approved
 owner: user
 created: 2026-09-25
 updated: 2026-09-25
-approved_on: null
+approved_on: 2026-09-25
 supersedes: null
 ---
 
 # Design — Persistent Memory
+
+> **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
 
 Context: [PRD](./01-prd.md)
 Canvas: https://claude.ai/artifact/Lg26vefNMHyJenHNEFxsZJ
@@ -196,3 +198,4 @@ No one-off styles outstanding.
 |---|---|---|---|
 | 2026-09-25 | Created. 24 artboards across Capture, Records, Mobile and Dark theme pages, generated from 001's artboards | PRD approved, user asked for design | pending |
 | 2026-09-25 | Q1 to Q3 answered, each as drawn. No canvas change | User answered the open questions | user |
+| 2026-09-25 | Approved | User approved, proceed to build plan | user |
