@@ -3,22 +3,24 @@ doc: implementation-plan
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 4
-status: draft
+status: approved
 owner: user
 created: 2026-09-25
 updated: 2026-09-25
-approved_on: null
+approved_on: 2026-09-25
 supersedes: null
 split: true
 ---
 
 # Implementation Plan (LLD) — Persistent Memory
 
+> **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
+
 Context: [PRD](./01-prd.md) · [Design](./02-design.md) · [Build plan](./03-build-plan.md)
 
 No code is written before this index and a slice's own sub-plan are approved,
-and no slice starts before epic 003 is merged to `main` (build plan AD-10).
-Every path below is on `main` after that merge.
+and every slice builds on epic 003 (build plan AD-10, amended 2026-09-25: 003
+is merged into this feature's branch rather than waited for on `main`).
 
 Tables this feature touches, by migration:
 
@@ -65,7 +67,7 @@ slice before each lands, as 003 did.
 
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
-| 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | draft |
+| 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | approved 2026-09-25; built 2026-09-25, T-1.1, T-1.11, T-1.14 owed |
 | 2 | `04.2-conflicts.md` | A contradicting save asks which is correct; the three answers and "Decide later" work; mobile conflict card | 1 | not started |
 | 3 | `04.3-forget.md` | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | not started |
 
@@ -196,7 +198,7 @@ Build plan Q6 kept NFR-6 and NFR-7 and required labelled sets first.
 
 | Set | Size | Owner | Needed by |
 |---|---|---|---|
-| Categories: fact and expected category, including uncategorisable facts | 60, `estimate` | Claude drafts, user corrects | 4.1 approval |
+| Categories: fact and expected category, including uncategorisable facts | 60, `estimate` | Claude drafts, user corrects | End of slice 1. Drafted as its first task and corrected in parallel, per the user on 2026-09-25 |
 | Conflicts: new fact, ten candidates, expected contradicting ids, a third of them true pairs such as two birthdays | 40, `estimate` | Claude drafts, user corrects | 4.2 approval |
 
 Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
@@ -219,3 +221,4 @@ Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-25 | Created as the index, with sub-plan 4.1 drafted | Build plan approved; user asked to proceed | pending |
+| 2026-09-25 | Approved. Two amendments at approval: 003 is merged into this branch (AD-10 amended), and the category set is drafted as slice 1's first task and corrected in parallel instead of before approval | User approved and asked to proceed with dev | user |

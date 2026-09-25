@@ -175,7 +175,7 @@ code, so `/memories what do you remember about my career` searches "career".
 | AD-7 | Capture's 500-character cap moves from the whole line to the argument, so a fact can be 500 characters after `/remember ` | locked | no |
 | AD-8 | Secret check is deterministic: Luhn-valid 13 to 19 digit runs, 12-digit ID-number shapes, the tax-ID shape `AAAAA9999A`, and the words password, PIN, CVV or OTP next to digits | locked | no |
 | AD-9 | Memory text never reaches logs, events, usage rows or tracing. A structlog processor enforces the log half | locked | yes, tech stack §4 as an extension of T6 |
-| AD-10 | 004's dev starts after 003 merges to `main` | locked 2026-09-25 | no |
+| AD-10 | 004 builds on epic 003. Amended 2026-09-25: 003 is merged into this feature's branch rather than waited for on `main` | locked 2026-09-25, amended the same day | no |
 | AD-11 | Embedding calls are attributed per user but exempt from the per-user request cap | locked | yes, tech stack §4: how the cap counts |
 
 ## 9. Risks
@@ -212,3 +212,4 @@ All eight answered on 2026-09-25. Q1 to Q4 were asked before drafting.
 | 2026-09-25 | Created. Four direction questions answered before drafting: tombstone forget, 8 s saves, embedding candidates, build after 003 merges | Design approved, user asked for the build plan | pending |
 | 2026-09-25 | Q5 to Q8 answered, each as recommended. AD-11 added for the uncounted embeds. §6 and §9 updated | User answered the open questions | user |
 | 2026-09-25 | Approved. The backup window is deferred to launch rather than confirmed before approval, at the user's direction. Every AD moved to locked. AD-2 graduated to `product/product.md`; AD-4, AD-9 and AD-11 to `tech-stack.md` | User approved, proceed to the implementation plan | user |
+| 2026-09-25 | AD-10 amended: 003 is merged into `claude/feature-004-planning-aevb3m` instead of waiting for it on `main`. The pull request for 004 carries 003 unless 003 merges first. Stale downstream: the implementation plan index's opening line, corrected in the same change | User chose it when asking to start dev | user |
