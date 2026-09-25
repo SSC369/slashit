@@ -26,6 +26,7 @@ const config: CodegenConfig = {
   config: {
     scalars: {
       DateTime: "string",
+      Date: "string",
     },
     // Vite/esbuild's isolatedModules-style transpilation forbids runtime
     // `enum` declarations (tsconfig's erasableSyntaxOnly). Union string

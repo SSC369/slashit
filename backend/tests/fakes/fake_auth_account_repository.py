@@ -17,6 +17,7 @@ class FakeAuthAccountRepository:
 
     def __init__(self) -> None:
         self.unverified_accounts: list[FakeUnverifiedAccount] = []
+        self.emails: dict[UUID, str] = {}
 
     async def delete_unverified_created_before(self, *, cutoff: datetime) -> int:
         kept: list[FakeUnverifiedAccount] = []
@@ -25,3 +26,6 @@ class FakeAuthAccountRepository:
             (purged if account.created_at < cutoff else kept).append(account)
         self.unverified_accounts = kept
         return len(purged)
+
+    async def get_email(self, *, user_id: UUID) -> str | None:
+        return self.emails.get(user_id)

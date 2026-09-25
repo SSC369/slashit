@@ -42,6 +42,10 @@ class Context(BaseContext):
     # use ``session`` directly, per repo-rules.md section 7.4; this exists
     # only for building collaborators that specifically must not share it.
     session_factory: async_sessionmaker[AsyncSession]
+    # Added in epic 003 slice 2: a WebSocket's ``connection_init`` payload,
+    # which Strawberry assigns here. The bearer token arrives in it, since a
+    # browser cannot set headers on a WebSocket.
+    connection_params: dict[str, object] | None = None
 
     @property
     def is_authenticated(self) -> bool:

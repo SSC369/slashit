@@ -1,0 +1,18 @@
+mutation UpdateReminderSettings($input: UpdateReminderSettingsInput!) {
+  updateReminderSettings(input: $input) {
+    __typename
+    ... on ReminderSettingsSaved {
+      showBothOffWarning
+      settings {
+        timezone
+        defaultReminderTime
+        popupsEnabled
+        emailEnabled
+      }
+    }
+    ... on InvalidReminderSettings {
+      message
+      field
+    }
+  }
+}

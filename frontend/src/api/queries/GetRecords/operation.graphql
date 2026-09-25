@@ -1,7 +1,14 @@
 #import "../../../fragments/TaskFields.graphql"
+#import "../../../fragments/ReminderFields.graphql"
 
 query GetRecords($filter: RecordsFilterInput) {
   records(filter: $filter) {
-    ...TaskFields
+    __typename
+    ... on Task {
+      ...TaskFields
+    }
+    ... on Reminder {
+      ...ReminderFields
+    }
   }
 }

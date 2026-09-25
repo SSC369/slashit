@@ -5,6 +5,7 @@ import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
+import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import * as Styles from "./styles";
 
 interface TurnCardProps {
@@ -12,38 +13,52 @@ interface TurnCardProps {
   isAnswering?: boolean;
   onAnswerDraftChange: (id: string, draft: string) => void;
   onAnswerSubmit: (id: string) => void;
+  onQuickAnswer: (id: string, answer: string) => void;
   onDiscardPending: (id: string) => void;
   onUseWithAddTask: (said: string) => void;
   onRetry: (said: string) => void;
+  onEditReminder: (id: string) => void;
+  onOpenReminder: (id: string) => void;
+  onOpenReminders: () => void;
 }
+
+/** `RemindAsk`'s ready answers: one tap instead of typing a time. */
+const REMIND_QUICK_ANSWERS = ["In 1 hour", "This evening, 7:00 PM", "Tomorrow, 9:00 AM"];
+
+const isRemindCommand = (said: string): boolean => said.startsWith("/remind ") || said === "/remind";
 
 const assertNever = (value: never): never => {
   throw new Error(`Unhandled capture turn status: ${JSON.stringify(value)}`);
 };
 
 const TurnCard = (props: TurnCardProps): ReactElement => {
-  const { turn, isAnswering, onAnswerDraftChange, onAnswerSubmit, onDiscardPending, onUseWithAddTask, onRetry } = props;
+  const { turn } = props;
 
   return (
     <div className={Styles.turnStyles}>
       <div className={Styles.saidRowStyles}>
         <div className={Styles.saidBoxStyles}>{turn.said}</div>
       </div>
-      <TurnBody
-        turn={turn}
-        isAnswering={isAnswering}
-        onAnswerDraftChange={onAnswerDraftChange}
-        onAnswerSubmit={onAnswerSubmit}
-        onDiscardPending={onDiscardPending}
-        onUseWithAddTask={onUseWithAddTask}
-        onRetry={onRetry}
-      />
+      <TurnBody {...props} />
     </div>
   );
 };
 
 const TurnBody = (props: TurnCardProps): ReactElement => {
-  const { turn, isAnswering = false, onAnswerDraftChange, onAnswerSubmit, onDiscardPending, onUseWithAddTask, onRetry } = props;
+  const {
+    turn,
+    isAnswering = false,
+    onAnswerDraftChange,
+    onAnswerSubmit,
+    onQuickAnswer,
+    onDiscardPending,
+    onUseWithAddTask,
+    onRetry,
+    onEditReminder,
+    onOpenReminder,
+    onOpenReminders,
+  } = props;
+  const isRemind = isRemindCommand(turn.said);
 
   switch (turn.status) {
     case "loading":
@@ -56,15 +71,15 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
           </div>
           <div className={Styles.fieldsGridStyles}>
             <div className={Styles.fieldCellStyles}>
-              <span className={Styles.fieldLabelStyles}>Task</span>
+              <span className={Styles.fieldLabelStyles}>{isRemind ? "Reminder" : "Task"}</span>
               <div className="mt-1 h-[11px] w-[78%] animate-pulse rounded bg-border" />
             </div>
             <div className={Styles.fieldCellStyles}>
-              <span className={Styles.fieldLabelStyles}>Due</span>
+              <span className={Styles.fieldLabelStyles}>{isRemind ? "When" : "Due"}</span>
               <div className="mt-1 h-[11px] w-[56%] animate-pulse rounded bg-border" />
             </div>
             <div className={Styles.fieldCellStyles}>
-              <span className={Styles.fieldLabelStyles}>Status</span>
+              <span className={Styles.fieldLabelStyles}>{isRemind ? "Repeat" : "Status"}</span>
               <div className="mt-1 h-[11px] w-[44%] animate-pulse rounded bg-border" />
             </div>
           </div>
@@ -121,12 +136,65 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
         </div>
       );
 
+    case "reminderCreated":
+      return (
+        <ReminderCreatedCard
+          reminder={turn.reminder}
+          onEditReminder={onEditReminder}
+          onOpenReminder={onOpenReminder}
+        />
+      );
+
+    case "reminderList":
+      return (
+        <ReminderListCard
+          reminders={turn.reminders}
+          onOpenReminder={onOpenReminder}
+          onOpenReminders={onOpenReminders}
+        />
+      );
+
+    case "reminderLimit":
+      return (
+        <div className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
+          <AlertCircle size={18} className="shrink-0 text-destructive" />
+          <div className="flex-1">
+            <div className={Styles.noteTitleStyles}>
+              You have {turn.limit} active reminders, the most Slashit holds.
+            </div>
+            <div className={Styles.noteBodyStyles}>
+              Mark one done or delete one, then try again. What you typed is kept below.
+            </div>
+          </div>
+        </div>
+      );
+
+    case "modelDown":
+      return (
+        <div className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
+          <AlertCircle size={18} className="shrink-0 text-destructive" />
+          <div className="flex-1">
+            <span className={`${Styles.pillBaseStyles} ${Styles.pillErrStyles}`}>Not saved</span>
+            <div className={`${Styles.noteTitleStyles} mt-2`}>Slashit can't read that right now</div>
+            <div className={Styles.noteBodyStyles}>
+              Nothing was saved and nothing was half-saved. Your command is kept below. This clears
+              on its own, usually within a few minutes.
+            </div>
+            <div className={Styles.noteActionsRowStyles}>
+              <Button variant="primary" size="sm" onClick={() => onRetry(turn.said)}>
+                Try again
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+
     case "pending":
       return (
         <div className={Styles.pendingCardStyles}>
           <div className={Styles.pendingHeadStyles}>
             <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
-              <Clock size={13} /> Waiting on you
+              <Clock size={13} /> {isRemind ? "One question" : "Waiting on you"}
             </span>
             <span className="ml-auto text-xs text-foreground-tertiary">
               Asked just now · nothing saved yet
@@ -135,8 +203,24 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
           <div className={Styles.pendingBodyStyles}>
             <div className={Styles.pendingQuestionStyles}>{turn.question}</div>
             <div className={Styles.pendingHintStyles}>
-              You can answer this whenever you like. Leave it and nothing is recorded.
+              {isRemind
+                ? "Reply with a day or time. Nothing is saved until you answer."
+                : "You can answer this whenever you like. Leave it and nothing is recorded."}
             </div>
+            {isRemind && (
+              <div className={Styles.quickAnswerRowStyles}>
+                {REMIND_QUICK_ANSWERS.map((answer) => (
+                  <Button
+                    key={answer}
+                    size="sm"
+                    disabled={isAnswering}
+                    onClick={() => onQuickAnswer(turn.id, answer)}
+                  >
+                    {answer}
+                  </Button>
+                ))}
+              </div>
+            )}
             <div className={Styles.pendingAnswerRowStyles}>
               <div className={Styles.pendingAnswerFieldStyles}>
                 <input

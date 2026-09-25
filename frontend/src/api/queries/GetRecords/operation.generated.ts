@@ -6,12 +6,30 @@ import * as Types from '../../../../types.generated';
 
 import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
+import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 export type RecordsFilterInput = {
   kind?: string | null | undefined;
   search?: string | null | undefined;
   sortBy?: SortField;
   sortDesc?: boolean;
 };
+
+export type ReminderAction =
+  | 'DONE'
+  | 'MISSED'
+  | 'SNOOZED';
+
+export type ReminderRepeatKind =
+  | 'DAILY'
+  | 'MONTHLY'
+  | 'NONE'
+  | 'WEEKLY'
+  | 'YEARLY';
+
+export type ReminderState =
+  | 'DONE'
+  | 'FIRED'
+  | 'UPCOMING';
 
 export type SortField =
   | 'CREATED_AT'
@@ -22,13 +40,23 @@ export type GetRecordsQueryVariables = Exact<{
 }>;
 
 
-export type GetRecordsQuery = { records: Array<{ id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> };
+export type GetRecordsQuery = { records: Array<
+    | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
+    | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
+  > };
 
 
 export const GetRecordsDocument = gql`
     query GetRecords($filter: RecordsFilterInput) {
   records(filter: $filter) {
-    ...TaskFields
+    __typename
+    ... on Task {
+      ...TaskFields
+    }
+    ... on Reminder {
+      ...ReminderFields
+    }
   }
 }
-    ${TaskFieldsFragmentDoc}`;
+    ${TaskFieldsFragmentDoc}
+${ReminderFieldsFragmentDoc}`;

@@ -97,7 +97,7 @@ async def test_records_query_lists_a_seeded_task(
 
     response = await client.post(
         "/graphql",
-        json={"query": "query { records { title } }"},
+        json={"query": "query { records { ... on Task { title } } }"},
         headers={"Authorization": f"Bearer {token}"},
     )
     body = response.json()
@@ -288,7 +288,7 @@ async def test_delete_task_soft_deletes_the_row(
 
     records_response = await client.post(
         "/graphql",
-        json={"query": "{ records { id } }"},
+        json={"query": "{ records { ... on Task { id } } }"},
         headers={"Authorization": f"Bearer {token}"},
     )
     assert records_response.json()["data"]["records"] == []

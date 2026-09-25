@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -24,6 +24,7 @@ type CaptureTurn {
   outcome: CaptureTurnOutcome!
   resultingTaskId: ID
   resultingPendingCaptureId: ID
+  resultingReminderId: ID
   questionText: String
   answerText: String
   createdAt: DateTime!
@@ -34,13 +35,29 @@ enum CaptureTurnOutcome {
   QUESTION_ASKED
   DISCARDED
   REFUSED
+  REMINDER_CREATED
 }
+
+"""Date (isoformat)"""
+scalar Date
 
 """Date with time (isoformat)"""
 scalar DateTime
 
+union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
+
 type InvalidCredentials {
   message: String!
+}
+
+type InvalidReminder {
+  message: String!
+  field: String!
+}
+
+type InvalidReminderSettings {
+  message: String!
+  field: String!
 }
 
 type InvalidTimezone {
@@ -51,6 +68,12 @@ type MalformedResult {
   message: String!
   reason: String!
 }
+
+type MarkAllNotificationsReadSucceeded {
+  markedCount: Int!
+}
+
+union MarkNotificationReadResult = Notification | NotificationNotFound
 
 type Me {
   id: ID!
@@ -68,7 +91,14 @@ type Mutation {
   deleteTask(ids: [ID!]!): Int!
   recordsViewOpened: Boolean!
   updateTimezone(input: UpdateTimezoneInput!): UpdateTimezoneResult!
+  updateReminderSettings(input: UpdateReminderSettingsInput!): UpdateReminderSettingsResult!
   signIn(input: SignInInput!): SignInResult!
+  updateReminder(id: ID!, input: UpdateReminderInput!): UpdateReminderResult!
+  deleteReminder(id: ID!): DeleteReminderResult!
+  markReminderDone(id: ID!): ReminderActionResult!
+  snoozeReminder(id: ID!, option: SnoozeChoice!): ReminderActionResult!
+  markNotificationRead(id: ID!): MarkNotificationReadResult!
+  markAllNotificationsRead: MarkAllNotificationsReadSucceeded!
 }
 
 type NoFieldsToUpdate {
@@ -77,6 +107,46 @@ type NoFieldsToUpdate {
 
 type NonCommandGuidance {
   originalInput: String!
+}
+
+type Notification {
+  id: ID!
+  kind: NotificationKind!
+  targetId: ID
+  title: String!
+  detail: String!
+  marker: NotificationMarker!
+  occurredAt: DateTime!
+  createdAt: DateTime!
+  read: Boolean!
+  action: NotificationAction
+  actedAt: DateTime
+  showPopup: Boolean!
+}
+
+enum NotificationAction {
+  DONE
+  SNOOZED
+}
+
+enum NotificationKind {
+  REMINDER
+  EMAIL_PAUSED
+}
+
+enum NotificationMarker {
+  NONE
+  LATE
+  MISSED
+}
+
+type NotificationNotFound {
+  message: String!
+}
+
+type NotificationPage {
+  items: [Notification!]!
+  nextCursor: String
 }
 
 type PendingQuestionCreated {
@@ -95,13 +165,19 @@ type ProviderUnavailable {
 
 type Query {
   captureHistory(cursor: String = null, limit: Int = null): CaptureHistoryPage!
-  records(filter: RecordsFilterInput = null): [Task!]!
+  records(filter: RecordsFilterInput = null): [RecordItem!]!
   record(id: ID!): RecordResult!
   tasks: [Task!]!
   settings(detectedTimezone: String = null): Settings!
   me: Me!
+  reminders(search: String = null): ReminderGroups!
+  reminder(id: ID!): ReminderResult!
+  notifications(cursor: String = null): NotificationPage!
+  unreadNotificationCount: Int!
   apiVersion: String!
 }
+
+union RecordItem = Task | Reminder
 
 type RecordNotFound {
   message: String!
@@ -116,9 +192,102 @@ input RecordsFilterInput {
   sortDesc: Boolean! = false
 }
 
+type Reminder {
+  id: ID!
+  description: String!
+  state: ReminderState!
+  nextFireAt: DateTime
+  whenText: String!
+  repeatText: String!
+  repeatKind: ReminderRepeatKind!
+  repeatInterval: Int!
+  repeatWeekdays: [Int!]!
+  repeatMonthDay: Int
+  localTime: String!
+  anchorLocalDate: Date!
+  scheduleTimezone: String!
+  lastFiredAt: DateTime
+  lastAction: ReminderAction
+  origin: String!
+  originalInput: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  snoozedUntil: DateTime
+
+  """Why the time differs from what was typed. Only on create."""
+  whenNote: String
+}
+
+enum ReminderAction {
+  DONE
+  SNOOZED
+  MISSED
+}
+
+union ReminderActionResult = Reminder | ReminderNotFound
+
+type ReminderCreated {
+  reminder: Reminder!
+}
+
+type ReminderDeleteSucceeded {
+  id: ID!
+}
+
+type ReminderDeleted {
+  message: String!
+}
+
+type ReminderGroups {
+  needsAttention: [Reminder!]!
+  upcoming: [Reminder!]!
+  done: [Reminder!]!
+}
+
+type ReminderLimitReached {
+  message: String!
+  limit: Int!
+}
+
+type ReminderNotFound {
+  message: String!
+}
+
+enum ReminderRepeatKind {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+union ReminderResult = Reminder | ReminderNotFound
+
+type ReminderSettingsSaved {
+  settings: Settings!
+  showBothOffWarning: Boolean!
+}
+
+enum ReminderState {
+  UPCOMING
+  FIRED
+  DONE
+}
+
+type ReminderTimePassed {
+  message: String!
+}
+
+type RemindersListed {
+  reminders: [Reminder!]!
+}
+
 type Settings {
   timezone: String!
   updatedAt: DateTime!
+  defaultReminderTime: String!
+  popupsEnabled: Boolean!
+  emailEnabled: Boolean!
 }
 
 type SharedQuotaExhausted {
@@ -138,9 +307,19 @@ type SignedIn {
   expiresIn: Int!
 }
 
+enum SnoozeChoice {
+  TEN_MINUTES
+  ONE_HOUR
+  TOMORROW
+}
+
 enum SortField {
   CREATED_AT
   DUE_AT
+}
+
+type Subscription {
+  notificationReceived: Notification!
 }
 
 type Task {
@@ -172,6 +351,25 @@ type UnrecognisedCommand {
   attemptedName: String!
   closestMatches: [String!]!
 }
+
+input UpdateReminderInput {
+  description: String!
+  startDate: Date!
+  localTime: String!
+  repeatKind: ReminderRepeatKind!
+  repeatInterval: Int! = 1
+  repeatWeekdays: [Int!]! = []
+}
+
+union UpdateReminderResult = Reminder | InvalidReminder | ReminderTimePassed | ReminderDeleted | ReminderNotFound
+
+input UpdateReminderSettingsInput {
+  defaultReminderTime: String = null
+  popupsEnabled: Boolean = null
+  emailEnabled: Boolean = null
+}
+
+union UpdateReminderSettingsResult = ReminderSettingsSaved | InvalidReminderSettings
 
 input UpdateTaskInput {
   title: String = null

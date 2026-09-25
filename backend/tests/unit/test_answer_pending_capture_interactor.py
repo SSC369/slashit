@@ -9,9 +9,11 @@ from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
     PendingCaptureNotFoundError,
 )
+from app.domains.records.public import TaskDTO
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
+from tests.fakes.fake_reminder_port import fake_reminder_capture
 from tests.fakes.fake_task_port import FakeTaskPort
 
 
@@ -35,11 +37,15 @@ async def test_answering_a_title_question_creates_the_task() -> None:
         capture_turn_repository=turn_repo,
         task_port=task_port,
         extraction=FakeExtractionPort(result=extraction()),
+        reminder_capture=fake_reminder_capture(
+            extraction=FakeExtractionPort(result=extraction())
+        ),
     )
 
     task = await interactor.answer_pending_capture(
         user_id=user_id, pending_capture_id=pending.id, answer="Buy milk"
     )
+    assert isinstance(task, TaskDTO)
 
     assert task.title == "Buy milk"
     assert pending.id not in pending_repo.rows
@@ -77,11 +83,15 @@ async def test_answering_a_due_date_question_resolves_it_and_creates_the_task() 
         capture_turn_repository=turn_repo,
         task_port=task_port,
         extraction=extraction_port,
+        reminder_capture=fake_reminder_capture(
+            extraction=FakeExtractionPort(result=extraction())
+        ),
     )
 
     task = await interactor.answer_pending_capture(
         user_id=user_id, pending_capture_id=pending.id, answer="Friday"
     )
+    assert isinstance(task, TaskDTO)
 
     assert task.title == "Buy milk"
     assert task.due_at is not None
@@ -107,6 +117,9 @@ async def test_unresolvable_due_date_answer_raises() -> None:
         capture_turn_repository=turn_repo,
         task_port=FakeTaskPort(),
         extraction=FakeExtractionPort(result=extraction()),  # no due_at
+        reminder_capture=fake_reminder_capture(
+            extraction=FakeExtractionPort(result=extraction())
+        ),
     )
 
     with pytest.raises(AnswerCouldNotBeUnderstoodError):
@@ -124,6 +137,9 @@ async def test_answering_a_pending_capture_that_does_not_exist_raises() -> None:
         capture_turn_repository=FakeCaptureTurnRepository(),
         task_port=FakeTaskPort(),
         extraction=FakeExtractionPort(result=extraction()),
+        reminder_capture=fake_reminder_capture(
+            extraction=FakeExtractionPort(result=extraction())
+        ),
     )
 
     with pytest.raises(PendingCaptureNotFoundError):
@@ -149,6 +165,9 @@ async def test_answering_another_users_pending_capture_raises_not_found() -> Non
         capture_turn_repository=FakeCaptureTurnRepository(),
         task_port=FakeTaskPort(),
         extraction=FakeExtractionPort(result=extraction()),
+        reminder_capture=fake_reminder_capture(
+            extraction=FakeExtractionPort(result=extraction())
+        ),
     )
 
     with pytest.raises(PendingCaptureNotFoundError):

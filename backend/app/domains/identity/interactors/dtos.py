@@ -18,3 +18,13 @@ class UpdateTimezoneInputDTO:
 class SignInInputDTO:
     email: str
     password: str
+
+
+@dataclass(frozen=True)
+class UpdateReminderSettingsInputDTO:
+    """FR-31, FR-32. None leaves a setting as it is."""
+
+    user_id: UUID
+    default_reminder_time: str | None
+    popups_enabled: bool | None
+    email_enabled: bool | None

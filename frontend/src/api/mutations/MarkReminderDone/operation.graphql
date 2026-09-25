@@ -1,0 +1,13 @@
+#import "../../../fragments/ReminderFields.graphql"
+
+mutation MarkReminderDone($id: ID!) {
+  markReminderDone(id: $id) {
+    __typename
+    ... on Reminder {
+      ...ReminderFields
+    }
+    ... on ReminderNotFound {
+      message
+    }
+  }
+}

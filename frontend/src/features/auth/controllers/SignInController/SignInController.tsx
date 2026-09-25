@@ -1,10 +1,11 @@
 import { CheckIcon, CircleAlertIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 
 import useSignIn from "../../../../api/mutations/SignIn/useSignIn";
 import { supabaseClient } from "../../../../api/lib/supabaseClient";
 import Button from "../../../../design-system/components/Button";
+import { readReturnPath } from "../../../../utils/returnPath";
 import AuthCard from "../../components/AuthCard";
 import * as Styles from "./styles";
 
@@ -47,6 +48,8 @@ const GoogleGMark = (): ReactElement => (
 
 const SignInController = (): ReactElement => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnPath = readReturnPath(location.search);
   const { triggerAPI: triggerSignIn } = useSignIn();
   const [viewState, setViewState] = useState<ViewStateType>("FORM");
   const [email, setEmail] = useState("");
@@ -63,7 +66,7 @@ const SignInController = (): ReactElement => {
     await supabaseClient.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/",
+        redirectTo: window.location.origin + returnPath,
         // Google silently re-authenticates on an existing browser session
         // with prior consent, skipping the account chooser. Forcing it
         // keeps "Continue with Google" honest about which account is used.
@@ -89,7 +92,10 @@ const SignInController = (): ReactElement => {
           refresh_token: session.refreshToken,
         });
         setViewState("SUCCESS");
-        redirectTimeoutRef.current = window.setTimeout(() => navigate("/"), SUCCESS_REDIRECT_DELAY_MS);
+        redirectTimeoutRef.current = window.setTimeout(
+          () => navigate(returnPath),
+          SUCCESS_REDIRECT_DELAY_MS,
+        );
       },
       onAccountNotVerified: () => {
         setViewState("BLOCKED");

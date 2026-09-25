@@ -13,6 +13,7 @@ import strawberry
 
 from app.domains.capture.interfaces.dtos import CaptureTurnDTO
 from app.domains.records.public import Task
+from app.domains.reminders.public import Reminder
 
 
 @strawberry.type
@@ -26,6 +27,29 @@ class TasksListed:
     exists before slice 2's `tasks` GraphQL query does."""
 
     tasks: list[Task]
+
+
+@strawberry.type
+class ReminderCreated:
+    """Epic 003, FR-1, FR-5: the card reads `reminder.whenText` and
+    `reminder.repeatText`."""
+
+    reminder: Reminder
+
+
+@strawberry.type
+class RemindersListed:
+    """`/reminders`, FR-25: active reminders, soonest first."""
+
+    reminders: list[Reminder]
+
+
+@strawberry.type
+class ReminderLimitReached:
+    """FR-38. Nothing was saved; the input is kept by the client."""
+
+    message: str
+    limit: int
 
 
 @strawberry.type
@@ -51,6 +75,7 @@ class CaptureTurnOutcome(Enum):
     QUESTION_ASKED = "question_asked"
     DISCARDED = "discarded"
     REFUSED = "refused"
+    REMINDER_CREATED = "reminder_created"
 
 
 @strawberry.type
@@ -60,6 +85,7 @@ class CaptureTurn:
     outcome: CaptureTurnOutcome
     resulting_task_id: strawberry.ID | None
     resulting_pending_capture_id: strawberry.ID | None
+    resulting_reminder_id: strawberry.ID | None
     question_text: str | None
     answer_text: str | None
     created_at: datetime
@@ -84,6 +110,11 @@ def capture_turn_dto_to_type(*, turn: CaptureTurnDTO) -> CaptureTurn:
         resulting_pending_capture_id=(
             strawberry.ID(str(turn.resulting_pending_capture_id))
             if turn.resulting_pending_capture_id
+            else None
+        ),
+        resulting_reminder_id=(
+            strawberry.ID(str(turn.resulting_reminder_id))
+            if turn.resulting_reminder_id
             else None
         ),
         question_text=turn.question_text,

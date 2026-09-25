@@ -1,4 +1,4 @@
-import { Check, Clock, History, Trash2, X } from "lucide-react";
+import { Bell, Check, Clock, History, Trash2, X } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 
 import useGetCaptureHistory from "../../../api/queries/GetCaptureHistory/useGetCaptureHistory";
@@ -22,6 +22,7 @@ const OUTCOME_PILL: Record<
   QUESTION_ASKED: { className: Styles.pillWaitStyles, label: "Question asked", icon: <Clock size={12} /> },
   DISCARDED: { className: Styles.pillMutedStyles, label: "Discarded", icon: <Trash2 size={12} /> },
   REFUSED: { className: Styles.pillErrStyles, label: "Refused", icon: <X size={12} /> },
+  REMINDER_CREATED: { className: Styles.pillDoneStyles, label: "Reminder set", icon: <Bell size={12} /> },
 };
 
 const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement => {

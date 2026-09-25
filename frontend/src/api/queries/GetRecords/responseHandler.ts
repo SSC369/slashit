@@ -1,8 +1,14 @@
+import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../../../fragments/TaskFields.generated";
 import type { GetRecordsQuery } from "./operation.generated";
 
+/** One row of the All tab: the records union, tagged by `__typename`. */
+export type RecordItem =
+  | ({ __typename: "Task" } & TaskFieldsFragment)
+  | ({ __typename: "Reminder" } & ReminderFieldsFragment);
+
 export interface GetRecordsCallbacks {
-  onRecordsLoaded?: (records: TaskFieldsFragment[]) => void;
+  onRecordsLoaded?: (records: RecordItem[]) => void;
 }
 
 interface UseResponseHandlerArgs extends GetRecordsCallbacks {

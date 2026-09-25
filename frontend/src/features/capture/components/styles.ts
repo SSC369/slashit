@@ -93,3 +93,15 @@ export const historyEmptyStyles =
 export const historyErrorStyles =
   "flex flex-1 flex-col items-center justify-center gap-2.5 px-6 text-center text-sm text-foreground-secondary";
 export const historyLoadMoreStyles = "mt-1 flex justify-center pb-1";
+
+// Reminder cards (003 design: RemindCapture, RemindResolved, RemindList, RemindAsk)
+export const fieldSubStyles = "text-[12.5px] text-foreground-tertiary";
+export const fieldNoteStyles = "text-[12.5px] text-command";
+export const cardFootActionsStyles = "flex items-center gap-2";
+export const reminderListHeadStyles = "text-[13px] font-medium text-foreground";
+export const reminderListRowStyles =
+  "grid cursor-pointer grid-cols-[minmax(0,1fr)_170px_170px_120px] items-center gap-3 border-b border-border px-4 py-2.5 text-[13.5px] last:border-b-0 hover:bg-background";
+export const reminderListNameStyles = "truncate font-medium text-foreground";
+export const reminderListMetaStyles = "truncate text-foreground-secondary";
+export const quickAnswerRowStyles = "mt-3 flex flex-wrap gap-2";
+export const footLinkStyles = "text-accent hover:underline";

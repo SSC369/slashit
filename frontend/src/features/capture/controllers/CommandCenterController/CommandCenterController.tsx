@@ -1,15 +1,18 @@
 import { History } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type ReactElement } from "react";
+import { useNavigate } from "react-router";
 
 import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCapture/responseHandler";
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
+import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
-import { CAPTURE_COMMANDS } from "../../../../constants/captureCommands";
-import type { CaptureStoreModel } from "../../../../stores/CaptureStore";
+import { ARGUMENTLESS_COMMANDS, CAPTURE_COMMANDS } from "../../../../constants/captureCommands";
+import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
+import { whenTextInSentence } from "../../../../utils/formatReminder";
 import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
 import CommandInputBar from "../../components/CommandInputBar";
 import CommandPalette from "../../components/CommandPalette";
@@ -21,24 +24,60 @@ import * as Styles from "./styles";
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
 
-const buildCaptureResultCallbacks = (
-  captureStore: CaptureStoreModel,
-  turnId: string,
-): SubmitCaptureCallbacks => ({
-  onTaskCreated: (task) => captureStore.resolveTurn(turnId, { status: "taskCreated", task }),
-  onTasksListed: (tasks) => captureStore.resolveTurn(turnId, { status: "taskList", tasks }),
-  onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
-    captureStore.resolveTurn(turnId, { status: "pending", pendingCaptureId, question, answerDraft: "" }),
-  onNonCommandGuidance: (originalInput) =>
-    captureStore.resolveTurn(turnId, { status: "nonCommand", originalInput }),
-  onUnrecognisedCommand: ({ attemptedName, closestMatches }) =>
-    captureStore.resolveTurn(turnId, { status: "unrecognisedCommand", attemptedName, closestMatches }),
-  onUserLimitReached: ({ message }) => captureStore.resolveTurn(turnId, { status: "refused", message }),
-  onProviderUnavailable: (message) => captureStore.resolveTurn(turnId, { status: "refused", message }),
-  onProviderTimeout: ({ message }) => captureStore.resolveTurn(turnId, { status: "refused", message }),
-  onSharedQuotaExhausted: (message) => captureStore.resolveTurn(turnId, { status: "refused", message }),
-  onMalformedResult: ({ message }) => captureStore.resolveTurn(turnId, { status: "refused", message }),
-});
+interface CaptureResultTarget {
+  store: RootStore;
+  turnId: string;
+  said: string;
+  /** Puts what was typed back in the command bar, for the refusals whose
+   * copy says "kept below". */
+  restoreInput: (said: string) => void;
+}
+
+const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCaptureCallbacks => {
+  const { store, turnId, said, restoreInput } = target;
+  const captureStore = store.capture;
+  // RemindModelDown: a /remind the model could not read keeps its own copy.
+  // Every other command keeps 001's refusal card, unchanged.
+  const refuseUnreadable = (message: string): void => {
+    if (said.startsWith("/remind")) {
+      captureStore.resolveTurn(turnId, { status: "modelDown" });
+      restoreInput(said);
+      return;
+    }
+    captureStore.resolveTurn(turnId, { status: "refused", message });
+  };
+
+  return {
+    onTaskCreated: (task) => captureStore.resolveTurn(turnId, { status: "taskCreated", task }),
+    onTasksListed: (tasks) => captureStore.resolveTurn(turnId, { status: "taskList", tasks }),
+    onReminderCreated: (reminder) => {
+      captureStore.resolveTurn(turnId, { status: "reminderCreated", reminder });
+      store.reminders.upsert(reminder);
+      store.toast.show({
+        message: `Reminder set for ${whenTextInSentence(reminder.whenText)}`,
+        linkLabel: "View in Records",
+        linkTo: `/records/reminders/${reminder.id}`,
+      });
+    },
+    onRemindersListed: (reminders) =>
+      captureStore.resolveTurn(turnId, { status: "reminderList", reminders }),
+    onReminderLimitReached: ({ limit }) => {
+      captureStore.resolveTurn(turnId, { status: "reminderLimit", limit });
+      restoreInput(said);
+    },
+    onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
+      captureStore.resolveTurn(turnId, { status: "pending", pendingCaptureId, question, answerDraft: "" }),
+    onNonCommandGuidance: (originalInput) =>
+      captureStore.resolveTurn(turnId, { status: "nonCommand", originalInput }),
+    onUnrecognisedCommand: ({ attemptedName, closestMatches }) =>
+      captureStore.resolveTurn(turnId, { status: "unrecognisedCommand", attemptedName, closestMatches }),
+    onUserLimitReached: ({ message }) => captureStore.resolveTurn(turnId, { status: "refused", message }),
+    onProviderUnavailable: refuseUnreadable,
+    onProviderTimeout: ({ message }) => refuseUnreadable(message),
+    onSharedQuotaExhausted: refuseUnreadable,
+    onMalformedResult: ({ message }) => refuseUnreadable(message),
+  };
+};
 
 const filterCommands = (input: string) => {
   const query = input.slice(1).toLowerCase();
@@ -47,6 +86,7 @@ const filterCommands = (input: string) => {
 
 const CommandCenterController = (): ReactElement => {
   const store = useStore();
+  const navigate = useNavigate();
   const [input, setInput] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -64,6 +104,11 @@ const CommandCenterController = (): ReactElement => {
   const matches = paletteOpen ? filterCommands(input) : [];
   const boundedSelectedIndex = Math.min(selectedIndex, Math.max(matches.length - 1, 0));
 
+  // Only into an empty bar: something typed since the request left wins.
+  const restoreInput = (said: string): void => {
+    setInput((current) => (current === "" ? said : current));
+  };
+
   const submit = (rawInput: string): void => {
     const text = rawInput.trim();
     if (!text || !isOnline) return;
@@ -71,7 +116,7 @@ const CommandCenterController = (): ReactElement => {
     const turnId = store.capture.addLoadingTurn(text);
     triggerSubmitCapture({
       rawInput: text,
-      ...buildCaptureResultCallbacks(store.capture, turnId),
+      ...buildCaptureResultCallbacks({ store, turnId, said: text, restoreInput }),
       onRequestFailed: (requestError) =>
         store.capture.resolveTurn(turnId, { status: "refused", message: requestError.message }),
     });
@@ -88,7 +133,7 @@ const CommandCenterController = (): ReactElement => {
   };
 
   const handleFillCommand = (name: string): void => {
-    if (name === "/tasks") {
+    if (ARGUMENTLESS_COMMANDS.includes(name)) {
       submit(name);
       return;
     }
@@ -124,8 +169,10 @@ const CommandCenterController = (): ReactElement => {
 
     if (event.key === "Enter") {
       event.preventDefault();
-      submit(input);
+      // Clear before submitting, so a refusal that puts the command back in
+      // the bar is not wiped by this clear landing after it.
       setInput("");
+      submit(input);
     }
   };
 
@@ -143,10 +190,15 @@ const CommandCenterController = (): ReactElement => {
     triggerAnswerPendingCapture({
       pendingCaptureId: turn.pendingCaptureId,
       answer,
-      ...buildCaptureResultCallbacks(store.capture, turnId),
+      ...buildCaptureResultCallbacks({ store, turnId, said: turn.said, restoreInput }),
       onRequestFailed: (requestError) =>
         store.capture.resolveTurn(turnId, { status: "refused", message: requestError.message }),
     });
+  };
+
+  const handleQuickAnswer = (turnId: string, answer: string): void => {
+    store.capture.setAnswerDraft(turnId, answer);
+    handleAnswerSubmit(turnId);
   };
 
   const handleDiscardPending = (turnId: string): void => {
@@ -163,7 +215,22 @@ const CommandCenterController = (): ReactElement => {
   };
 
   const handleRetry = (said: string): void => {
+    // The refusal put the command back in the bar; running it again empties it.
+    setInput((current) => (current === said ? "" : current));
     submit(said);
+  };
+
+  const handleOpenReminder = (id: string): void => {
+    navigate(`/records/reminders/${id}`);
+  };
+
+  const handleEditReminder = (id: string): void => {
+    navigate(`/records/reminders/${id}/edit`);
+  };
+
+  const handleOpenReminders = (): void => {
+    store.records.setKindFilter("REMINDERS");
+    navigate("/records");
   };
 
   const turns = store.capture.getAll();
@@ -178,12 +245,19 @@ const CommandCenterController = (): ReactElement => {
 
   return (
     <div className={Styles.pageStyles}>
-      <div className={Styles.topbarStyles}>
-        <div className={Styles.topbarTitleStyles}>Capture</div>
-        <div className={Styles.historyButtonStyles} onClick={() => setIsHistoryOpen(true)}>
-          <History size={17} />
-        </div>
-      </div>
+      <PageTopbar
+        title="Capture"
+        actions={
+          <button
+            type="button"
+            aria-label="Capture history"
+            className={Styles.historyButtonStyles}
+            onClick={() => setIsHistoryOpen(true)}
+          >
+            <History size={17} />
+          </button>
+        }
+      />
 
       <HistoryPanel isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
 
@@ -199,9 +273,13 @@ const CommandCenterController = (): ReactElement => {
                 isAnswering={submittingTurnId === turn.id && answerApiStatus === API_FETCHING}
                 onAnswerDraftChange={handleAnswerDraftChange}
                 onAnswerSubmit={handleAnswerSubmit}
+                onQuickAnswer={handleQuickAnswer}
                 onDiscardPending={handleDiscardPending}
                 onUseWithAddTask={handleUseWithAddTask}
                 onRetry={handleRetry}
+                onEditReminder={handleEditReminder}
+                onOpenReminder={handleOpenReminder}
+                onOpenReminders={handleOpenReminders}
               />
             ))}
           </div>

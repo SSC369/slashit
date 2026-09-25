@@ -1,9 +1,13 @@
+import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../../../fragments/TaskFields.generated";
 import type { SubmitCaptureMutation } from "./operation.generated";
 
 export interface SubmitCaptureCallbacks {
   onTaskCreated?: (task: TaskFieldsFragment) => void;
   onTasksListed?: (tasks: TaskFieldsFragment[]) => void;
+  onReminderCreated?: (reminder: ReminderFieldsFragment) => void;
+  onRemindersListed?: (reminders: ReminderFieldsFragment[]) => void;
+  onReminderLimitReached?: (args: { message: string; limit: number }) => void;
   onPendingQuestionCreated?: (args: { pendingCaptureId: string; question: string }) => void;
   onNonCommandGuidance?: (originalInput: string) => void;
   onUnrecognisedCommand?: (args: { attemptedName: string; closestMatches: string[] }) => void;
@@ -34,6 +38,15 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
         return;
       case "TasksListed":
         callbacks.onTasksListed?.(result.tasks);
+        return;
+      case "ReminderCreated":
+        callbacks.onReminderCreated?.(result.reminder);
+        return;
+      case "RemindersListed":
+        callbacks.onRemindersListed?.(result.reminders);
+        return;
+      case "ReminderLimitReached":
+        callbacks.onReminderLimitReached?.({ message: result.message, limit: result.limit });
         return;
       case "PendingQuestionCreated":
         callbacks.onPendingQuestionCreated?.({

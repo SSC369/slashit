@@ -1,0 +1,558 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-09-23T08:49:41Z"
+ },
+ "title": "Slashit Reminders",
+ "launch": {
+  "view": "canvas",
+  "page": "page-2"
+ },
+ "pages": [
+  {
+   "id": "page-1",
+   "name": "Capture"
+  },
+  {
+   "id": "page-2",
+   "name": "Records"
+  },
+  {
+   "id": "page-3",
+   "name": "Notifications"
+  },
+  {
+   "id": "page-4",
+   "name": "Settings and email"
+  },
+  {
+   "id": "page-5",
+   "name": "Mobile"
+  },
+  {
+   "id": "page-6",
+   "name": "Dark theme"
+  },
+  {
+   "id": "page-7",
+   "name": "Loading and feedback"
+  },
+  {
+   "id": "page-8",
+   "name": "States and errors"
+  }
+ ],
+ "boards": {
+  "RemindCapture.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder set from a command",
+   "page": "page-1"
+  },
+  "RemindResolved.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Default time, passed time, month end",
+   "page": "page-1"
+  },
+  "RemindAsk.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Missing date and the cap",
+   "page": "page-1"
+  },
+  "RemindList.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "The /reminders list",
+   "page": "page-1"
+  },
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Records, Reminders tab",
+   "page": "page-2"
+  },
+  "RecordsAll.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Records, All tab",
+   "page": "page-2"
+  },
+  "ReminderDetail.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder detail",
+   "page": "page-2"
+  },
+  "ReminderEdit.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit a reminder",
+   "page": "page-2"
+  },
+  "DeleteReminder.dc.html": {
+   "x": 6240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Delete a repeating reminder",
+   "page": "page-2"
+  },
+  "NotificationPanel.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Notification panel",
+   "page": "page-3"
+  },
+  "ReminderToast.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder pop-ups and snooze",
+   "page": "page-3"
+  },
+  "NotificationStates.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Notification panel states",
+   "page": "page-3"
+  },
+  "SettingsReminders.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings, Reminders",
+   "page": "page-4"
+  },
+  "SettingsBothOff.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings, both channels off",
+   "page": "page-4"
+  },
+  "ReminderEmail.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder emails",
+   "page": "page-4"
+  },
+  "MobileNotifications.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Mobile notifications",
+   "page": "page-5"
+  },
+  "MobileRecordsReminders.dc.html": {
+   "x": 470,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Mobile Records, Reminders",
+   "page": "page-5"
+  },
+  "MobileReminderToast.dc.html": {
+   "x": 940,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Mobile reminder pop-up",
+   "page": "page-5"
+  },
+  "DarkRecordsReminders.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark Records, Reminders",
+   "page": "page-6"
+  },
+  "DarkNotificationPanel.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark notification panel",
+   "page": "page-6"
+  },
+  "DarkReminderToast.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark reminder pop-ups",
+   "page": "page-6"
+  },
+  "DarkSettingsReminders.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark Settings, Reminders",
+   "page": "page-6"
+  },
+  "RecordsLoading.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Records loading, skeleton",
+   "page": "page-7"
+  },
+  "ReminderDetailLoading.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder detail loading, skeleton",
+   "page": "page-7"
+  },
+  "SettingsLoading.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings loading, skeleton",
+   "page": "page-7"
+  },
+  "ReminderEditSaving.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, saving in the button",
+   "page": "page-7"
+  },
+  "ReminderEditSaved.dc.html": {
+   "x": 6240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit saved, success toast",
+   "page": "page-7"
+  },
+  "RemindCreatedToast.dc.html": {
+   "x": 7800,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder created, success toast",
+   "page": "page-7"
+  },
+  "DeleteReminderBusy.dc.html": {
+   "x": 9360,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Delete, deleting in the button",
+   "page": "page-7"
+  },
+  "PopupActing.dc.html": {
+   "x": 10920,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pop-up, Done saving",
+   "page": "page-7"
+  },
+  "SettingsSaving.dc.html": {
+   "x": 12480,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings switch saving",
+   "page": "page-7"
+  },
+  "MobileReminderSaved.dc.html": {
+   "x": 14040,
+   "y": 0,
+   "w": 390,
+   "h": 844,
+   "title": "Mobile, success toast",
+   "page": "page-7"
+  },
+  "DarkEditSaved.dc.html": {
+   "x": 6240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Dark edit saved, success toast",
+   "page": "page-6"
+  },
+  "RemindersEmpty.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, empty",
+   "page": "page-8"
+  },
+  "RemindersError.dc.html": {
+   "x": 1560,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, failed to load",
+   "page": "page-8"
+  },
+  "RemindersNoMatch.dc.html": {
+   "x": 3120,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, search with no match",
+   "page": "page-8"
+  },
+  "RemindersSessionEnded.dc.html": {
+   "x": 4680,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, session ended",
+   "page": "page-8"
+  },
+  "RemindersOffline.dc.html": {
+   "x": 6240,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminders, offline",
+   "page": "page-8"
+  },
+  "ReminderNotFound.dc.html": {
+   "x": 7800,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Reminder not found or deleted",
+   "page": "page-8"
+  },
+  "ReminderEditInvalid.dc.html": {
+   "x": 9360,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, missing name and no day",
+   "page": "page-8"
+  },
+  "ReminderEditPast.dc.html": {
+   "x": 10920,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, time already passed",
+   "page": "page-8"
+  },
+  "ReminderEditFailed.dc.html": {
+   "x": 12480,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, save failed",
+   "page": "page-8"
+  },
+  "ReminderEditGone.dc.html": {
+   "x": 14040,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Edit, deleted while editing",
+   "page": "page-8"
+  },
+  "DeleteReminderFailed.dc.html": {
+   "x": 15600,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Delete failed",
+   "page": "page-8"
+  },
+  "PopupFailed.dc.html": {
+   "x": 17160,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pop-up, action failed",
+   "page": "page-8"
+  },
+  "PopupOffline.dc.html": {
+   "x": 18720,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pop-up, offline",
+   "page": "page-8"
+  },
+  "PanelActionFailed.dc.html": {
+   "x": 20280,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Panel, action failed",
+   "page": "page-8"
+  },
+  "SettingsFailed.dc.html": {
+   "x": 21840,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Settings, save failed",
+   "page": "page-8"
+  },
+  "RemindModelDown.dc.html": {
+   "x": 23400,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "/remind, model unavailable",
+   "page": "page-8"
+  }
+ },
+ "order": [
+  "RemindCapture.dc.html",
+  "RemindResolved.dc.html",
+  "RemindAsk.dc.html",
+  "RemindList.dc.html",
+  "Main.dc.html",
+  "RecordsAll.dc.html",
+  "ReminderDetail.dc.html",
+  "ReminderEdit.dc.html",
+  "DeleteReminder.dc.html",
+  "NotificationPanel.dc.html",
+  "ReminderToast.dc.html",
+  "NotificationStates.dc.html",
+  "SettingsReminders.dc.html",
+  "SettingsBothOff.dc.html",
+  "ReminderEmail.dc.html",
+  "MobileNotifications.dc.html",
+  "MobileRecordsReminders.dc.html",
+  "MobileReminderToast.dc.html",
+  "DarkRecordsReminders.dc.html",
+  "DarkNotificationPanel.dc.html",
+  "DarkReminderToast.dc.html",
+  "DarkSettingsReminders.dc.html",
+  "RecordsLoading.dc.html",
+  "ReminderDetailLoading.dc.html",
+  "SettingsLoading.dc.html",
+  "ReminderEditSaving.dc.html",
+  "ReminderEditSaved.dc.html",
+  "RemindCreatedToast.dc.html",
+  "DeleteReminderBusy.dc.html",
+  "PopupActing.dc.html",
+  "SettingsSaving.dc.html",
+  "MobileReminderSaved.dc.html",
+  "DarkEditSaved.dc.html",
+  "RemindersEmpty.dc.html",
+  "RemindersError.dc.html",
+  "RemindersNoMatch.dc.html",
+  "RemindersSessionEnded.dc.html",
+  "RemindersOffline.dc.html",
+  "ReminderNotFound.dc.html",
+  "ReminderEditInvalid.dc.html",
+  "ReminderEditPast.dc.html",
+  "ReminderEditFailed.dc.html",
+  "ReminderEditGone.dc.html",
+  "DeleteReminderFailed.dc.html",
+  "PopupFailed.dc.html",
+  "PopupOffline.dc.html",
+  "PanelActionFailed.dc.html",
+  "SettingsFailed.dc.html",
+  "RemindModelDown.dc.html"
+ ],
+ "notes": {
+  "n-cap": {
+   "x": 0,
+   "y": -380,
+   "text": "/remind in Capture. Every confirmation echoes when and how often in words (FR-5).\nRemindResolved: default time (FR-3), time already passed (FR-4), month-end rule (FR-8).\nRemindAsk: no date asks one question (FR-2); the 101st reminder is refused (FR-38).\nRemindList: /reminders (FR-25).",
+   "w": 460,
+   "page": "page-1",
+   "fill": "blue"
+  },
+  "n-rec": {
+   "x": 0,
+   "y": -380,
+   "text": "Records gains a Reminders tab (FR-26), grouped Needs attention / Upcoming / Done, picked 2026-09-23.\nFired-not-done and missed rows carry Done and Snooze inline (FR-19 to FR-23).\nDetail shows next fire, repeat, last fired and what happened (FR-27). Edit applies to the series (FR-28). Delete confirms and removes the series (FR-29).",
+   "w": 460,
+   "page": "page-2",
+   "fill": "blue"
+  },
+  "n-not": {
+   "x": 0,
+   "y": -380,
+   "text": "Bell with unread count on every topbar (FR-36) opens a slide-over panel, picked 2026-09-23 (FR-35, FR-37).\nLate and Missed markers (FR-17, FR-18). Email-cap notice (FR-39).\nPop-up: bottom-right, stays until acted on or closed, stacks (FR-13, FR-21, FR-22).",
+   "w": 460,
+   "page": "page-3",
+   "fill": "blue"
+  },
+  "n-set": {
+   "x": 0,
+   "y": -380,
+   "text": "Settings gains a Reminders section: default time (FR-31), two switches (FR-32, FR-33), both-off warning (FR-34).\nEmail: plain, lightly branded, text shown, link only (FR-15, epic Q4, PRD Q1).",
+   "w": 460,
+   "page": "page-4",
+   "fill": "blue"
+  },
+  "n-mob": {
+   "x": 0,
+   "y": -380,
+   "text": "Mobile 390x844. Bell sits beside the avatar; the panel becomes a full screen.",
+   "w": 400,
+   "page": "page-5",
+   "fill": "blue"
+  },
+  "n-dark": {
+   "x": 0,
+   "y": -380,
+   "text": "Same screens on 001's dark tokens (DarkRecords.dc.html), no new palette.",
+   "w": 420,
+   "page": "page-6",
+   "fill": "blue"
+  },
+  "n-load": {
+   "x": 0,
+   "y": -380,
+   "w": 520,
+   "page": "page-7",
+   "fill": "blue",
+   "text": "Added 2026-09-23 at the user's request.\nSkeletons: Records, reminder detail and Settings load as grey bars in the final layout, never a spinner page.\nButton loaders: Save, Delete, pop-up Done and a Settings switch show a spinner in place and lock the form until the call returns.\nSuccess toast: dark bar, top-centre under the header, hides after 4 seconds, with a View link. Shown on reminder created and reminder updated. Top-centre keeps it clear of reminder pop-ups (bottom-right) and the command bar."
+  },
+  "n-states": {
+   "x": 0,
+   "y": -380,
+   "w": 560,
+   "page": "page-8",
+   "fill": "blue",
+   "text": "Added 2026-09-23: every state and error drawn, not only described.\nReminders tab: empty, failed to load, search with no match, session ended, offline.\nDetail and edit: not found, missing name, no weekday, time already passed, save failed, deleted while editing.\nDelete failed. Pop-up: action failed, offline. Panel: action failed. Settings: save failed, switch flips back.\n/remind: model unavailable, input kept. Cap reached is on page 1 (RemindAsk).\nEvery failure says what did not change, and keeps what the user typed."
+  }
+ },
+ "designSystems": []
+}

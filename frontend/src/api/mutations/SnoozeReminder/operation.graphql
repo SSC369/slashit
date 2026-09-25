@@ -1,0 +1,13 @@
+#import "../../../fragments/ReminderFields.graphql"
+
+mutation SnoozeReminder($id: ID!, $option: SnoozeChoice!) {
+  snoozeReminder(id: $id, option: $option) {
+    __typename
+    ... on Reminder {
+      ...ReminderFields
+    }
+    ... on ReminderNotFound {
+      message
+    }
+  }
+}

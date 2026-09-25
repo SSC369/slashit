@@ -36,7 +36,8 @@ choice changes, it changes here, and the change log at the bottom records it.
 | Auth | Supabase Auth |
 | Data isolation | PostgreSQL Row Level Security |
 | In-app notification transport | GraphQL subscriptions over WebSockets |
-| Background jobs | Procrastinate, backed by PostgreSQL |
+| Background jobs | Procrastinate, backed by PostgreSQL, run by a separate worker container |
+| Subscription backplane | PostgreSQL `LISTEN/NOTIFY` |
 | Frontend | React, built with Vite |
 | Server state | Apollo Client, with MobX stores as the source of truth |
 | UI state | MobX |
@@ -286,6 +287,31 @@ The provider was settled on 2026-09-08. The tier moved from free to paid on
 constraint moves from quota to spend, so a runaway user or a retry loop now
 costs money rather than returning an error.
 
+### Live delivery and background work: settled by epic 003
+
+Settled by [epic 003's build plan](./003-reminders-and-notifications/03-build-plan.md)
+on 2026-09-23, decisions AD-1, AD-4 and AD-9.
+
+**Subscription backplane: PostgreSQL `LISTEN/NOTIFY`** (AD-4, closes T-Q3). A
+process that creates something a user should see live issues `NOTIFY` on one
+channel after its transaction commits, with a payload of ids only, never
+content. Each API instance holds one listening connection and forwards to that
+user's open subscriptions. A client refetches on every reconnect, so a dropped
+signal costs latency, never correctness.
+
+| Alternative | Why it lost |
+|---|---|
+| Redis pub/sub | A second stateful service, which this stack removed on purpose |
+| Polling every 30 seconds | Misses epic 003's 5-second live-delivery target and adds constant traffic |
+
+**Worker: a separate container** (AD-9). `procrastinate worker` runs apart from
+the API, so a restart or scale-to-zero of the API never stops scheduled work.
+It costs a second container, about 7 USD a month, `estimate`.
+
+**One domain per record type** (AD-1). A record type with its own lifecycle gets
+its own backend domain; `records` reaches it through a port, as it reaches
+reminders. Epics 006 to 009 follow this unless their build plan argues otherwise.
+
 ---
 
 ## 4. Standing technical rules
@@ -301,9 +327,9 @@ explicitly and argues for it.
 | T4 | The model provider stays behind a boundary. Nothing above it knows which provider is in use, so a tier or vendor change is configuration, not a rewrite |
 | T5 | DataLoader from the first resolver, not retrofitted after the N+1 appears |
 | T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half |
-| T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
 | T7 | Every feature touching user data tests the boundary: a case where user A requests user B's record and receives nothing |
 | T8 | Every number in a build plan carries its source. A benchmark, a vendor page, a measurement, or the label `estimate` |
+| T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
 
 ---
 
@@ -334,7 +360,7 @@ month costs about one cent. This is why the free tier was not worth its terms.
 |---|---|---|
 | T-Q1 | Render or Railway for the backend? | epic 000 build plan |
 | ~~T-Q2~~ | How the authenticated user's identity reaches the database connection so RLS applies | **Answered 2026-09-12**, section 3. `SET LOCAL` claims plus `SET LOCAL ROLE authenticated`. Claims alone are not sufficient |
-| T-Q3 | What backplane carries GraphQL subscriptions when there is more than one API instance? One instance hides this until it does not | epic 003 |
+| ~~T-Q3~~ | What backplane carries GraphQL subscriptions when there is more than one API instance? | **Answered 2026-09-23.** PostgreSQL `LISTEN/NOTIFY`, section 3 |
 | T-Q4 | What are the query depth and complexity limits, as numbers? | public launch |
 | ~~T-Q5~~ | Vercel or Cloudflare Pages for the frontend? | **Answered 2026-09-13.** Vercel |
 | T-Q6 | Supabase free-tier projects pause after inactivity. What is the current threshold, and on what date does the project move to Pro? | launch |
@@ -399,6 +425,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
+| 2026-09-23 | Subscription backplane set to PostgreSQL `LISTEN/NOTIFY`, closing T-Q3. Background jobs run in a separate worker container. One backend domain per record type. Stale downstream: none; epic 003 is the first consumer | Decisions AD-1, AD-4 and AD-9 of epic 003's approved build plan, graduated per rule 8 of the process | user |
 | 2026-09-14 | T-Q3 and T-Q7's `Blocks` column renumbered from epic 002/004 to epic 003/005 | Epic 002, Authentication, inserted ahead of the old 002 to 010, which shifted to 003 to 011 (`product/v1-features.md`, 2026-09-14) | user |
 | 2026-09-13 | T-Q5 answered: frontend hosting is Vercel | Epic 001's build plan needed it | user |
 | 2026-09-09 | Created, absorbing decision records 0004, 0005 and 0006 | User removed the decisions folder and asked for one technical document | user |

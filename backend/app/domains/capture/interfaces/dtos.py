@@ -5,7 +5,9 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-MissingField = Literal["title", "due_at"]
+from app.domains.reminders.public import ReminderDTO
+
+MissingField = Literal["title", "due_at", "remind_at"]
 
 
 @dataclass(frozen=True)
@@ -33,7 +35,9 @@ class UnrecognisedCommandDTO:
     closest_matches: list[str]
 
 
-CaptureTurnOutcome = Literal["task_created", "question_asked", "discarded", "refused"]
+CaptureTurnOutcome = Literal[
+    "task_created", "question_asked", "discarded", "refused", "reminder_created"
+]
 
 
 @dataclass(frozen=True)
@@ -49,9 +53,18 @@ class CaptureTurnDTO:
     question_text: str | None
     answer_text: str | None
     created_at: datetime
+    # Epic 003. Last, with a default, so existing constructions stay valid.
+    resulting_reminder_id: UUID | None = None
 
 
 @dataclass(frozen=True)
 class CaptureHistoryPageDTO:
     items: list[CaptureTurnDTO]
     next_cursor: str | None
+
+
+@dataclass(frozen=True)
+class ReminderListDTO:
+    """`/reminders`. Wrapped so it is not confused with `/tasks`' plain list."""
+
+    reminders: list[ReminderDTO]

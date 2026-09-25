@@ -1,14 +1,44 @@
-import { render, screen } from "@testing-library/react";
+import { CombinedGraphQLErrors } from "@apollo/client/errors";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { API_INITIAL, API_SUCCESS } from "../../../../constants/apiConstants";
+import { API_FAILED, API_INITIAL, API_SUCCESS } from "../../../../constants/apiConstants";
+import type { ReminderFieldsFragment } from "../../../../fragments/ReminderFields.generated";
+import { buildReminder as reminder } from "../../../../testing/reminderFixture";
 import { StoreProvider } from "../../../../stores/StoreProvider";
 import RecordsController from "./RecordsController";
 
-const { mockUseGetRecords, mockUseRecordsViewOpened } = vi.hoisted(() => ({
+const {
+  mockUseGetRecords,
+  mockUseRecordsViewOpened,
+  mockUseGetReminders,
+  mockUseOnlineStatus,
+  mockMarkDone,
+  mockSnooze,
+} = vi.hoisted(() => ({
   mockUseGetRecords: vi.fn(),
   mockUseRecordsViewOpened: vi.fn(),
+  mockUseGetReminders: vi.fn(),
+  mockUseOnlineStatus: vi.fn(),
+  mockMarkDone: vi.fn(),
+  mockSnooze: vi.fn(),
+}));
+
+vi.mock("../../../../api/mutations/MarkReminderDone/useMarkReminderDone", () => ({
+  default: () => ({ triggerAPI: mockMarkDone, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("../../../../api/mutations/SnoozeReminder/useSnoozeReminder", () => ({
+  default: () => ({ triggerAPI: mockSnooze, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("../../../../api/queries/GetReminders/useGetReminders", () => ({
+  default: () => mockUseGetReminders(),
+}));
+
+vi.mock("../../../../hooks/useOnlineStatus", () => ({
+  useOnlineStatus: () => mockUseOnlineStatus(),
 }));
 
 vi.mock("../../../../api/queries/GetRecords/useGetRecords", () => ({
@@ -30,6 +60,13 @@ const renderWithProviders = () =>
 
 describe("RecordsController", () => {
   beforeEach(() => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockUseGetReminders.mockReturnValue({
+      triggerAPI: vi.fn(),
+      data: undefined,
+      apiStatus: API_INITIAL,
+      apiError: null,
+    });
     mockUseRecordsViewOpened.mockReturnValue({
       triggerAPI: vi.fn(),
       apiStatus: API_INITIAL,
@@ -73,6 +110,7 @@ describe("RecordsController", () => {
       data: {
         records: [
           {
+            __typename: "Task",
             id: "1",
             title: "Finish API docs",
             dueAt: null,
@@ -94,4 +132,157 @@ describe("RecordsController", () => {
     expect(screen.queryByText("Nothing recorded yet")).not.toBeInTheDocument();
     expect(screen.getByText("Finish API docs")).toBeInTheDocument();
   });
+
+  it("marks a reminder in the All tab with its own type and status", () => {
+    mockUseGetRecords.mockReturnValue({
+      triggerAPI: vi.fn(),
+      data: { records: [{ __typename: "Reminder", ...reminder({ description: "Call Mom" }) }] },
+      apiStatus: API_SUCCESS,
+      apiError: null,
+    });
+
+    renderWithProviders();
+
+    expect(screen.getByText("Call Mom")).toBeInTheDocument();
+    expect(screen.getByText("Reminder")).toBeInTheDocument();
+    expect(screen.getByText("Reminders carry a round marker, tasks a square one")).toBeInTheDocument();
+  });
+
+  describe("Reminders tab", () => {
+    const openRemindersTab = (): void => {
+      mockUseGetRecords.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: undefined,
+        apiStatus: API_INITIAL,
+        apiError: null,
+      });
+      renderWithProviders();
+      fireEvent.click(screen.getByRole("button", { name: "Reminders" }));
+    };
+
+    const groups = (overrides: Partial<Record<"needsAttention" | "upcoming" | "done", ReminderFieldsFragment[]>>) => ({
+      reminders: { needsAttention: [], upcoming: [], done: [], ...overrides },
+    });
+
+    it("shows skeleton rows under the real group headers while loading", () => {
+      openRemindersTab();
+      expect(screen.getByText("Needs attention")).toBeInTheDocument();
+      expect(screen.getByText("Upcoming")).toBeInTheDocument();
+      expect(screen.queryByText("No reminders yet")).not.toBeInTheDocument();
+    });
+
+    it("groups the loaded reminders and counts them against the cap", () => {
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ upcoming: [reminder({ id: "r1", description: "Call Mom" })] }),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      openRemindersTab();
+      expect(screen.getByText("Call Mom")).toBeInTheDocument();
+      expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+      expect(screen.getByText("1 reminder · 1 active of 100")).toBeInTheDocument();
+    });
+
+    it("shows the empty state with the /remind example", () => {
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({}),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      openRemindersTab();
+      expect(screen.getByText("No reminders yet")).toBeInTheDocument();
+      expect(screen.getByText("/remind Call Mom tomorrow at 7pm")).toBeInTheDocument();
+    });
+
+    it("says the load failed and offers to try again", () => {
+      const triggerAPI = vi.fn();
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI,
+        data: undefined,
+        apiStatus: API_FAILED,
+        apiError: new Error("Failed to fetch"),
+      });
+      openRemindersTab();
+      fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+      expect(screen.getByText("Couldn't load your reminders")).toBeInTheDocument();
+      expect(triggerAPI).toHaveBeenCalledWith({ search: null });
+    });
+
+    it("shows the session card when the session has ended", () => {
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: undefined,
+        apiStatus: API_FAILED,
+        apiError: new CombinedGraphQLErrors({ errors: [{ message: "Not authenticated" }] }),
+      });
+      openRemindersTab();
+      expect(screen.getByText("Your session ended")).toBeInTheDocument();
+    });
+
+    it("names the search that matched nothing", () => {
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({}),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      openRemindersTab();
+      fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: "dentist" } });
+      expect(screen.getByText("No reminders match “dentist”")).toBeInTheDocument();
+    });
+
+    it("TC-2.19: Done on a row that needs attention moves it to Upcoming", () => {
+      const fired = reminder({ id: "r9", description: "Pay electricity bill", state: "FIRED", repeatKind: "MONTHLY" });
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ needsAttention: [fired] }),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      mockMarkDone.mockImplementation((args) => args.onReminderActed({ ...fired, state: "UPCOMING" }));
+      openRemindersTab();
+
+      expect(screen.getByText("Needs attention")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Done/ }));
+
+      expect(mockMarkDone).toHaveBeenCalledWith(expect.objectContaining({ id: "r9" }));
+      expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+      // The Upcoming group header, and the row's own Upcoming pill.
+      expect(screen.getAllByText("Upcoming")).toHaveLength(2);
+    });
+
+    it("keeps a failed Done on the row and says so", () => {
+      const fired = reminder({ id: "r9", state: "FIRED" });
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ needsAttention: [fired] }),
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      mockMarkDone.mockImplementation((args) => args.onRequestFailed(new Error("network")));
+      openRemindersTab();
+
+      fireEvent.click(screen.getByRole("button", { name: /Done/ }));
+
+      expect(screen.getByRole("alert")).toHaveTextContent("That didn't save. Try again.");
+      expect(screen.getByText("Needs attention")).toBeInTheDocument();
+    });
+
+    it("keeps the saved list when offline and says so", () => {
+      mockUseOnlineStatus.mockReturnValue(false);
+      mockUseGetReminders.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: groups({ upcoming: [reminder({ id: "r1", description: "Call Mom" })] }),
+        apiStatus: API_FAILED,
+        apiError: new Error("Failed to fetch"),
+      });
+      openRemindersTab();
+      expect(screen.getByText("Call Mom")).toBeInTheDocument();
+      expect(screen.getByText("You are offline.")).toBeInTheDocument();
+      expect(screen.getByText(/Showing what was saved on this device at/)).toBeInTheDocument();
+    });
+  });
 });
+

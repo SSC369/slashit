@@ -1,0 +1,10 @@
+#import "../../../fragments/NotificationFields.graphql"
+
+query GetNotifications($cursor: String) {
+  notifications(cursor: $cursor) {
+    items {
+      ...NotificationFields
+    }
+    nextCursor
+  }
+}

@@ -1,11 +1,16 @@
 import { makeAutoObservable } from "mobx";
 
+import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
 
 export type CaptureTurn =
   | { id: string; said: string; status: "loading" }
   | { id: string; said: string; status: "taskCreated"; task: TaskFieldsFragment }
   | { id: string; said: string; status: "taskList"; tasks: TaskFieldsFragment[] }
+  | { id: string; said: string; status: "reminderCreated"; reminder: ReminderFieldsFragment }
+  | { id: string; said: string; status: "reminderList"; reminders: ReminderFieldsFragment[] }
+  | { id: string; said: string; status: "reminderLimit"; limit: number }
+  | { id: string; said: string; status: "modelDown" }
   | {
       id: string;
       said: string;

@@ -23,11 +23,14 @@ from app.domains.records.interactors.dtos import (
     GetRecordDetailInputDTO,
     ListTasksInputDTO,
 )
-from app.domains.records.interfaces.dtos import Task, task_dto_to_type
+from app.domains.records.interfaces.dtos import Task, TaskDTO, task_dto_to_type
+from app.domains.reminders.public import Reminder, reminder_dto_to_type
 from app.graphql.error_mapping import map_errors
 from app.graphql.permissions import IsAuthenticated
 
 RecordResult = Annotated[Task | RecordNotFound, strawberry.union("RecordResult")]
+# Epic 003: the All tab lists both record types.
+RecordItem = Annotated[Task | Reminder, strawberry.union("RecordItem")]
 
 
 @strawberry.type
@@ -39,12 +42,12 @@ class RecordQueries:
         filter_: Annotated[
             RecordsFilterInput | None, strawberry.argument(name="filter")
         ] = None,
-    ) -> list[Task]:
+    ) -> list[RecordItem]:
         context = cast(Context, info.context)
         user_id = cast(UUID, context.user_id)
         record_filter = filter_ or RecordsFilterInput()
         interactor = build_list_tasks_interactor(context)
-        tasks = await interactor.list_tasks(
+        records = await interactor.list_tasks(
             dto=ListTasksInputDTO(
                 user_id=user_id,
                 kind_filter=record_filter.kind,
@@ -53,7 +56,12 @@ class RecordQueries:
                 sort_desc=record_filter.sort_desc,
             )
         )
-        return [task_dto_to_type(task=task) for task in tasks]
+        return [
+            cast(RecordItem, task_dto_to_type(task=item))
+            if isinstance(item, TaskDTO)
+            else cast(RecordItem, reminder_dto_to_type(reminder=item))
+            for item in records
+        ]
 
     @strawberry.field(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
     @map_errors

@@ -20,14 +20,19 @@ from app.core.deps import (
 from app.domains.capture.graphql.types import (
     NonCommandGuidance,
     PendingQuestionCreated,
+    ReminderCreated,
+    ReminderLimitReached,
+    RemindersListed,
     TaskCreated,
     TasksListed,
     UnrecognisedCommand,
 )
+from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
+    ReminderListDTO,
     UnrecognisedCommandDTO,
 )
 from app.domains.gateway.public import (
@@ -38,11 +43,18 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.records.public import TaskDTO, task_dto_to_type
+from app.domains.reminders.public import ReminderDTO, reminder_dto_to_type
+from app.domains.reminders.public import (
+    ReminderLimitReached as ReminderLimitReachedDTO,
+)
 from app.graphql.permissions import IsAuthenticated
 
 CaptureResult = Annotated[
     TaskCreated
     | TasksListed
+    | ReminderCreated
+    | RemindersListed
+    | ReminderLimitReached
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -55,8 +67,36 @@ CaptureResult = Annotated[
 ]
 
 
-def _capture_outcome_to_result(*, outcome: CaptureOutcome) -> CaptureResult:
+def _capture_outcome_to_result(
+    *, outcome: CaptureOutcome | AnswerOutcome
+) -> CaptureResult:
     """The one place a capture outcome DTO becomes a GraphQL type."""
+    if isinstance(outcome, ReminderDTO):
+        return cast(
+            CaptureResult,
+            ReminderCreated(reminder=reminder_dto_to_type(reminder=outcome)),
+        )
+    if isinstance(outcome, ReminderListDTO):
+        return cast(
+            CaptureResult,
+            RemindersListed(
+                reminders=[
+                    reminder_dto_to_type(reminder=reminder)
+                    for reminder in outcome.reminders
+                ]
+            ),
+        )
+    if isinstance(outcome, ReminderLimitReachedDTO):
+        return cast(
+            CaptureResult,
+            ReminderLimitReached(
+                message=(
+                    f"You have {outcome.limit} active reminders, the most Slashit "
+                    "holds. Mark one done or delete one, then try again."
+                ),
+                limit=outcome.limit,
+            ),
+        )
     if isinstance(outcome, TaskDTO):
         return cast(CaptureResult, TaskCreated(task=task_dto_to_type(task=outcome)))
     if isinstance(outcome, list):
@@ -105,12 +145,12 @@ class CaptureMutations:
         context = cast(Context, info.context)
         user_id = cast(UUID, context.user_id)
         interactor = build_answer_pending_capture_interactor(context)
-        task = await interactor.answer_pending_capture(
+        outcome = await interactor.answer_pending_capture(
             user_id=user_id,
             pending_capture_id=UUID(str(pending_capture_id)),
             answer=answer,
         )
-        return cast(CaptureResult, TaskCreated(task=task_dto_to_type(task=task)))
+        return _capture_outcome_to_result(outcome=outcome)
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
     async def discard_pending_capture(

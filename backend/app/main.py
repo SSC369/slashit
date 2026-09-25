@@ -13,11 +13,14 @@ import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.requests import HTTPConnection
+from strawberry.exceptions import ConnectionRejectionError
 from strawberry.fastapi import GraphQLRouter
+from strawberry.types.unset import UnsetType
 
 from app.core.context import Context
 from app.core.db import check_connection, create_engine, create_session_factory
-from app.core.deps import build_context
+from app.core.deps import authenticate_connection, build_context
 from app.core.jobs import procrastinate_app
 from app.core.logging import configure_logging
 from app.core.settings import Settings, get_settings
@@ -26,6 +29,9 @@ from app.core.settings import Settings, get_settings
 # `@procrastinate_app.task`/`@procrastinate_app.periodic` registers it on
 # `procrastinate_app`. Nothing in this module calls the name directly.
 from app.domains.identity import jobs as identity_jobs  # noqa: F401
+from app.domains.notifications import jobs as notifications_jobs  # noqa: F401
+from app.domains.notifications.services.live_signal import live_signal
+from app.domains.reminders import jobs as reminders_jobs  # noqa: F401
 from app.graphql.schema import schema
 
 REQUEST_ID_HEADER = "X-Request-ID"
@@ -50,12 +56,36 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
     await procrastinate_app.open_async()
+    # AD-4: this process's one LISTEN connection, feeding open subscriptions.
+    await live_signal.start(dsn=settings.database_url)
     structlog.get_logger().info("application.started", environment=settings.environment)
     try:
         yield
     finally:
+        await live_signal.stop()
         await procrastinate_app.close_async()
         await engine.dispose()
+
+
+class SlashitGraphQLRouter(GraphQLRouter[Context, None]):
+    """Authenticates a WebSocket from its ``connection_init`` payload.
+
+    A browser cannot set headers on a WebSocket, so the client sends the same
+    bearer token as ``{"authorization": "Bearer ..."}`` there instead. A bad
+    token closes the socket (4403); the client signs in again or refreshes.
+    """
+
+    async def on_ws_connect(
+        self, context: Context
+    ) -> UnsetType | dict[str, object] | None:
+        params = context.connection_params or {}
+        raw_header = params.get("authorization")
+        authorization = raw_header if isinstance(raw_header, str) else None
+        if not authenticate_connection(
+            context=context, authorization_header=authorization
+        ):
+            raise ConnectionRejectionError()
+        return await super().on_ws_connect(context)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -146,16 +176,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return {"status": "unavailable", "database": "unreachable"}
         return {"status": "ok", "database": "ok"}
 
-    async def get_context(request: Request) -> Context:
+    async def get_context(connection: HTTPConnection) -> Context:
+        # HTTPConnection, not Request, so one getter serves HTTP and WebSocket.
         return await build_context(
-            authorization_header=request.headers.get("Authorization"),
-            request_id=request.headers.get(REQUEST_ID_HEADER, "unknown"),
-            session_factory=request.app.state.session_factory,
+            authorization_header=connection.headers.get("Authorization"),
+            request_id=connection.headers.get(REQUEST_ID_HEADER, "unknown"),
+            session_factory=connection.app.state.session_factory,
             settings=settings,
         )
 
     app.include_router(
-        GraphQLRouter(schema, context_getter=get_context), prefix="/graphql"
+        SlashitGraphQLRouter(schema, context_getter=get_context), prefix="/graphql"
     )
 
     return app

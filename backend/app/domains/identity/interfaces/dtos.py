@@ -1,7 +1,7 @@
 """Data crossing identity's boundaries. Frozen, never a model instance."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time
 from uuid import UUID
 
 
@@ -9,8 +9,24 @@ from uuid import UUID
 class SettingsDTO:
     user_id: UUID
     timezone: str
+    default_reminder_time: time
+    popups_enabled: bool
+    email_enabled: bool
+    channels_off_warned_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+@dataclass(frozen=True)
+class ReminderSettingsDTO:
+    """Published to other domains (index §4): what reminders and, from slice 2,
+    notifications need to know about a user's clock and channels."""
+
+    timezone: str
+    default_reminder_time: time
+    popups_enabled: bool
+    email_enabled: bool
+    channels_off_warned_at: datetime | None
 
 
 @dataclass(frozen=True)
@@ -42,3 +58,10 @@ class AuthAttemptOutcomeDTO:
 
     locked: bool
     locked_until: datetime | None
+
+
+@dataclass(frozen=True)
+class ReminderSettingsSavedDTO:
+    settings: SettingsDTO
+    # FR-34: true only on the save that first turned both switches off.
+    show_both_off_warning: bool

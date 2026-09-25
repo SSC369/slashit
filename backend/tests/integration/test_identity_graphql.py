@@ -116,6 +116,7 @@ async def test_update_timezone_changes_the_value(
     patched_jwks: None,
     settings: Settings,
     two_users: tuple[uuid.UUID, uuid.UUID],
+    job_queue: None,
 ) -> None:
     user_a, _user_b = two_users
     token = _token(signing_key, settings, user_id=user_a)

@@ -6,6 +6,24 @@ import * as Types from '../../../../types.generated';
 
 import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
+import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
+export type ReminderAction =
+  | 'DONE'
+  | 'MISSED'
+  | 'SNOOZED';
+
+export type ReminderRepeatKind =
+  | 'DAILY'
+  | 'MONTHLY'
+  | 'NONE'
+  | 'WEEKLY'
+  | 'YEARLY';
+
+export type ReminderState =
+  | 'DONE'
+  | 'FIRED'
+  | 'UPCOMING';
+
 export type AnswerPendingCaptureMutationVariables = Exact<{
   pendingCaptureId: string | number;
   answer: string;
@@ -18,6 +36,9 @@ export type AnswerPendingCaptureMutation = { answerPendingCapture:
     | { __typename: 'PendingQuestionCreated', pendingCaptureId: string, question: string }
     | { __typename: 'ProviderTimeout', message: string, budgetSeconds: number }
     | { __typename: 'ProviderUnavailable', message: string }
+    | { __typename: 'ReminderCreated', reminder: { id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null } }
+    | { __typename: 'ReminderLimitReached', message: string, limit: number }
+    | { __typename: 'RemindersListed', reminders: Array<{ id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }> }
     | { __typename: 'SharedQuotaExhausted', message: string }
     | { __typename: 'TaskCreated', task: { id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string } }
     | { __typename: 'TasksListed', tasks: Array<{ id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
@@ -39,6 +60,20 @@ export const AnswerPendingCaptureDocument = gql`
       tasks {
         ...TaskFields
       }
+    }
+    ... on ReminderCreated {
+      reminder {
+        ...ReminderFields
+      }
+    }
+    ... on RemindersListed {
+      reminders {
+        ...ReminderFields
+      }
+    }
+    ... on ReminderLimitReached {
+      message
+      limit
     }
     ... on PendingQuestionCreated {
       pendingCaptureId
@@ -72,4 +107,5 @@ export const AnswerPendingCaptureDocument = gql`
     }
   }
 }
-    ${TaskFieldsFragmentDoc}`;
+    ${TaskFieldsFragmentDoc}
+${ReminderFieldsFragmentDoc}`;

@@ -7,6 +7,7 @@ export type CaptureTurnOutcome =
   | 'DISCARDED'
   | 'QUESTION_ASKED'
   | 'REFUSED'
+  | 'REMINDER_CREATED'
   | 'TASK_CREATED';
 
 export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, questionText: string | null, answerText: string | null, createdAt: string };

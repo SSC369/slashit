@@ -1,4 +1,5 @@
 #import "../../../fragments/TaskFields.graphql"
+#import "../../../fragments/ReminderFields.graphql"
 
 mutation SubmitCapture($rawInput: String!) {
   submitCapture(rawInput: $rawInput) {
@@ -12,6 +13,20 @@ mutation SubmitCapture($rawInput: String!) {
       tasks {
         ...TaskFields
       }
+    }
+    ... on ReminderCreated {
+      reminder {
+        ...ReminderFields
+      }
+    }
+    ... on RemindersListed {
+      reminders {
+        ...ReminderFields
+      }
+    }
+    ... on ReminderLimitReached {
+      message
+      limit
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

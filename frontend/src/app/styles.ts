@@ -23,4 +23,4 @@ export const avatarSkeletonStyles = "h-7 w-7 shrink-0 animate-pulse rounded-full
 export const accountNameSkeletonStyles = "h-[13px] w-20 animate-pulse rounded-full bg-border-strong";
 export const accountEmailSkeletonStyles =
   "mt-1.5 h-[11.5px] w-28 animate-pulse rounded-full bg-border-strong";
-export const mainStyles = "flex min-w-0 flex-1 flex-col";
+export const mainStyles = "relative flex min-w-0 flex-1 flex-col";
