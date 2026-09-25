@@ -1,0 +1,13 @@
+#import "../../../fragments/MemoryFields.graphql"
+
+query GetMemory($id: ID!) {
+  memory(id: $id) {
+    __typename
+    ... on Memory {
+      ...MemoryFields
+    }
+    ... on MemoryNotFound {
+      message
+    }
+  }
+}

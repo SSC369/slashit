@@ -22,3 +22,11 @@ DEFAULT_REQUESTS_PER_DAY: Final = 20
 LIMIT_WINDOW_HOURS: Final = 24
 
 PROVIDER_NAME: Final = "google"
+
+# Epic 004 AD-4. Every vector stored in memories.embedding has this length, so
+# changing it means re-embedding every memory, not editing this line.
+EMBEDDING_DIMENSIONS: Final = 768
+
+# Epic 004. An embedding is short (one fact, at most 500 characters) and sits
+# inside the save's 8 second budget beside the generation. `estimate`.
+EMBED_TIMEOUT_SECONDS: Final = 3.0

@@ -28,6 +28,7 @@ class FakeCaptureTurnRepository:
         question_text: str | None,
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
+        resulting_memory_id: uuid.UUID | None = None,
     ) -> None:
         turn = CaptureTurnDTO(
             id=uuid.uuid4(),
@@ -39,6 +40,7 @@ class FakeCaptureTurnRepository:
             answer_text=answer_text,
             created_at=datetime.now(UTC),
             resulting_reminder_id=resulting_reminder_id,
+            resulting_memory_id=resulting_memory_id,
         )
         self.rows.append(turn)
         self._owner_by_turn_id[turn.id] = user_id

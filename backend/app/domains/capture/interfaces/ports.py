@@ -9,7 +9,19 @@ from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID
 
-from app.domains.gateway.public import ExtractionResult
+from app.domains.gateway.public import (
+    ExtractionResult,
+    MalformedResult,
+    ProviderTimeout,
+    ProviderUnavailable,
+    SharedQuotaExhausted,
+    UserLimitReached,
+)
+from app.domains.memories.public import (
+    MemoryListDTO,
+    MemorySavedDTO,
+    MemoryTooLongDTO,
+)
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import (
     ReminderDTO,
@@ -70,3 +82,28 @@ class LocalClockPort(Protocol):
     dates against it, tasks included (epic 003, build plan AD-7)."""
 
     async def local_now(self, *, user_id: UUID) -> tuple[datetime, str]: ...
+
+
+MemorySaveOutcome = (
+    MemorySavedDTO
+    | MemoryTooLongDTO
+    | UserLimitReached
+    | ProviderUnavailable
+    | ProviderTimeout
+    | SharedQuotaExhausted
+    | MalformedResult
+)
+
+
+class MemoryPort(Protocol):
+    """What capture needs from memories (epic 004): save a fact, list them,
+    look one up. A model failure arrives as the gateway's own member, so the
+    client shows the same refusal it shows for a task (FR-9)."""
+
+    async def save_memory(
+        self, *, user_id: UUID, text: str, original_input: str
+    ) -> MemorySaveOutcome: ...
+
+    async def list_memories(self, *, user_id: UUID) -> MemoryListDTO: ...
+
+    async def look_up_memories(self, *, user_id: UUID, text: str) -> MemoryListDTO: ...

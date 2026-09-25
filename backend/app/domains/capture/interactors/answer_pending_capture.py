@@ -6,8 +6,17 @@ from uuid import UUID
 
 import structlog
 
-from app.domains.capture.constants import DUE_AT_ONLY_INSTRUCTION, DUE_AT_ONLY_SCHEMA
-from app.domains.capture.interfaces.ports import ExtractionPort, TaskPort
+from app.domains.capture.constants import (
+    DUE_AT_ONLY_INSTRUCTION,
+    DUE_AT_ONLY_SCHEMA,
+    MEMORY_SAVE_COMMANDS,
+)
+from app.domains.capture.interfaces.ports import (
+    ExtractionPort,
+    MemoryPort,
+    MemorySaveOutcome,
+    TaskPort,
+)
 from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
@@ -18,10 +27,11 @@ from app.domains.capture.services.reminder_capture import (
     ReminderNeedsDescription,
 )
 from app.domains.gateway.public import Extraction
+from app.domains.memories.public import MemorySavedDTO
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import ReminderDTO, ReminderNeedsWhen
 
-AnswerOutcome = TaskDTO | ReminderCaptureOutcome
+AnswerOutcome = TaskDTO | ReminderCaptureOutcome | MemorySaveOutcome
 
 logger = structlog.get_logger(__name__)
 
@@ -47,12 +57,14 @@ class AnswerPendingCaptureInteractor:
         task_port: TaskPort,
         extraction: ExtractionPort,
         reminder_capture: ReminderCaptureService,
+        memory_port: MemoryPort,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
         self.task_port = task_port
         self.extraction = extraction
         self.reminder_capture = reminder_capture
+        self.memory_port = memory_port
 
     async def answer_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID, answer: str
@@ -81,6 +93,15 @@ class AnswerPendingCaptureInteractor:
                 user_id=user_id,
                 pending_capture_id=pending_capture_id,
                 known_description=pending_capture.known_title,
+                question_text=pending_capture.question_text,
+                original_input=pending_capture.original_input,
+                answer_text=answer_text,
+            )
+
+        if pending_capture.command_name in MEMORY_SAVE_COMMANDS:
+            return await self._answer_fact(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
                 question_text=pending_capture.question_text,
                 original_input=pending_capture.original_input,
                 answer_text=answer_text,
@@ -155,6 +176,42 @@ class AnswerPendingCaptureInteractor:
             )
         except Exception:
             # Same rule as _record_turn: the log never undoes the reminder.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return outcome
+
+    async def _answer_fact(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        question_text: str,
+        original_input: str,
+        answer_text: str,
+    ) -> MemorySaveOutcome:
+        """Epic 004, FR-3: the answer is the fact, saved exactly as a fact
+        typed after `/remember` would be. A refusal or an over-long answer
+        leaves the question open, as a due-date answer does."""
+        outcome = await self.memory_port.save_memory(
+            user_id=user_id, text=answer_text, original_input=original_input
+        )
+        if not isinstance(outcome, MemorySavedDTO):
+            return outcome
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="memory_saved",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending_capture_id,
+                question_text=question_text,
+                answer_text=answer_text,
+                resulting_memory_id=outcome.memory.id,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the memory.
             logger.exception("capture_turn.record_failed", user_id=str(user_id))
         await self.pending_capture_repository.delete_pending_capture(
             user_id=user_id, pending_capture_id=pending_capture_id

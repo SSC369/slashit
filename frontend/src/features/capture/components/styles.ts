@@ -105,3 +105,10 @@ export const reminderListNameStyles = "truncate font-medium text-foreground";
 export const reminderListMetaStyles = "truncate text-foreground-secondary";
 export const quickAnswerRowStyles = "mt-3 flex flex-wrap gap-2";
 export const footLinkStyles = "text-accent hover:underline";
+
+// Memory cards (004 design: MemorySaved, MemorySecretCaution, MemoriesLookup, CaptureStates)
+export const memoryFieldsGridStyles = "grid grid-cols-[minmax(0,1fr)_170px] gap-px bg-border";
+export const cautionInCardStyles = "mx-4 my-3 rounded-[9px]";
+export const memoryListRowStyles =
+  "flex cursor-pointer items-center justify-between gap-4 px-4 py-2.5 hover:bg-background";
+export const memoryHintStyles = "px-4 py-3 text-[13px] text-foreground-secondary";

@@ -1,5 +1,6 @@
 import { AuthStoreModel } from "./AuthStore";
 import { CaptureStoreModel } from "./CaptureStore";
+import { MemoriesStoreModel } from "./MemoriesStore";
 import { NotificationsStoreModel } from "./NotificationsStore";
 import { RecordsStoreModel } from "./RecordsStore";
 import { RemindersStoreModel } from "./RemindersStore";
@@ -11,7 +12,8 @@ export class RootStore {
   capture = CaptureStoreModel.create();
   notifications = NotificationsStoreModel.create();
   reminders = RemindersStoreModel.create();
-  records = RecordsStoreModel.create(this.reminders);
+  memories = MemoriesStoreModel.create();
+  records = RecordsStoreModel.create(this.reminders, this.memories);
   settings = SettingsStoreModel.create();
   toast = ToastStoreModel.create();
 
@@ -20,6 +22,7 @@ export class RootStore {
     this.capture.clear();
     this.notifications.clear();
     this.records.clear();
+    this.memories.clear();
     this.reminders.clear();
     this.settings.clear();
     this.toast.clear();

@@ -29,9 +29,14 @@ from langchain_core.exceptions import (
     ModelTimeoutError,
     OutputParserException,
 )
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_genai import (
+    ChatGoogleGenerativeAI,
+    GoogleGenerativeAIEmbeddings,
+)
 
 from app.domains.gateway.constants import (
+    EMBED_TIMEOUT_SECONDS,
+    EMBEDDING_DIMENSIONS,
     MAX_ATTEMPTS,
     PROVIDER_TIMEOUT_SECONDS,
     RETRY_BACKOFF_SECONDS,
@@ -42,7 +47,11 @@ from app.domains.gateway.errors import (
     ProviderUnavailableError,
     SharedQuotaExhaustedError,
 )
-from app.domains.gateway.interfaces.dtos import ExtractionRequest, ProviderResult
+from app.domains.gateway.interfaces.dtos import (
+    ExtractionRequest,
+    ProviderEmbedding,
+    ProviderResult,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -50,9 +59,52 @@ logger = structlog.get_logger(__name__)
 class LangChainGeminiProvider:
     """Implements ModelProvider over LangChain's Gemini binding."""
 
-    def __init__(self, *, api_key: str, model: str) -> None:
+    def __init__(self, *, api_key: str, model: str, embedding_model: str) -> None:
         self._model_name = model
+        self._embedding_model_name = embedding_model
         self._chat = ChatGoogleGenerativeAI(model=model, google_api_key=api_key)
+        self._embeddings = GoogleGenerativeAIEmbeddings(
+            model=embedding_model, google_api_key=api_key
+        )
+
+    async def embed(self, *, text: str) -> ProviderEmbedding:
+        """One meaning vector, under its own timeout. Epic 004.
+
+        Never retried: an embedding is cheap, and the save it belongs to is a
+        foreground action already inside an 8 second budget.
+        """
+        try:
+            async with asyncio.timeout(EMBED_TIMEOUT_SECONDS):
+                vector = await self._embeddings.aembed_query(
+                    text, output_dimensionality=EMBEDDING_DIMENSIONS
+                )
+        except TimeoutError as error:
+            raise ProviderTimeoutError(EMBED_TIMEOUT_SECONDS) from error
+        except ModelRateLimitError as error:
+            raise SharedQuotaExhaustedError() from error
+        except ModelTimeoutError as error:
+            raise ProviderTimeoutError(EMBED_TIMEOUT_SECONDS) from error
+        except (ModelAuthenticationError, ModelPermissionDeniedError) as error:
+            logger.error("gateway.credential_rejected", reason=type(error).__name__)
+            raise ProviderUnavailableError() from error
+        except (ModelConnectionError, ModelAPIError) as error:
+            raise ProviderUnavailableError() from error
+        except Exception as error:
+            # Broad on purpose: the embeddings binding raises its own
+            # GoogleGenerativeAIError for API failures, which LangChain's typed
+            # hierarchy above does not cover. Every failure here must still
+            # become one of the gateway's typed errors, never an unhandled one.
+            logger.exception("gateway.embed_failed", reason=type(error).__name__)
+            raise ProviderUnavailableError() from error
+
+        if len(vector) != EMBEDDING_DIMENSIONS:
+            raise ProviderUnavailableError(
+                f"Embedding had {len(vector)} dimensions, not {EMBEDDING_DIMENSIONS}"
+            )
+        return ProviderEmbedding(
+            vector=tuple(float(component) for component in vector),
+            model=self._embedding_model_name,
+        )
 
     async def generate(self, request: ExtractionRequest) -> ProviderResult:
         """Call the model under a timeout, retrying only a failed connection."""

@@ -25,6 +25,7 @@ from app.domains.reminders.public import ReminderDTO
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_extraction_port import FakeExtractionPort
+from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
 from tests.fakes.fake_reminder_port import FakeReminderPort, fake_reminder_capture
 from tests.fakes.fake_task_port import FakeTaskPort
@@ -51,6 +52,7 @@ def _submit(
     pending = FakePendingCaptureRepository()
     turns = FakeCaptureTurnRepository()
     interactor = SubmitCaptureInteractor(
+        memory_port=FakeMemoryPort(),
         pending_capture_repository=pending,
         capture_turn_repository=turns,
         task_port=FakeTaskPort(),
@@ -120,6 +122,7 @@ async def test_answering_when_creates_the_reminder() -> None:
     )
     assert isinstance(question, PendingCaptureDTO)
     answer = AnswerPendingCaptureInteractor(
+        memory_port=FakeMemoryPort(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=turns,
         task_port=FakeTaskPort(),

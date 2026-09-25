@@ -35,7 +35,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = MalformedResult | MemoriesListed | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -45,6 +45,7 @@ export type CaptureTurn = {
   inputText: Scalars['String']['output'];
   outcome: CaptureTurnOutcome;
   questionText?: Maybe<Scalars['String']['output']>;
+  resultingMemoryId?: Maybe<Scalars['ID']['output']>;
   resultingPendingCaptureId?: Maybe<Scalars['ID']['output']>;
   resultingReminderId?: Maybe<Scalars['ID']['output']>;
   resultingTaskId?: Maybe<Scalars['ID']['output']>;
@@ -52,6 +53,8 @@ export type CaptureTurn = {
 
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'MEMORY_LISTED'
+  | 'MEMORY_SAVED'
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'REMINDER_CREATED'
@@ -61,6 +64,11 @@ export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
 
 export type InvalidCredentials = {
   __typename?: 'InvalidCredentials';
+  message: Scalars['String']['output'];
+};
+
+export type InvalidMemory = {
+  __typename?: 'InvalidMemory';
   message: Scalars['String']['output'];
 };
 
@@ -102,6 +110,55 @@ export type Me = {
   username?: Maybe<Scalars['String']['output']>;
 };
 
+export type MemoriesFilterInput = {
+  category?: InputMaybe<MemoryCategory>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  uncategorised?: Scalars['Boolean']['input'];
+};
+
+export type MemoriesListed = {
+  __typename?: 'MemoriesListed';
+  memories: Array<Memory>;
+  searchText?: Maybe<Scalars['String']['output']>;
+};
+
+export type Memory = {
+  __typename?: 'Memory';
+  category?: Maybe<MemoryCategory>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  origin: Scalars['String']['output'];
+  originalInput?: Maybe<Scalars['String']['output']>;
+  text: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type MemoryCategory =
+  | 'LIFE'
+  | 'PEOPLE'
+  | 'PERSONAL'
+  | 'PROFESSIONAL';
+
+export type MemoryNotFound = {
+  __typename?: 'MemoryNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type MemoryResult = Memory | MemoryNotFound;
+
+export type MemorySaved = {
+  __typename?: 'MemorySaved';
+  memory: Memory;
+  secretCaution?: Maybe<SecretKind>;
+};
+
+export type MemoryTooLong = {
+  __typename?: 'MemoryTooLong';
+  length: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   answerPendingCapture: CaptureResult;
@@ -116,6 +173,7 @@ export type Mutation = {
   signIn: SignInResult;
   snoozeReminder: ReminderActionResult;
   submitCapture: CaptureResult;
+  updateMemory: UpdateMemoryResult;
   updateReminder: UpdateReminderResult;
   updateReminderSettings: UpdateReminderSettingsResult;
   updateTask: UpdateTaskResult;
@@ -172,6 +230,12 @@ export type MutationSnoozeReminderArgs = {
 
 export type MutationSubmitCaptureArgs = {
   rawInput: Scalars['String']['input'];
+};
+
+
+export type MutationUpdateMemoryArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateMemoryInput;
 };
 
 
@@ -268,6 +332,8 @@ export type Query = {
   apiVersion: Scalars['String']['output'];
   captureHistory: CaptureHistoryPage;
   me: Me;
+  memories: Array<Memory>;
+  memory: MemoryResult;
   notifications: NotificationPage;
   record: RecordResult;
   records: Array<RecordItem>;
@@ -282,6 +348,16 @@ export type Query = {
 export type QueryCaptureHistoryArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryMemoriesArgs = {
+  filter?: InputMaybe<MemoriesFilterInput>;
+};
+
+
+export type QueryMemoryArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -314,7 +390,7 @@ export type QuerySettingsArgs = {
   detectedTimezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type RecordItem = Reminder | Task;
+export type RecordItem = Memory | Reminder | Task;
 
 export type RecordNotFound = {
   __typename?: 'RecordNotFound';
@@ -426,6 +502,12 @@ export type RemindersListed = {
   reminders: Array<Reminder>;
 };
 
+export type SecretKind =
+  | 'CARD'
+  | 'CREDENTIAL'
+  | 'ID_NUMBER'
+  | 'TAX_ID';
+
 export type Settings = {
   __typename?: 'Settings';
   defaultReminderTime: Scalars['String']['output'];
@@ -500,6 +582,13 @@ export type UnrecognisedCommand = {
   attemptedName: Scalars['String']['output'];
   closestMatches: Array<Scalars['String']['output']>;
 };
+
+export type UpdateMemoryInput = {
+  category?: InputMaybe<MemoryCategory>;
+  text: Scalars['String']['input'];
+};
+
+export type UpdateMemoryResult = InvalidMemory | Memory | MemoryNotFound | MemoryTooLong;
 
 export type UpdateReminderInput = {
   description: Scalars['String']['input'];

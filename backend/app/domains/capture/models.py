@@ -8,13 +8,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-MISSING_FIELDS = ("title", "due_at", "remind_at")
+MISSING_FIELDS = ("title", "due_at", "remind_at", "fact")
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
     "question_asked",
     "discarded",
     "refused",
     "reminder_created",
+    "memory_saved",
+    "memory_listed",
 )
 
 
@@ -52,6 +54,8 @@ class CaptureTurn(Base):
     resulting_pending_capture_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 003, migration 0018. No foreign key, as for resulting_task_id.
     resulting_reminder_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 004, migration 0025. No foreign key, as for resulting_task_id.
+    resulting_memory_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     question_text: Mapped[str | None] = mapped_column(Text)
     answer_text: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

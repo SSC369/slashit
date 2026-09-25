@@ -1,16 +1,19 @@
 import { makeAutoObservable } from "mobx";
 
 import type { RecordItem } from "../api/queries/GetRecords/responseHandler";
+import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
+import type { MemoriesStoreModel } from "./MemoriesStore";
 import type { RemindersStoreModel } from "./RemindersStore";
 
-export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS";
+export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS" | "MEMORIES";
 export type RecordsSortField = "CREATED_AT" | "DUE_AT";
 
 export type RecordRow =
   | { kind: "TASK"; task: TaskFieldsFragment }
-  | { kind: "REMINDER"; reminder: ReminderFieldsFragment };
+  | { kind: "REMINDER"; reminder: ReminderFieldsFragment }
+  | { kind: "MEMORY"; memory: MemoryFieldsFragment };
 
 interface RecordRef {
   kind: RecordRow["kind"];
@@ -18,7 +21,7 @@ interface RecordRef {
 }
 
 export class RecordsStoreModel {
-  /** Tasks by id. Reminders live in the reminders store, never here. */
+  /** Tasks by id. Reminders and memories live in their own stores, never here. */
   records: Map<string, TaskFieldsFragment> = new Map();
   order: RecordRef[] = [];
   kindFilter: RecordsKindFilter = "ALL";
@@ -26,12 +29,14 @@ export class RecordsStoreModel {
   sortField: RecordsSortField = "CREATED_AT";
 
   private readonly remindersStore: RemindersStoreModel;
+  private readonly memoriesStore: MemoriesStoreModel;
 
-  constructor(remindersStore: RemindersStoreModel) {
+  constructor(remindersStore: RemindersStoreModel, memoriesStore: MemoriesStoreModel) {
     this.remindersStore = remindersStore;
-    makeAutoObservable<RecordsStoreModel, "remindersStore">(
+    this.memoriesStore = memoriesStore;
+    makeAutoObservable<RecordsStoreModel, "remindersStore" | "memoriesStore">(
       this,
-      { remindersStore: false },
+      { remindersStore: false, memoriesStore: false },
       { autoBind: true },
     );
   }
@@ -45,6 +50,9 @@ export class RecordsStoreModel {
       if (ref.kind === "TASK") {
         const task = this.records.get(ref.id);
         if (task !== undefined) rows.push({ kind: "TASK", task });
+      } else if (ref.kind === "MEMORY") {
+        const memory = this.memoriesStore.get(ref.id);
+        if (memory !== null) rows.push({ kind: "MEMORY", memory });
       } else {
         const reminder = this.remindersStore.get(ref.id);
         if (reminder !== null) rows.push({ kind: "REMINDER", reminder });
@@ -60,6 +68,9 @@ export class RecordsStoreModel {
       if (item.__typename === "Task") {
         this.records.set(item.id, item);
         this.order.push({ kind: "TASK", id: item.id });
+      } else if (item.__typename === "Memory") {
+        this.memoriesStore.upsert(item);
+        this.order.push({ kind: "MEMORY", id: item.id });
       } else {
         this.remindersStore.upsert(item);
         this.order.push({ kind: "REMINDER", id: item.id });
@@ -99,7 +110,10 @@ export class RecordsStoreModel {
     this.sortField = "CREATED_AT";
   }
 
-  static create(remindersStore: RemindersStoreModel): RecordsStoreModel {
-    return new RecordsStoreModel(remindersStore);
+  static create(
+    remindersStore: RemindersStoreModel,
+    memoriesStore: MemoriesStoreModel,
+  ): RecordsStoreModel {
+    return new RecordsStoreModel(remindersStore, memoriesStore);
   }
 }

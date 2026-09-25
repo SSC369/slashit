@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 
+import CategoryTag from "../../../components/CategoryTag";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import type { RecordRow } from "../../../stores/RecordsStore";
 import { cn } from "../../../utils/cn";
@@ -59,6 +60,7 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
   }
 
   const hasReminders = records.some((row) => row.kind === "REMINDER");
+  const hasMemories = records.some((row) => row.kind === "MEMORY");
 
   return (
     <div className={Styles.cardStyles}>
@@ -78,13 +80,15 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
           </tr>
         </thead>
         <tbody>
-          {records.map((row) =>
-            row.kind === "TASK" ? (
-              <TaskRow key={row.task.id} row={row} onOpenRecord={onOpenRecord} />
-            ) : (
-              <ReminderRow key={row.reminder.id} row={row} onOpenRecord={onOpenRecord} />
-            ),
-          )}
+          {records.map((row) => {
+            if (row.kind === "TASK") {
+              return <TaskRow key={row.task.id} row={row} onOpenRecord={onOpenRecord} />;
+            }
+            if (row.kind === "MEMORY") {
+              return <MemoryRow key={row.memory.id} row={row} onOpenRecord={onOpenRecord} />;
+            }
+            return <ReminderRow key={row.reminder.id} row={row} onOpenRecord={onOpenRecord} />;
+          })}
         </tbody>
       </table>
       <div className={Styles.cardFootStyles}>
@@ -92,9 +96,11 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
           {records.length} {records.length === 1 ? "record" : "records"}
         </span>
         <span>
-          {hasReminders
-            ? "Reminders carry a round marker, tasks a square one"
-            : "Every record here was created by a command"}
+          {hasMemories
+            ? "A memory shows its category where a task shows its status"
+            : hasReminders
+              ? "Reminders carry a round marker, tasks a square one"
+              : "Every record here was created by a command"}
         </span>
       </div>
     </div>
@@ -157,6 +163,33 @@ const ReminderRow = (props: ReminderRowProps): ReactElement => {
       <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{reminder.whenText}</td>
       <td className={Styles.tdStyles}>
         <ReminderStatusPill reminder={reminder} />
+      </td>
+    </tr>
+  );
+};
+
+interface MemoryRowProps {
+  row: Extract<RecordRow, { kind: "MEMORY" }>;
+  onOpenRecord: (row: RecordRow) => void;
+}
+
+/** 004 `RecordsAll`: a memory beside tasks and reminders. It has no date or
+ * status, so it shows when it was saved and its category (FR-15). */
+const MemoryRow = (props: MemoryRowProps): ReactElement => {
+  const { row, onOpenRecord } = props;
+  const { memory } = row;
+  return (
+    <tr className={Styles.rowStyles} onClick={() => onOpenRecord(row)}>
+      <td className={Styles.tdStyles}>
+        <span className={Styles.typeTagStyles}>
+          <span className={Styles.typeDotMemoryStyles} />
+          Memory
+        </span>
+      </td>
+      <td className={cn(Styles.tdStyles, Styles.titleCellStyles)}>{memory.text}</td>
+      <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{formatShortDate(memory.createdAt)}</td>
+      <td className={Styles.tdStyles}>
+        <CategoryTag category={memory.category} />
       </td>
     </tr>
   );

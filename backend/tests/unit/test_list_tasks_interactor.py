@@ -9,6 +9,7 @@ from datetime import UTC, datetime, timedelta
 from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interfaces.dtos import TaskDTO
+from tests.fakes.fake_memory_port import FakeMemoryRecordsPort
 from tests.fakes.fake_reminder_records_port import FakeReminderRecordsPort
 from tests.fakes.fake_task_repository import FakeTaskRepository
 
@@ -37,7 +38,9 @@ async def test_kind_filter_tasks_returns_every_row() -> None:
     user_id = uuid.uuid4()
     repository = await _seeded_repository(user_id=user_id)
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(
@@ -58,7 +61,9 @@ async def test_search_matches_title_case_insensitively() -> None:
     user_id = uuid.uuid4()
     repository = await _seeded_repository(user_id=user_id)
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(
@@ -96,7 +101,9 @@ async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
         original_input=None,
     )
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(

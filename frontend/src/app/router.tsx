@@ -6,6 +6,7 @@ import SignInController from "../features/auth/controllers/SignInController/Sign
 import SignUpController from "../features/auth/controllers/SignUpController/SignUpController";
 import VerifyEmailController from "../features/auth/controllers/VerifyEmailController/VerifyEmailController";
 import CommandCenterController from "../features/capture/controllers/CommandCenterController/CommandCenterController";
+import MemoryDetailController from "../features/records/controllers/MemoryDetailController/MemoryDetailController";
 import RecordDetailController from "../features/records/controllers/RecordDetailController/RecordDetailController";
 import ReminderDetailController from "../features/records/controllers/ReminderDetailController/ReminderDetailController";
 import RecordsController from "../features/records/controllers/RecordsController/RecordsController";
@@ -30,6 +31,8 @@ export const router = createBrowserRouter([
           { path: "/records/:id", element: <RecordDetailController /> },
           { path: "/records/reminders/:id", element: <ReminderDetailController mode="VIEW" /> },
           { path: "/records/reminders/:id/edit", element: <ReminderDetailController mode="EDIT" /> },
+          { path: "/records/memories/:id", element: <MemoryDetailController mode="VIEW" /> },
+          { path: "/records/memories/:id/edit", element: <MemoryDetailController mode="EDIT" /> },
           { path: "/settings", element: <SettingsController /> },
         ],
       },

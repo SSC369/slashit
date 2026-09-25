@@ -25,6 +25,7 @@ from app.domains.capture.adapters.gateway_extraction_adapter import (
 from app.domains.capture.adapters.identity_clock_adapter import (
     IdentityLocalClockAdapter,
 )
+from app.domains.capture.adapters.memories_adapter import MemoriesAdapter
 from app.domains.capture.adapters.records_task_adapter import RecordsTaskAdapter
 from app.domains.capture.adapters.reminders_adapter import RemindersAdapter
 from app.domains.capture.interactors.answer_pending_capture import (
@@ -44,6 +45,7 @@ from app.domains.capture.repositories.pending_capture_repository import (
     SqlPendingCaptureRepository,
 )
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
+from app.domains.gateway.interactors.embed import EmbedInteractor
 from app.domains.gateway.interactors.extract import ExtractInteractor
 from app.domains.gateway.repositories.usage_repository import SqlUsageRepository
 from app.domains.gateway.services.allowance_service import AllowanceService
@@ -71,6 +73,15 @@ from app.domains.identity.services.supabase_auth_service import SupabaseAuthServ
 from app.domains.identity.services.timezone_change_queue import (
     ProcrastinateTimezoneChangeQueue,
 )
+from app.domains.memories.adapters.analytics_adapter import MemoryAnalyticsAdapter
+from app.domains.memories.adapters.gateway_adapter import GatewayMemoryModelAdapter
+from app.domains.memories.interactors.get_memory import GetMemoryInteractor
+from app.domains.memories.interactors.list_memories import ListMemoriesInteractor
+from app.domains.memories.interactors.reembed_memory import ReembedMemoryInteractor
+from app.domains.memories.interactors.update_memory import UpdateMemoryInteractor
+from app.domains.memories.repositories.memory_repository import SqlMemoryRepository
+from app.domains.memories.services.memory_service import MemoryService
+from app.domains.memories.services.reembed_queue import ProcrastinateReembedQueue
 from app.domains.notifications.adapters.identity_settings_adapter import (
     IdentityDeliverySettingsAdapter,
     IdentityRecipientAdapter,
@@ -102,6 +113,7 @@ from app.domains.notifications.services.resend_sender import ResendEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
+from app.domains.records.adapters.memories_adapter import MemoryRecordsAdapter
 from app.domains.records.adapters.reminders_adapter import ReminderRecordsAdapter
 from app.domains.records.interactors.delete_tasks import DeleteTasksInteractor
 from app.domains.records.interactors.get_record_detail import GetRecordDetailInteractor
@@ -200,12 +212,29 @@ def build_extract_interactor(
     """
     usage_repository = SqlUsageRepository(session_factory)
     return ExtractInteractor(
-        provider=LangChainGeminiProvider(
-            api_key=settings.gemini_api_key, model=settings.gemini_model
-        ),
+        provider=_build_model_provider(settings=settings),
         usage_repository=usage_repository,
         allowance_service=AllowanceService(usage_repository),
         settings=settings,
+    )
+
+
+def build_embed_interactor(
+    *, session_factory: async_sessionmaker[AsyncSession], settings: Settings
+) -> EmbedInteractor:
+    """Wire the gateway's embed use case. Epic 004. No allowance service: T9."""
+    return EmbedInteractor(
+        provider=_build_model_provider(settings=settings),
+        usage_repository=SqlUsageRepository(session_factory),
+        settings=settings,
+    )
+
+
+def _build_model_provider(*, settings: Settings) -> LangChainGeminiProvider:
+    return LangChainGeminiProvider(
+        api_key=settings.gemini_api_key,
+        model=settings.gemini_model,
+        embedding_model=settings.gemini_embedding_model,
     )
 
 
@@ -297,6 +326,7 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
             reminder_service=build_reminder_service(context)
         ),
         reminder_capture=_build_reminder_capture(context=context),
+        memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
     )
 
 
@@ -309,6 +339,7 @@ def build_answer_pending_capture_interactor(
         task_port=_build_task_port(context=context),
         extraction=_build_extraction_port(context=context),
         reminder_capture=_build_reminder_capture(context=context),
+        memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
     )
 
 
@@ -342,6 +373,9 @@ def build_list_tasks_interactor(context: Context) -> ListTasksInteractor:
         task_repository=SqlTaskRepository(context.session),
         reminder_records=ReminderRecordsAdapter(
             reminder_service=build_reminder_service(context)
+        ),
+        memory_records=MemoryRecordsAdapter(
+            memory_service=build_memory_service(context)
         ),
     )
 
@@ -592,4 +626,68 @@ def build_update_reminder_settings_interactor(
     return UpdateReminderSettingsInteractor(
         settings_repository=SqlSettingsRepository(context.session),
         now_provider=_utc_now,
+    )
+
+
+# --- Epic 004: memories ---
+
+
+def _build_memory_model_port(
+    *, session_factory: async_sessionmaker[AsyncSession]
+) -> GatewayMemoryModelAdapter:
+    settings = get_settings()
+    return GatewayMemoryModelAdapter(
+        embed_interactor=build_embed_interactor(
+            session_factory=session_factory, settings=settings
+        ),
+        extract_interactor=build_extract_interactor(
+            session_factory=session_factory, settings=settings
+        ),
+    )
+
+
+def _build_memory_analytics_port(*, session: AsyncSession) -> MemoryAnalyticsAdapter:
+    return MemoryAnalyticsAdapter(
+        record_event_interactor=RecordEventInteractor(
+            event_repository=SqlEventRepository(session)
+        )
+    )
+
+
+def build_memory_service(context: Context) -> MemoryService:
+    """Memories' published service, for capture's and records' adapters."""
+    model_port = _build_memory_model_port(session_factory=context.session_factory)
+    return MemoryService(
+        memory_repository=SqlMemoryRepository(context.session),
+        embedding=model_port,
+        judgement=model_port,
+        analytics=_build_memory_analytics_port(session=context.session),
+    )
+
+
+def build_list_memories_interactor(context: Context) -> ListMemoriesInteractor:
+    return ListMemoriesInteractor(
+        memory_repository=SqlMemoryRepository(context.session)
+    )
+
+
+def build_get_memory_interactor(context: Context) -> GetMemoryInteractor:
+    return GetMemoryInteractor(memory_repository=SqlMemoryRepository(context.session))
+
+
+def build_update_memory_interactor(context: Context) -> UpdateMemoryInteractor:
+    return UpdateMemoryInteractor(
+        memory_repository=SqlMemoryRepository(context.session),
+        reembed_queue=ProcrastinateReembedQueue(),
+        analytics=_build_memory_analytics_port(session=context.session),
+    )
+
+
+def build_reembed_memory_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> ReembedMemoryInteractor:
+    """For the `memories.reembed` job, which has no request context."""
+    return ReembedMemoryInteractor(
+        memory_repository=SqlMemoryRepository(session),
+        embedding=_build_memory_model_port(session_factory=session_factory),
     )

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import user_transaction
-from app.domains.gateway.interfaces.dtos import UsageRecord
+from app.domains.gateway.interfaces.dtos import OperationValue, UsageRecord
 from app.domains.gateway.models import AiUsage, AiUserLimit
 
 
@@ -39,11 +39,14 @@ class SqlUsageRepository:
                     total_tokens=usage.total_tokens,
                     outcome=usage.outcome,
                     latency_ms=usage.latency_ms,
+                    operation=usage.operation,
                     created_at=occurred_at,
                 )
             )
 
-    async def count_since(self, *, user_id: UUID, since: datetime) -> int:
+    async def count_since(
+        self, *, user_id: UUID, since: datetime, operation: OperationValue
+    ) -> int:
         async with (
             self.session_factory() as session,
             user_transaction(session, user_id) as scoped,
@@ -51,7 +54,11 @@ class SqlUsageRepository:
             total = await scoped.scalar(
                 select(func.count())
                 .select_from(AiUsage)
-                .where(AiUsage.user_id == user_id, AiUsage.created_at >= since)
+                .where(
+                    AiUsage.user_id == user_id,
+                    AiUsage.created_at >= since,
+                    AiUsage.operation == operation,
+                )
             )
         return int(total or 0)
 

@@ -1,0 +1,246 @@
+{
+  "_about": "Epic 004, sub-plan 4.1, T-1.11 and NFR-6. Drafted by Claude on 2026-09-25 for the user to correct. expected is one of personal, people, professional, life, or null for uncategorisable. Scored live by tests/integration/test_memory_eval_live.py; target over 85%.",
+  "status": "draft, awaiting user correction",
+  "cases": [
+    {
+      "fact": "My preferred airline is Emirates",
+      "expected": "personal"
+    },
+    {
+      "fact": "I like window seats on long flights",
+      "expected": "personal"
+    },
+    {
+      "fact": "I'm vegetarian",
+      "expected": "personal"
+    },
+    {
+      "fact": "My favourite coffee order is a flat white",
+      "expected": "personal"
+    },
+    {
+      "fact": "I want to learn to swim this year",
+      "expected": "personal"
+    },
+    {
+      "fact": "I prefer morning workouts",
+      "expected": "personal"
+    },
+    {
+      "fact": "My shoe size is 9 UK",
+      "expected": "personal"
+    },
+    {
+      "fact": "I'm allergic to penicillin",
+      "expected": "personal"
+    },
+    {
+      "fact": "I enjoy hiking on weekends",
+      "expected": "personal"
+    },
+    {
+      "fact": "I'm planning a trip to Japan in April",
+      "expected": "personal"
+    },
+    {
+      "fact": "I'd rather not take calls before 10am",
+      "expected": "personal"
+    },
+    {
+      "fact": "My favourite author is Ursula Le Guin",
+      "expected": "personal"
+    },
+    {
+      "fact": "Mom's birthday is October 12",
+      "expected": "people"
+    },
+    {
+      "fact": "Dad prefers aisle seats",
+      "expected": "people"
+    },
+    {
+      "fact": "Priya's daughter is called Anika",
+      "expected": "people"
+    },
+    {
+      "fact": "My manager is Rahul Mehta",
+      "expected": "people"
+    },
+    {
+      "fact": "Sister's anniversary is 3 June",
+      "expected": "people"
+    },
+    {
+      "fact": "Arjun is allergic to peanuts",
+      "expected": "people"
+    },
+    {
+      "fact": "My landlord's name is Mr. Iyer",
+      "expected": "people"
+    },
+    {
+      "fact": "Neha from design moved to Berlin",
+      "expected": "people"
+    },
+    {
+      "fact": "Grandma likes jasmine flowers",
+      "expected": "people"
+    },
+    {
+      "fact": "My best friend's wedding is in December",
+      "expected": "people"
+    },
+    {
+      "fact": "Karthik owes me for the concert tickets",
+      "expected": "people"
+    },
+    {
+      "fact": "My dentist is Dr. Rao",
+      "expected": "people"
+    },
+    {
+      "fact": "Career goal: become a backend engineer by 2027",
+      "expected": "professional"
+    },
+    {
+      "fact": "I'm learning Spring Boot",
+      "expected": "professional"
+    },
+    {
+      "fact": "My notice period is 60 days",
+      "expected": "professional"
+    },
+    {
+      "fact": "I'm certified in AWS Solutions Architect",
+      "expected": "professional"
+    },
+    {
+      "fact": "My performance review is every March",
+      "expected": "professional"
+    },
+    {
+      "fact": "I want to move into platform engineering",
+      "expected": "professional"
+    },
+    {
+      "fact": "My employee ID is in the HR portal",
+      "expected": "professional"
+    },
+    {
+      "fact": "I present at the team demo every other Friday",
+      "expected": "professional"
+    },
+    {
+      "fact": "My current salary band is L4",
+      "expected": "professional"
+    },
+    {
+      "fact": "I mentor two junior developers",
+      "expected": "professional"
+    },
+    {
+      "fact": "I'm aiming for a promotion next cycle",
+      "expected": "professional"
+    },
+    {
+      "fact": "My GitHub handle is devsai",
+      "expected": "professional"
+    },
+    {
+      "fact": "My passport expires in 2030",
+      "expected": "life"
+    },
+    {
+      "fact": "Netflix renews on the 3rd of each month",
+      "expected": "life"
+    },
+    {
+      "fact": "Car insurance renews every March",
+      "expected": "life"
+    },
+    {
+      "fact": "I bought the laptop in June 2025 with a two year warranty",
+      "expected": "life"
+    },
+    {
+      "fact": "The spare house key is with the neighbour",
+      "expected": "life"
+    },
+    {
+      "fact": "Electricity bill is due on the 15th",
+      "expected": "life"
+    },
+    {
+      "fact": "My blood group is O positive",
+      "expected": "life"
+    },
+    {
+      "fact": "I decided to stop using credit cards",
+      "expected": "life"
+    },
+    {
+      "fact": "Gym membership ends in November",
+      "expected": "life"
+    },
+    {
+      "fact": "My driving licence was renewed in 2024",
+      "expected": "life"
+    },
+    {
+      "fact": "The Wi-Fi router is in the study",
+      "expected": "life"
+    },
+    {
+      "fact": "Our lease ends on 31 January",
+      "expected": "life"
+    },
+    {
+      "fact": "The meeting was fine",
+      "expected": null
+    },
+    {
+      "fact": "Blue",
+      "expected": null
+    },
+    {
+      "fact": "It rained a lot today",
+      "expected": null
+    },
+    {
+      "fact": "Remember this",
+      "expected": null
+    },
+    {
+      "fact": "Something about Tuesday",
+      "expected": null
+    },
+    {
+      "fact": "42",
+      "expected": null
+    },
+    {
+      "fact": "The thing we talked about",
+      "expected": null
+    },
+    {
+      "fact": "ok",
+      "expected": null
+    },
+    {
+      "fact": "I hate queues at the bank",
+      "expected": "personal"
+    },
+    {
+      "fact": "Ravi prefers WhatsApp to email",
+      "expected": "people"
+    },
+    {
+      "fact": "I lead the payments squad",
+      "expected": "professional"
+    },
+    {
+      "fact": "Parking pass number is on the fridge",
+      "expected": "life"
+    }
+  ]
+}

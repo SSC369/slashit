@@ -1,5 +1,7 @@
 import { makeAutoObservable } from "mobx";
 
+import type { SecretKind } from "../../types.generated";
+import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
 
@@ -11,6 +13,22 @@ export type CaptureTurn =
   | { id: string; said: string; status: "reminderList"; reminders: ReminderFieldsFragment[] }
   | { id: string; said: string; status: "reminderLimit"; limit: number }
   | { id: string; said: string; status: "modelDown" }
+  | {
+      id: string;
+      said: string;
+      status: "memorySaved";
+      memory: MemoryFieldsFragment;
+      secretCaution: SecretKind | null;
+    }
+  | {
+      id: string;
+      said: string;
+      status: "memoryList";
+      memories: MemoryFieldsFragment[];
+      searchText: string | null;
+    }
+  | { id: string; said: string; status: "memoryTooLong"; length: number; limit: number }
+  | { id: string; said: string; status: "memoryModelDown" }
   | {
       id: string;
       said: string;

@@ -13,6 +13,7 @@ import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
+import MemoriesController from "../MemoriesController/MemoriesController";
 import RemindersController from "../RemindersController/RemindersController";
 import * as Styles from "./styles";
 
@@ -20,6 +21,7 @@ const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "ALL", label: "All" },
   { filter: "TASKS", label: "Tasks" },
   { filter: "REMINDERS", label: "Reminders" },
+  { filter: "MEMORIES", label: "Memories" },
 ];
 
 const RecordsController = (): ReactElement => {
@@ -40,10 +42,13 @@ const RecordsController = (): ReactElement => {
   }, []);
 
   const isRemindersTab = kindFilter === "REMINDERS";
+  const isMemoriesTab = kindFilter === "MEMORIES";
+  // Both tabs load their own queries; the records query serves All and Tasks.
+  const hasOwnQuery = isRemindersTab || isMemoriesTab;
 
   useEffect(() => {
-    // The Reminders tab loads its own grouped query.
-    if (isRemindersTab) return;
+    // The Reminders and Memories tabs load their own queries.
+    if (hasOwnQuery) return;
     const timeoutId = window.setTimeout(() => {
       triggerAPI({
         filter: {
@@ -82,6 +87,10 @@ const RecordsController = (): ReactElement => {
       navigate(`/records/reminders/${row.reminder.id}`);
       return;
     }
+    if (row.kind === "MEMORY") {
+      navigate(`/records/memories/${row.memory.id}`);
+      return;
+    }
     navigate(`/records/${row.task.id}`);
   };
 
@@ -113,23 +122,22 @@ const RecordsController = (): ReactElement => {
                   {tab.label}
                 </button>
               ))}
-              <span className={RecordsStyles.tabHintStyles}>More types arrive with later epics</span>
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
               <div className={RecordsStyles.searchBoxStyles}>
                 <input
                   className={RecordsStyles.searchInputStyles}
                   type="text"
-                  placeholder="Search records"
+                  placeholder={isMemoriesTab ? "Search memories" : "Search records"}
                   value={searchText}
                   onChange={handleSearchChange}
                 />
               </div>
             </div>
           </div>
-          {isRemindersTab ? (
-            <RemindersController />
-          ) : (
+          {isRemindersTab && <RemindersController />}
+          {isMemoriesTab && <MemoriesController />}
+          {!hasOwnQuery && (
             <RecordTable
               records={records}
               onOpenRecord={handleOpenRecord}

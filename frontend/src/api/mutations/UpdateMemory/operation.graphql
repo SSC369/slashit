@@ -1,0 +1,21 @@
+#import "../../../fragments/MemoryFields.graphql"
+
+mutation UpdateMemory($id: ID!, $input: UpdateMemoryInput!) {
+  updateMemory(id: $id, input: $input) {
+    __typename
+    ... on Memory {
+      ...MemoryFields
+    }
+    ... on MemoryTooLong {
+      message
+      length
+      limit
+    }
+    ... on InvalidMemory {
+      message
+    }
+    ... on MemoryNotFound {
+      message
+    }
+  }
+}

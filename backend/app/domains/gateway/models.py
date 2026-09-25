@@ -35,6 +35,10 @@ OUTCOMES = (
     "malformed_result",
 )
 
+# Epic 004, migration 0026. Tech stack T9: the per-user cap counts
+# generations only.
+OPERATIONS = ("generate", "embed")
+
 
 class AiUsage(Base):
     """One row per model call, counts only.
@@ -59,6 +63,10 @@ class AiUsage(Base):
         Enum(*OUTCOMES, name="ai_call_outcome", create_type=False)
     )
     latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    operation: Mapped[str] = mapped_column(
+        Enum(*OPERATIONS, name="ai_operation", create_type=False),
+        default="generate",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 

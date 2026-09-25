@@ -9,7 +9,11 @@ import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCa
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
 import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
-import { ARGUMENTLESS_COMMANDS, CAPTURE_COMMANDS } from "../../../../constants/captureCommands";
+import {
+  ARGUMENTLESS_COMMANDS,
+  CAPTURE_COMMANDS,
+  MEMORY_SAVE_COMMANDS,
+} from "../../../../constants/captureCommands";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
 import { whenTextInSentence } from "../../../../utils/formatReminder";
@@ -23,6 +27,9 @@ import * as StreamStyles from "../../components/styles";
 import * as Styles from "./styles";
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
+
+const isMemorySave = (said: string): boolean =>
+  MEMORY_SAVE_COMMANDS.some((command) => said === command || said.startsWith(`${command} `));
 
 interface CaptureResultTarget {
   store: RootStore;
@@ -39,6 +46,12 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
   // RemindModelDown: a /remind the model could not read keeps its own copy.
   // Every other command keeps 001's refusal card, unchanged.
   const refuseUnreadable = (message: string): void => {
+    // Epic 004 FR-9: a memory save refused on the model keeps its own copy.
+    if (isMemorySave(said)) {
+      captureStore.resolveTurn(turnId, { status: "memoryModelDown" });
+      restoreInput(said);
+      return;
+    }
     if (said.startsWith("/remind")) {
       captureStore.resolveTurn(turnId, { status: "modelDown" });
       restoreInput(said);
@@ -63,6 +76,16 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "reminderList", reminders }),
     onReminderLimitReached: ({ limit }) => {
       captureStore.resolveTurn(turnId, { status: "reminderLimit", limit });
+      restoreInput(said);
+    },
+    onMemorySaved: ({ memory, secretCaution }) => {
+      captureStore.resolveTurn(turnId, { status: "memorySaved", memory, secretCaution });
+      store.memories.upsert(memory);
+    },
+    onMemoriesListed: ({ memories, searchText }) =>
+      captureStore.resolveTurn(turnId, { status: "memoryList", memories, searchText }),
+    onMemoryTooLong: ({ length, limit }) => {
+      captureStore.resolveTurn(turnId, { status: "memoryTooLong", length, limit });
       restoreInput(said);
     },
     onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
@@ -233,6 +256,19 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
+  const handleOpenMemory = (id: string): void => {
+    navigate(`/records/memories/${id}`);
+  };
+
+  const handleEditMemory = (id: string): void => {
+    navigate(`/records/memories/${id}/edit`);
+  };
+
+  const handleOpenMemories = (): void => {
+    store.records.setKindFilter("MEMORIES");
+    navigate("/records");
+  };
+
   const turns = store.capture.getAll();
   const showEmpty = turns.length === 0 && !input;
   const streamRef = useRef<HTMLDivElement>(null);
@@ -280,6 +316,9 @@ const CommandCenterController = (): ReactElement => {
                 onEditReminder={handleEditReminder}
                 onOpenReminder={handleOpenReminder}
                 onOpenReminders={handleOpenReminders}
+                onEditMemory={handleEditMemory}
+                onOpenMemory={handleOpenMemory}
+                onOpenMemories={handleOpenMemories}
               />
             ))}
           </div>

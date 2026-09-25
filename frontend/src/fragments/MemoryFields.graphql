@@ -1,0 +1,9 @@
+fragment MemoryFields on Memory {
+  id
+  text
+  category
+  origin
+  originalInput
+  createdAt
+  updatedAt
+}

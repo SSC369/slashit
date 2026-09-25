@@ -39,6 +39,7 @@ def _turn_to_dto(*, turn: CaptureTurn) -> CaptureTurnDTO:
         answer_text=turn.answer_text,
         created_at=turn.created_at,
         resulting_reminder_id=turn.resulting_reminder_id,
+        resulting_memory_id=turn.resulting_memory_id,
     )
 
 
@@ -59,6 +60,7 @@ class SqlCaptureTurnRepository:
         question_text: str | None,
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
+        resulting_memory_id: uuid.UUID | None = None,
     ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
             scoped.add(
@@ -70,6 +72,7 @@ class SqlCaptureTurnRepository:
                     resulting_task_id=resulting_task_id,
                     resulting_pending_capture_id=resulting_pending_capture_id,
                     resulting_reminder_id=resulting_reminder_id,
+                    resulting_memory_id=resulting_memory_id,
                     question_text=question_text,
                     answer_text=answer_text,
                     created_at=datetime.now(UTC),

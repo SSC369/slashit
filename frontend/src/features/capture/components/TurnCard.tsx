@@ -5,6 +5,12 @@ import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
+import {
+  MemoryListCard,
+  MemoryModelDownNote,
+  MemorySavedCard,
+  MemoryTooLongNote,
+} from "./MemoryCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import * as Styles from "./styles";
 
@@ -20,6 +26,9 @@ interface TurnCardProps {
   onEditReminder: (id: string) => void;
   onOpenReminder: (id: string) => void;
   onOpenReminders: () => void;
+  onEditMemory: (id: string) => void;
+  onOpenMemory: (id: string) => void;
+  onOpenMemories: () => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
@@ -57,6 +66,9 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onEditReminder,
     onOpenReminder,
     onOpenReminders,
+    onEditMemory,
+    onOpenMemory,
+    onOpenMemories,
   } = props;
   const isRemind = isRemindCommand(turn.said);
 
@@ -168,6 +180,32 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
           </div>
         </div>
       );
+
+    case "memorySaved":
+      return (
+        <MemorySavedCard
+          memory={turn.memory}
+          secretCaution={turn.secretCaution}
+          onEditMemory={onEditMemory}
+          onOpenMemory={onOpenMemory}
+        />
+      );
+
+    case "memoryList":
+      return (
+        <MemoryListCard
+          memories={turn.memories}
+          searchText={turn.searchText}
+          onOpenMemory={onOpenMemory}
+          onOpenMemories={onOpenMemories}
+        />
+      );
+
+    case "memoryTooLong":
+      return <MemoryTooLongNote length={turn.length} limit={turn.limit} />;
+
+    case "memoryModelDown":
+      return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;
 
     case "modelDown":
       return (

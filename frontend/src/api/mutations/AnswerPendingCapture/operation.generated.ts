@@ -7,6 +7,13 @@ import * as Types from '../../../../types.generated';
 import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
+import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+export type MemoryCategory =
+  | 'LIFE'
+  | 'PEOPLE'
+  | 'PERSONAL'
+  | 'PROFESSIONAL';
+
 export type ReminderAction =
   | 'DONE'
   | 'MISSED'
@@ -24,6 +31,12 @@ export type ReminderState =
   | 'FIRED'
   | 'UPCOMING';
 
+export type SecretKind =
+  | 'CARD'
+  | 'CREDENTIAL'
+  | 'ID_NUMBER'
+  | 'TAX_ID';
+
 export type AnswerPendingCaptureMutationVariables = Exact<{
   pendingCaptureId: string | number;
   answer: string;
@@ -32,6 +45,9 @@ export type AnswerPendingCaptureMutationVariables = Exact<{
 
 export type AnswerPendingCaptureMutation = { answerPendingCapture:
     | { __typename: 'MalformedResult', message: string, reason: string }
+    | { __typename: 'MemoriesListed', searchText: string | null, memories: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
+    | { __typename: 'MemorySaved', secretCaution: Types.SecretKind | null, memory: { id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string } }
+    | { __typename: 'MemoryTooLong', message: string, length: number, limit: number }
     | { __typename: 'NonCommandGuidance', originalInput: string }
     | { __typename: 'PendingQuestionCreated', pendingCaptureId: string, question: string }
     | { __typename: 'ProviderTimeout', message: string, budgetSeconds: number }
@@ -75,6 +91,23 @@ export const AnswerPendingCaptureDocument = gql`
       message
       limit
     }
+    ... on MemorySaved {
+      memory {
+        ...MemoryFields
+      }
+      secretCaution
+    }
+    ... on MemoriesListed {
+      memories {
+        ...MemoryFields
+      }
+      searchText
+    }
+    ... on MemoryTooLong {
+      message
+      length
+      limit
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question
@@ -108,4 +141,5 @@ export const AnswerPendingCaptureDocument = gql`
   }
 }
     ${TaskFieldsFragmentDoc}
-${ReminderFieldsFragmentDoc}`;
+${ReminderFieldsFragmentDoc}
+${MemoryFieldsFragmentDoc}`;

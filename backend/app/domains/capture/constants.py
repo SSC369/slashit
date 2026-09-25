@@ -24,7 +24,24 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     "/tasks",
     "/remind",
     "/reminders",
+    # Epic 004. `/memory` is deliberately absent (PRD, out of scope): it falls
+    # to FR-12's closest-match suggestion, which offers `/memories`.
+    "/remember",
+    "/add-memory",
+    "/memories",
 )
+
+# Epic 004, FR-1: two names for one action.
+MEMORY_SAVE_COMMANDS: Final[tuple[str, ...]] = ("/remember", "/add-memory")
+
+# Epic 004, AD-7. A fact's 500-character limit (FR-4) is checked by memories on
+# the fact itself, and answered with a drawn state, so a memory command's whole
+# line may run past MAX_INPUT_LENGTH. This outer guard still protects the
+# gateway from an unbounded line.
+MAX_MEMORY_LINE_LENGTH: Final = 1000
+
+# FR-3. The one question an empty `/remember` asks.
+FACT_QUESTION: Final = "What should Slashit remember?"
 
 TASK_EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
     "type": "object",

@@ -7,6 +7,13 @@ import * as Types from '../../../../types.generated';
 import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
+import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+export type MemoryCategory =
+  | 'LIFE'
+  | 'PEOPLE'
+  | 'PERSONAL'
+  | 'PROFESSIONAL';
+
 export type RecordsFilterInput = {
   kind?: string | null | undefined;
   search?: string | null | undefined;
@@ -41,6 +48,7 @@ export type GetRecordsQueryVariables = Exact<{
 
 
 export type GetRecordsQuery = { records: Array<
+    | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
     | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
     | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
   > };
@@ -56,7 +64,11 @@ export const GetRecordsDocument = gql`
     ... on Reminder {
       ...ReminderFields
     }
+    ... on Memory {
+      ...MemoryFields
+    }
   }
 }
     ${TaskFieldsFragmentDoc}
-${ReminderFieldsFragmentDoc}`;
+${ReminderFieldsFragmentDoc}
+${MemoryFieldsFragmentDoc}`;

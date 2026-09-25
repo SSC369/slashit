@@ -23,6 +23,9 @@ const baseProps = {
   onEditReminder: vi.fn(),
   onOpenReminder: vi.fn(),
   onOpenReminders: vi.fn(),
+  onEditMemory: vi.fn(),
+  onOpenMemory: vi.fn(),
+  onOpenMemories: vi.fn(),
 };
 
 describe("TurnCard", () => {

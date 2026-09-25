@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.domains.reminders.public import ReminderDTO
 
-MissingField = Literal["title", "due_at", "remind_at"]
+MissingField = Literal["title", "due_at", "remind_at", "fact"]
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,14 @@ class UnrecognisedCommandDTO:
 
 
 CaptureTurnOutcome = Literal[
-    "task_created", "question_asked", "discarded", "refused", "reminder_created"
+    "task_created",
+    "question_asked",
+    "discarded",
+    "refused",
+    "reminder_created",
+    # Epic 004, migration 0025.
+    "memory_saved",
+    "memory_listed",
 ]
 
 
@@ -55,6 +62,8 @@ class CaptureTurnDTO:
     created_at: datetime
     # Epic 003. Last, with a default, so existing constructions stay valid.
     resulting_reminder_id: UUID | None = None
+    # Epic 004. Slice 3's forget scrubs the turns that point at a memory.
+    resulting_memory_id: UUID | None = None
 
 
 @dataclass(frozen=True)

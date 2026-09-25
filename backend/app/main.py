@@ -29,6 +29,7 @@ from app.core.settings import Settings, get_settings
 # `@procrastinate_app.task`/`@procrastinate_app.periodic` registers it on
 # `procrastinate_app`. Nothing in this module calls the name directly.
 from app.domains.identity import jobs as identity_jobs  # noqa: F401
+from app.domains.memories import jobs as memories_jobs  # noqa: F401
 from app.domains.notifications import jobs as notifications_jobs  # noqa: F401
 from app.domains.notifications.services.live_signal import live_signal
 from app.domains.reminders import jobs as reminders_jobs  # noqa: F401

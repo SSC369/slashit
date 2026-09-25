@@ -19,8 +19,11 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    FACT_QUESTION,
     KNOWN_COMMANDS,
     MAX_INPUT_LENGTH,
+    MAX_MEMORY_LINE_LENGTH,
+    MEMORY_SAVE_COMMANDS,
     TASK_EXTRACTION_INSTRUCTION,
     TASK_EXTRACTION_SCHEMA,
 )
@@ -35,6 +38,7 @@ from app.domains.capture.interfaces.dtos import (
 from app.domains.capture.interfaces.ports import (
     AnalyticsPort,
     ExtractionPort,
+    MemoryPort,
     ReminderPort,
     TaskPort,
 )
@@ -55,6 +59,11 @@ from app.domains.gateway.public import (
     SharedQuotaExhausted,
     UserLimitReached,
 )
+from app.domains.memories.public import (
+    MemoryListDTO,
+    MemorySavedDTO,
+    MemoryTooLongDTO,
+)
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import (
     ReminderDTO,
@@ -70,6 +79,9 @@ CaptureOutcome = (
     | ReminderDTO
     | ReminderListDTO
     | ReminderLimitReached
+    | MemorySavedDTO
+    | MemoryListDTO
+    | MemoryTooLongDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -92,6 +104,7 @@ class SubmitCaptureInteractor:
         analytics: AnalyticsPort,
         reminder_port: ReminderPort,
         reminder_capture: ReminderCaptureService,
+        memory_port: MemoryPort,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -100,15 +113,18 @@ class SubmitCaptureInteractor:
         self.analytics = analytics
         self.reminder_port = reminder_port
         self.reminder_capture = reminder_capture
+        self.memory_port = memory_port
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
 
         Raises:
-            ValueError: the input is empty or over the 500-character cap.
-                Not a ``CaptureOutcome`` member: a client bug, not an outcome.
+            ValueError: the input is empty or over its cap: 500 characters,
+                or, for a memory save, the outer guard of 1,000 (AD-7). Not a
+                ``CaptureOutcome`` member: a client bug, not an outcome.
         """
         text = self._validate_and_normalise(raw_input=raw_input)
+        self._validate_line_length(text=text)
 
         if not text.startswith("/"):
             await self._record_no_command_input(user_id=user_id)
@@ -137,6 +153,19 @@ class SubmitCaptureInteractor:
                 user_id=user_id, argument_text=argument_text, original_input=text
             )
 
+        if command_name == "/memories":
+            return await self._list_memories(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name in MEMORY_SAVE_COMMANDS:
+            return await self._submit_memory(
+                user_id=user_id,
+                command_name=command_name,
+                argument_text=argument_text,
+                original_input=text,
+            )
+
         return await self._submit_add_task(
             user_id=user_id, argument_text=argument_text, original_input=text
         )
@@ -145,9 +174,21 @@ class SubmitCaptureInteractor:
         text = raw_input.strip()
         if not text:
             raise ValueError("capture input is empty")
+        if len(text) > MAX_MEMORY_LINE_LENGTH:
+            raise ValueError(
+                f"capture input exceeds {MAX_MEMORY_LINE_LENGTH} characters"
+            )
+        return text
+
+    def _validate_line_length(self, *, text: str) -> None:
+        """AD-7: a memory save's fact is measured by memories, which answers
+        an over-long fact with a drawn state (FR-4). Every other line keeps
+        001's 500-character cap."""
+        command_name, _ = self._split_command(text=text)
+        if command_name in MEMORY_SAVE_COMMANDS:
+            return
         if len(text) > MAX_INPUT_LENGTH:
             raise ValueError(f"capture input exceeds {MAX_INPUT_LENGTH} characters")
-        return text
 
     def _split_command(self, *, text: str) -> tuple[str, str]:
         command_name, _, argument_text = text.partition(" ")
@@ -260,6 +301,56 @@ class SubmitCaptureInteractor:
         )
         return outcome
 
+    async def _submit_memory(
+        self,
+        *,
+        user_id: UUID,
+        command_name: str,
+        argument_text: str,
+        original_input: str,
+    ) -> CaptureOutcome:
+        """Epic 004, FR-1 to FR-9. An empty fact asks one question (FR-3);
+        anything else goes to memories, which owns every rule about facts."""
+        if not argument_text:
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name=command_name,
+                known_title=None,
+                missing_field="fact",
+                question_text=FACT_QUESTION,
+                original_input=original_input,
+            )
+        outcome = await self.memory_port.save_memory(
+            user_id=user_id, text=argument_text, original_input=original_input
+        )
+        if isinstance(outcome, MemorySavedDTO):
+            await self._record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="memory_saved",
+                resulting_memory_id=outcome.memory.id,
+            )
+            return outcome
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="refused"
+        )
+        return outcome
+
+    async def _list_memories(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> MemoryListDTO:
+        """Epic 004, FR-19 and FR-20: every memory, or those matching words."""
+        if argument_text:
+            memory_list = await self.memory_port.look_up_memories(
+                user_id=user_id, text=argument_text
+            )
+        else:
+            memory_list = await self.memory_port.list_memories(user_id=user_id)
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="memory_listed"
+        )
+        return memory_list
+
     def _parse_due_at(self, *, raw_due_at: object) -> datetime | None:
         if not isinstance(raw_due_at, str) or not raw_due_at:
             return None
@@ -314,6 +405,7 @@ class SubmitCaptureInteractor:
         resulting_pending_capture_id: UUID | None = None,
         question_text: str | None = None,
         resulting_reminder_id: UUID | None = None,
+        resulting_memory_id: UUID | None = None,
     ) -> None:
         """FR-44. A capture-turn write failure never undoes an otherwise
         successful capture: NFR-9's "no capture is lost" binds the task or
@@ -328,6 +420,7 @@ class SubmitCaptureInteractor:
                 question_text=question_text,
                 answer_text=None,
                 resulting_reminder_id=resulting_reminder_id,
+                resulting_memory_id=resulting_memory_id,
             )
         except Exception:
             logger.exception(

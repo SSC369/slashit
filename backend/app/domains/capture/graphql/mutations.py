@@ -18,6 +18,8 @@ from app.core.deps import (
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
+    MemoriesListed,
+    MemorySaved,
     NonCommandGuidance,
     PendingQuestionCreated,
     ReminderCreated,
@@ -42,6 +44,14 @@ from app.domains.gateway.public import (
     SharedQuotaExhausted,
     UserLimitReached,
 )
+from app.domains.memories.public import (
+    MemoryListDTO,
+    MemorySavedDTO,
+    MemoryTooLong,
+    MemoryTooLongDTO,
+    memory_dto_to_type,
+    memory_too_long_to_type,
+)
 from app.domains.records.public import TaskDTO, task_dto_to_type
 from app.domains.reminders.public import ReminderDTO, reminder_dto_to_type
 from app.domains.reminders.public import (
@@ -55,6 +65,9 @@ CaptureResult = Annotated[
     | ReminderCreated
     | RemindersListed
     | ReminderLimitReached
+    | MemorySaved
+    | MemoriesListed
+    | MemoryTooLong
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -71,6 +84,9 @@ def _capture_outcome_to_result(
     *, outcome: CaptureOutcome | AnswerOutcome
 ) -> CaptureResult:
     """The one place a capture outcome DTO becomes a GraphQL type."""
+    memory_result = _memory_outcome_to_result(outcome=outcome)
+    if memory_result is not None:
+        return memory_result
     if isinstance(outcome, ReminderDTO):
         return cast(
             CaptureResult,
@@ -126,6 +142,33 @@ def _capture_outcome_to_result(
         )
     # One of the gateway's five failure types, already a GraphQL type.
     return cast(CaptureResult, outcome)
+
+
+def _memory_outcome_to_result(
+    *, outcome: CaptureOutcome | AnswerOutcome
+) -> CaptureResult | None:
+    """Epic 004's three outcomes, or None for any other."""
+    if isinstance(outcome, MemorySavedDTO):
+        return cast(
+            CaptureResult,
+            MemorySaved(
+                memory=memory_dto_to_type(memory=outcome.memory),
+                secret_caution=outcome.secret_caution,
+            ),
+        )
+    if isinstance(outcome, MemoryListDTO):
+        return cast(
+            CaptureResult,
+            MemoriesListed(
+                memories=[
+                    memory_dto_to_type(memory=memory) for memory in outcome.memories
+                ],
+                search_text=outcome.search_text,
+            ),
+        )
+    if isinstance(outcome, MemoryTooLongDTO):
+        return cast(CaptureResult, memory_too_long_to_type(too_long=outcome))
+    return None
 
 
 @strawberry.type

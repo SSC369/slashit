@@ -130,3 +130,16 @@ export const detailActionsInlineStyles = "flex shrink-0 gap-2.5";
 // Done and Snooze on a Needs attention row (Main)
 export const rowActionsStyles = "ml-2.5 inline-flex items-center gap-1.5 align-middle";
 export const rowActionErrorStyles = "text-[12px] text-destructive";
+
+// Memories (004 design: RecordsMemories, RecordsAll, MemoryDetail, MemoryEdit, MemoriesStates)
+export const typeDotMemoryStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent ring-2 ring-accent-wash";
+export const categoryChipsRowStyles = "-mt-1 mb-4 flex flex-wrap items-center gap-1.5";
+export const categoryChipStyles =
+  "flex h-7 items-center rounded-full border border-border-strong bg-card px-3 text-[12.5px] font-medium text-foreground-secondary";
+export const categoryChipOnStyles = "border-foreground bg-foreground text-background";
+export const memoryTextCellStyles = "font-medium text-foreground";
+export const textareaStyles =
+  "min-h-[92px] w-full resize-y rounded-md border border-border-strong bg-card px-3.5 py-3 text-sm leading-[1.45] text-foreground outline-none";
+export const counterStyles = "mt-1 text-right text-[11.5px] text-foreground-tertiary";
+export const counterOverStyles = "text-destructive";
+export const formHintStyles = "text-[12.5px] text-foreground-tertiary";

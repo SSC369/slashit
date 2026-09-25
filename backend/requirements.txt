@@ -27,6 +27,8 @@ structlog==26.1.0
 # Database. Decisions AD-3, AD-5, AD-4 in the tech stack.
 sqlalchemy[asyncio]==2.0.52
 asyncpg==0.31.0
+# Epic 004 AD-4: the SQLAlchemy `Vector` type for memories.embedding.
+pgvector==0.5.0
 alembic==1.20.0
 
 # Supabase JWT verification against the JWKS endpoint.

@@ -53,7 +53,12 @@ async def test_a_real_extraction_returns_a_result_and_records_it(
     assert result.input_tokens > 0, "token counts were not recorded"
 
     repository = SqlUsageRepository(session_factory)
-    assert await repository.count_since(user_id=user_id, since=_an_hour_ago()) == 1
+    assert (
+        await repository.count_since(
+            user_id=user_id, since=_an_hour_ago(), operation="generate"
+        )
+        == 1
+    )
 
 
 async def test_usage_rows_are_isolated_between_users(
@@ -66,8 +71,18 @@ async def test_usage_rows_are_isolated_between_users(
 
     await repository.record(usage=_usage_for(user_a), occurred_at=datetime.now(UTC))
 
-    assert await repository.count_since(user_id=user_a, since=_an_hour_ago()) == 1
-    assert await repository.count_since(user_id=user_b, since=_an_hour_ago()) == 0
+    assert (
+        await repository.count_since(
+            user_id=user_a, since=_an_hour_ago(), operation="generate"
+        )
+        == 1
+    )
+    assert (
+        await repository.count_since(
+            user_id=user_b, since=_an_hour_ago(), operation="generate"
+        )
+        == 0
+    )
 
 
 def _an_hour_ago() -> datetime:

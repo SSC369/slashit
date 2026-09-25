@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -25,6 +25,7 @@ type CaptureTurn {
   resultingTaskId: ID
   resultingPendingCaptureId: ID
   resultingReminderId: ID
+  resultingMemoryId: ID
   questionText: String
   answerText: String
   createdAt: DateTime!
@@ -36,6 +37,8 @@ enum CaptureTurnOutcome {
   DISCARDED
   REFUSED
   REMINDER_CREATED
+  MEMORY_SAVED
+  MEMORY_LISTED
 }
 
 """Date (isoformat)"""
@@ -47,6 +50,10 @@ scalar DateTime
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
 
 type InvalidCredentials {
+  message: String!
+}
+
+type InvalidMemory {
   message: String!
 }
 
@@ -82,6 +89,51 @@ type Me {
   avatarUrl: String
 }
 
+input MemoriesFilterInput {
+  category: MemoryCategory = null
+  uncategorised: Boolean! = false
+  search: String = null
+}
+
+type MemoriesListed {
+  memories: [Memory!]!
+  searchText: String
+}
+
+type Memory {
+  id: ID!
+  text: String!
+  category: MemoryCategory
+  origin: String!
+  originalInput: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum MemoryCategory {
+  PERSONAL
+  PEOPLE
+  PROFESSIONAL
+  LIFE
+}
+
+type MemoryNotFound {
+  message: String!
+}
+
+union MemoryResult = Memory | MemoryNotFound
+
+type MemorySaved {
+  memory: Memory!
+  secretCaution: SecretKind
+}
+
+type MemoryTooLong {
+  message: String!
+  length: Int!
+  limit: Int!
+}
+
 type Mutation {
   submitCapture(rawInput: String!): CaptureResult!
   answerPendingCapture(pendingCaptureId: ID!, answer: String!): CaptureResult!
@@ -99,6 +151,7 @@ type Mutation {
   snoozeReminder(id: ID!, option: SnoozeChoice!): ReminderActionResult!
   markNotificationRead(id: ID!): MarkNotificationReadResult!
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded!
+  updateMemory(id: ID!, input: UpdateMemoryInput!): UpdateMemoryResult!
 }
 
 type NoFieldsToUpdate {
@@ -174,10 +227,12 @@ type Query {
   reminder(id: ID!): ReminderResult!
   notifications(cursor: String = null): NotificationPage!
   unreadNotificationCount: Int!
+  memories(filter: MemoriesFilterInput = null): [Memory!]!
+  memory(id: ID!): MemoryResult!
   apiVersion: String!
 }
 
-union RecordItem = Task | Reminder
+union RecordItem = Task | Reminder | Memory
 
 type RecordNotFound {
   message: String!
@@ -282,6 +337,13 @@ type RemindersListed {
   reminders: [Reminder!]!
 }
 
+enum SecretKind {
+  CARD
+  ID_NUMBER
+  TAX_ID
+  CREDENTIAL
+}
+
 type Settings {
   timezone: String!
   updatedAt: DateTime!
@@ -351,6 +413,13 @@ type UnrecognisedCommand {
   attemptedName: String!
   closestMatches: [String!]!
 }
+
+input UpdateMemoryInput {
+  text: String!
+  category: MemoryCategory
+}
+
+union UpdateMemoryResult = Memory | MemoryTooLong | InvalidMemory | MemoryNotFound
 
 input UpdateReminderInput {
   description: String!
