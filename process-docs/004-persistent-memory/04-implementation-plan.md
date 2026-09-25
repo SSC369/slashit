@@ -32,9 +32,9 @@ Tables this feature touches, by migration:
 | `pending_captures` | changed: `missing_field` value `fact` | `0025_capture_memory` | 1 |
 | `ai_usage` | changed: `operation` | `0026_usage_operation` | 1 |
 | `events` | changed: six memory event types | `0027_memory_events` | 1 |
-| `pending_captures` | changed: `missing_field` value `memory_conflict`, `candidate_text`, `candidate_category`, `conflicting_memory_ids` | `0028_memory_conflicts` | 2 |
-| `capture_turns` | changed: outcome `memory_conflict_resolved` | `0028_memory_conflicts` | 2 |
-| `capture_turns` | changed: `forgotten_at`, the scrub check constraint, outcome `memory_forgotten` | `0029_forget` | 3 |
+| `capture_turns` | changed: `forgotten_at`, `affected_count`, the scrub check constraint, outcome `memory_forgotten` | `0028_forget` | 2 |
+| `pending_captures` | changed: `missing_field` value `memory_conflict`, `candidate_text`, `candidate_category`, `conflicting_memory_ids` | `0029_memory_conflicts` | 3 |
+| `capture_turns` | changed: outcome `memory_conflict_resolved` | `0029_memory_conflicts` | 3 |
 
 The build plan's §3 named five migrations. They are split here by slice, so
 each slice migrates only what it uses. The schema is unchanged.
@@ -43,11 +43,13 @@ each slice migrates only what it uses. The schema is unchanged.
 
 Everything in the approved PRD ships, in three slices. Slice 1 saves, lists,
 looks up, shows and edits memories, with categories and the secret caution.
-Slice 2 adds the conflict check and the "which is correct?" question. Slice 3
-adds forget, from Records and by command, with the history scrub.
+Slice 2 adds forget, from Records and by command, with the history scrub. Slice
+3 adds the conflict check and the "which is correct?" question, whose "Keep the
+new one" answer forgets through slice 2. Order swapped 2026-09-25, see the
+change log.
 
 Slice 1 alone never ships to users. FR-10 says nothing saves without a conflict
-check, so slices 1 and 2 go out together. Slice 1 is still verifiable end to
+check, so all three slices go out together. Slice 1 is still verifiable end to
 end on its own, which is what the split needs.
 
 ## 2. Split decision
@@ -68,12 +70,11 @@ slice before each lands, as 003 did.
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
 | 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | approved 2026-09-25; built 2026-09-25, T-1.1, T-1.11, T-1.14 owed |
-| 2 | `04.2-conflicts.md` | A contradicting save asks which is correct; the three answers and "Decide later" work; mobile conflict card | 1 | not started |
-| 3 | `04.3-forget.md` | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | not started |
+| 2 | [04.2-forget.md](./04.2-forget.md) | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | draft |
+| 3 | `04.3-conflicts.md` | A contradicting save asks which is correct; the three answers and "Decide later" work; "Keep the new one" forgets through slice 2; mobile conflict card | 1, 2 | not started |
 
-Slices 2 and 3 are independent of each other. Slice 3 touches the pending
-conflict only to drop forgotten ids from it, so whichever lands second adds
-that one line.
+Slice 3 depends on slice 2: its "Keep the new one" answer forgets the old
+memory, and forget is slice 2's.
 
 ## 3. Shared file map
 
@@ -81,14 +82,14 @@ Only the files more than one slice changes. Each sub-plan lists its own.
 
 | Path | Slice 1 | Slice 2 | Slice 3 |
 |---|---|---|---|
-| `backend/app/domains/memories/public.py` | created | adds conflict types | adds forget |
-| `backend/app/domains/memories/services/memory_service.py` | created | adds candidates and judgement | adds tombstone |
-| `backend/app/domains/capture/interactors/submit_capture.py` | three commands | conflict outcome | `/forget` |
-| `backend/app/domains/capture/graphql/types.py` | memory union members | `MemoryConflictAsked` | `ForgetCandidates`, `forgotten` |
-| `backend/app/core/deps.py` | memories wiring, gateway embed | conflict resolver | scrub port |
-| `frontend/src/features/capture/components/MemoryCards.tsx` | saved, list, too long | conflict card | forget cards |
-| `frontend/src/stores/MemoriesStore.ts` | created | resolve | forget |
-| `frontend/src/constants/captureCommands.ts` | three commands | — | `/forget` |
+| `backend/app/domains/memories/public.py` | created | adds forget | adds conflict types |
+| `backend/app/domains/memories/services/memory_service.py` | created | adds tombstone | adds candidates and judgement |
+| `backend/app/domains/capture/interactors/submit_capture.py` | three commands | `/forget` | conflict outcome |
+| `backend/app/domains/capture/graphql/types.py` | memory union members | `ForgetCandidates`, `forgotten` | `MemoryConflictAsked` |
+| `backend/app/core/deps.py` | memories wiring, gateway embed | scrub port | conflict resolver |
+| `frontend/src/features/capture/components/MemoryCards.tsx` | saved, list, too long | forget cards | conflict card |
+| `frontend/src/stores/MemoriesStore.ts` | created | forget | resolve |
+| `frontend/src/constants/captureCommands.ts` | three commands | `/forget` | — |
 
 ## 4. Interfaces and contracts
 
@@ -137,10 +138,10 @@ MemoryService.count(*, user_id) -> int
 ```
 
 `SaveOutcome` in slice 1 is `MemorySavedDTO` or a gateway failure member,
-passed through unmapped. Slice 2 adds `MemoryConflictDTO`. Slice 3 adds
-`forget(*, user_id, memory_ids)` and `forget_all(*, user_id, expected_count)`.
+passed through unmapped. Slice 2 adds `forget_memories(*, user_id, memory_ids)`
+and `forget_all(*, user_id, expected_count)`. Slice 3 adds `MemoryConflictDTO`.
 
-### The judgement call, slice 1 creates, slice 2 fills
+### The judgement call, slice 1 creates, slice 3 fills
 
 ```python
 MEMORY_JUDGEMENT_SCHEMA = {
@@ -153,12 +154,12 @@ MEMORY_JUDGEMENT_SCHEMA = {
 }
 ```
 
-Slice 1 sends no candidates, so `conflicting_ids` is always empty. Slice 2 sends
+Slice 1 sends no candidates, so `conflicting_ids` is always empty. Slice 3 sends
 up to ten, each as `{id, text}`, and drops any returned id not in that list.
 Descriptions stay terse: 001's dev log I-1 measured a long description doubling
 latency.
 
-### The scrub port, slice 3
+### The scrub port, slice 2
 
 ```python
 # memories/interfaces/ports.py — owned by memories, implemented by capture
@@ -168,7 +169,7 @@ class TurnScrubPort(Protocol):
 
 Called inside the forget transaction. It scrubs every turn whose
 `resulting_memory_id` is in the list. That is enough for FR-23 because of one
-rule slice 2 must keep: a conflict turn never stores an existing memory's text.
+rule slice 3 must keep: a conflict turn never stores an existing memory's text.
 Its `question_text` is the fixed "Which is correct?", and the old memories are
 shown from their live rows, by id, never copied.
 
@@ -179,15 +180,14 @@ shown from their live rows, by id, never copied.
 | `Memory { id text category origin originalInput createdAt updatedAt }` | 1 |
 | `MemoryCategory` enum, `MemorySaved { memory secretCaution }`, `MemoryList`, `MemoryTooLong { length limit }` | 1 |
 | `memories(filter)`, `memory(id)`, `updateMemory` | 1 |
-| `MemoryConflictAsked`, `resolveMemoryConflict`, `MemoryDiscarded` | 2 |
-| `ForgetCandidates`, `forgetMemory`, `forgetAllMemories`, `CaptureTurn.forgotten` | 3 |
+| `ForgetCandidates`, `forgetMemory`, `forgetFromCapture`, `CaptureTurn.forgotten` | 2 |
+| `MemoryConflictAsked`, `resolveMemoryConflict`, `MemoryDiscarded` | 3 |
 
 ## 5. Rollout and flags
 
-No flag. Slices 1 and 2 merge to `main` together, or slice 1 lands with the
-three commands hidden from command discovery until slice 2 follows. The first
-is simpler and is the plan. Slice 3 may follow separately: without it, a memory
-cannot be forgotten, which PRD FR-21 needs before real users arrive.
+No flag. All three slices reach `main` together: slice 1 saves without a
+conflict check, which FR-10 forbids in front of users, and slice 3 needs slice
+2's forget. They are built and verified one at a time on this branch.
 
 Migrations run forward only in production. Each has a working `downgrade` for
 development.
@@ -199,7 +199,7 @@ Build plan Q6 kept NFR-6 and NFR-7 and required labelled sets first.
 | Set | Size | Owner | Needed by |
 |---|---|---|---|
 | Categories: fact and expected category, including uncategorisable facts | 60, `estimate` | Claude drafts, user corrects | End of slice 1. Drafted as its first task and corrected in parallel, per the user on 2026-09-25 |
-| Conflicts: new fact, ten candidates, expected contradicting ids, a third of them true pairs such as two birthdays | 40, `estimate` | Claude drafts, user corrects | 4.2 approval |
+| Conflicts: new fact, ten candidates, expected contradicting ids, a third of them true pairs such as two birthdays | 40, `estimate` | Claude drafts, user corrects | 4.3 approval |
 
 Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 `test_capture_live.py`, never in CI.
@@ -222,3 +222,4 @@ Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 |---|---|---|---|
 | 2026-09-25 | Created as the index, with sub-plan 4.1 drafted | Build plan approved; user asked to proceed | pending |
 | 2026-09-25 | Approved. Two amendments at approval: 003 is merged into this branch (AD-10 amended), and the category set is drafted as slice 1's first task and corrected in parallel instead of before approval | User approved and asked to proceed with dev | user |
+| 2026-09-25 | Slices 2 and 3 swapped: 4.2 is now Forget, 4.3 Conflicts. Migrations renumbered to `0028_forget` and `0029_memory_conflicts`; `0028` also gains `capture_turns.affected_count` for "Forgot 2 memories". Rollout: all three slices ship together. The scrub port and forget contracts move from slice 3 to slice 2. Re-opened: none; neither sub-plan had been drafted | "Keep the new one" forgets the old memory, so conflicts cannot finish before forget exists. User chose the swap | user |
