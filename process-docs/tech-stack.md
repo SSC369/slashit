@@ -4,7 +4,7 @@ title: Slashit Technical Stack
 status: current
 owner: user
 created: 2026-09-09
-updated: 2026-09-14
+updated: 2026-09-25
 ---
 
 # Slashit — Technical Stack
@@ -31,7 +31,8 @@ choice changes, it changes here, and the change log at the bottom records it.
 | ORM | SQLAlchemy 2.x, async |
 | Database driver | asyncpg |
 | Migrations | Alembic |
-| Vector search | pgvector, in the same database |
+| Vector search | pgvector, in the same database. Enabled by epic 004, `vector(768)` |
+| Embedding model | Gemini embedding model through the gateway's `embed`, 768 dimensions. Exact model name confirmed against Google's list at build (epic 004 AD-4) |
 | Auth | Supabase Auth |
 | Data isolation | PostgreSQL Row Level Security |
 | In-app notification transport | GraphQL subscriptions over WebSockets |
@@ -299,7 +300,8 @@ explicitly and argues for it.
 | T3 | The service-role key never reaches the browser, and never serves a request made on behalf of a user unless the resolver has already established ownership. It is for migrations and background jobs |
 | T4 | The model provider stays behind a boundary. Nothing above it knows which provider is in use, so a tier or vendor change is configuration, not a rewrite |
 | T5 | DataLoader from the first resolver, not retrofitted after the N+1 appears |
-| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store |
+| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half |
+| T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
 | T7 | Every feature touching user data tests the boundary: a case where user A requests user B's record and receives nothing |
 | T8 | Every number in a build plan carries its source. A benchmark, a vendor page, a measurement, or the label `estimate` |
 
@@ -396,6 +398,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
 | 2026-09-14 | T-Q3 and T-Q7's `Blocks` column renumbered from epic 002/004 to epic 003/005 | Epic 002, Authentication, inserted ahead of the old 002 to 010, which shifted to 003 to 011 (`product/v1-features.md`, 2026-09-14) | user |
 | 2026-09-13 | T-Q5 answered: frontend hosting is Vercel | Epic 001's build plan needed it | user |
 | 2026-09-09 | Created, absorbing decision records 0004, 0005 and 0006 | User removed the decisions folder and asked for one technical document | user |

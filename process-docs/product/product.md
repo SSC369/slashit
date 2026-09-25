@@ -87,6 +87,14 @@ Standing rules for every feature, so each PRD does not restate them.
 > Assumption: principles 6 and 7 are proposed defaults, not stated in the
 > source. Confirm or strike them.
 
+**Deleting records.** Records are soft-deleted: a deleted row stays, marked
+with when it was deleted, and every view skips it. This is the user's standing
+rule from 2026-09-19. **Memories are the one exception for content**, decided in
+epic 004 on 2026-09-25: a forgotten memory's row stays, but its words, category
+and meaning vector are erased, so forget means the fact is gone. Hard delete
+lost because it breaks the standing rule; keeping the text lost because it
+breaks the promise of forget.
+
 Principle 7 has a mechanism, not just an intention. See rule T2 in
 [the tech stack](../tech-stack.md#4-standing-technical-rules).
 
@@ -312,6 +320,7 @@ the first time a doc needs it. Keep definitions to one or two sentences.
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-25 | Deleting records stated in §4: soft delete everywhere, with memories as the one exception whose content is erased. Stale downstream: none | Epic 004's build plan AD-2 graduated on approval | user |
 | 2026-09-13 | Theme baseline corrected: no user override, device setting only. This document said "with a user override," settled 2026-09-09, but that override was proposed as FR-42 during epic 001's design and declined on 2026-09-13 (`001-capture-and-records-foundation/02-design.md` Q13). This document had not been updated to match | Found while reading this document before epic 001's build plan | user |
 | 2026-09-08 | Created as skeleton, then filled from the V1 product definition | Process bootstrap, then the user supplied the product | user |
 | 2026-09-08 | Surface, notifications, model provider, one account per user settled. Plain-language capture, the Life Inbox, and task priority and recurrence deferred out of V1. Pillar P1 marked partly deferred. Numeric targets deferred. Not charging in V1. No deadline. | User answered the blocking product questions and cut scope | user |
