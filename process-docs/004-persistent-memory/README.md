@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Stage | 2 Design |
+| Stage | 4 Implementation plan |
 | Status | draft |
 | Started | 2026-09-24 |
 | Owner | user |
@@ -12,9 +12,12 @@
 |---|---|---|---|
 | 0 Epic | [00-epic.md](./00-epic.md) | approved | 2026-09-25 |
 | 1 PRD | [01-prd.md](./01-prd.md) | approved | 2026-09-25 |
-| 2 Design | [02-design.md](./02-design.md) | draft | |
-| 3 Build plan | [03-build-plan.md](./03-build-plan.md) | not started | |
-| 4 Implementation plan | [04-implementation-plan.md](./04-implementation-plan.md) | not started | |
+| 2 Design | [02-design.md](./02-design.md) | approved | 2026-09-25 |
+| 3 Build plan | [03-build-plan.md](./03-build-plan.md) | approved | 2026-09-25 |
+| 4 Implementation plan (index) | [04-implementation-plan.md](./04-implementation-plan.md) | draft | |
+| 4.1 Save and browse | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | draft | |
+| 4.2 Conflicts | `04.2-conflicts.md` | not started | |
+| 4.3 Forget | `04.3-forget.md` | not started | |
 | 5 Dev | [05-dev-log.md](./05-dev-log.md) | not started | |
 
 ## One-line summary
