@@ -186,12 +186,13 @@ No one-off styles outstanding.
 
 | # | Question | Owner | Answer |
 |---|---|---|---|
-| Q1 | The Records tabs show Reminders, from epic 003, which is built on another branch and not yet merged. Keep it drawn? | user | Open |
-| Q2 | Should the secret caution mention the AI model at all, or only say "only you can see it"? | user | Open |
-| Q3 | The backup window in the copy is a placeholder until PRD Q6 is answered in the build plan | tech-stack | Open |
+| ~~Q1~~ | The Records tabs show Reminders, from epic 003, built on another branch and not yet merged. Keep it drawn? | user | **Answered 2026-09-25.** Keep it. The tabs show the real order. 004 ships after 003 merges, or the Reminders tab is dropped at build time |
+| ~~Q2~~ | Should the secret caution mention the AI model? | user | **Answered 2026-09-25.** Yes, as drawn |
+| ~~Q3~~ | The backup window in the copy is a placeholder until PRD Q6 is answered | tech-stack | **Answered 2026-09-25.** Keep the placeholder. The build plan fills it |
 
 ## Change log
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-25 | Created. 24 artboards across Capture, Records, Mobile and Dark theme pages, generated from 001's artboards | PRD approved, user asked for design | pending |
+| 2026-09-25 | Q1 to Q3 answered, each as drawn. No canvas change | User answered the open questions | user |
