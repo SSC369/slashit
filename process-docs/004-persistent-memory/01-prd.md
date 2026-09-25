@@ -3,15 +3,17 @@ doc: prd
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 1
-status: draft
+status: approved
 owner: user
 created: 2026-09-25
 updated: 2026-09-25
-approved_on: null
+approved_on: 2026-09-25
 supersedes: null
 ---
 
 # Epic PRD — Persistent Memory
+
+> **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
 
 Context: [Epic](./00-epic.md) · [Product](../product/product.md) ·
 [001 PRD](../001-capture-and-records-foundation/01-prd.md)
@@ -202,3 +204,4 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-25 | Created | Drafted after epic approval and PRD questions Q1 to Q4 were answered | pending |
+| 2026-09-25 | Approved | User approved, proceed to design | user |
