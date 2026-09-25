@@ -13,7 +13,7 @@ supersedes: null
 
 # Dev Log — Persistent Memory
 
-Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-save-and-browse.md)
+Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-save-and-browse.md) · [04.2](./04.2-forget.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -92,12 +92,59 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 | 2026-09-25 | Migration `0024` failed on first run | The tombstone check named `embedding` before the column was added by raw SQL | Constraint created after the column, with `op.create_check_constraint` |
 | 2026-09-25 | A 16-digit Luhn-invalid number was flagged as an ID number | The 12-digit pattern matched the first twelve digits of a longer grouped number | Pattern now requires the twelve digits to stand alone |
 
+## Slice 2 — Forget
+
+Backend and frontend built 2026-09-25 on slice 1 (`14942ce`). Verified against
+local PostgreSQL 16 with `0028_forget` applied, and in unit and component
+tests. Forget never calls the model, so nothing here waits on a provider key.
+**Not yet seen live in a browser**: see T-2.11.
+
+### Tasks
+
+| # | Sub-plan | Task | Status | Note |
+|---|---|---|---|---|
+| T-2.1 | 4.2 | Migration `0028_forget` | **done** | Upgrade, downgrade to `0027` and upgrade again clean. The scrub check refuses a row with `forgotten_at` set and text left in it |
+| T-2.2 | 4.2 | Repository: tombstone, live ids, counts, term count | **done** | C-2.1, C-2.2 in `test_forget_graphql.py` |
+| T-2.3 | 4.2 | `CaptureTurnScrubber` and turn repository changes | **done** | C-2.3. The scrubber lives in capture and imports nothing from memories; `test_layering.py` passes |
+| T-2.4 | 4.2 | `MemoryService` forget, candidates, forget-all | **done** | C-2.4 to C-2.7 and C-2.11 in `test_forget.py` |
+| T-2.5 | 4.2 | Capture `/forget` branch and `ConfirmForgetInteractor` | **done** | C-2.8 in `test_forget_capture.py` |
+| T-2.6 | 4.2 | GraphQL: `forgetMemory`, `forgetFromCapture`, `ForgetCandidates`, turn fields | **done** | C-2.10 through GraphQL, user B against user A |
+| T-2.7 | 4.2 | NFR-2 search-every-table test, AD-9 checks | **done** | C-2.9 reads every text column of every public table through `information_schema` after a forget and finds nothing. C-2.12 runs with the gateway switched off |
+| T-2.8 | 4.2 | Frontend operations, stores, codegen | **done** | F-2.4: 7 handler cases across `ForgetMemory`, `ForgetFromCapture` and `SubmitCapture` |
+| T-2.9 | 4.2 | Frontend forget cards and controller | **done** | F-2.1: 4 cases in `CommandCenterController.test.tsx`: pick, continue, confirm; cancel; no match and bare `/forget`; forget-all with a changed count |
+| T-2.10 | 4.2 | Frontend detail Forget and history rows | **done** | F-2.2: 3 cases in `MemoryDetailController.test.tsx`. F-2.3: 1 case in `HistoryPanel.test.tsx` |
+| T-2.11 | 4.2 | Live browser pass | **owed** | Same constraint as T-1.14: no Supabase project reachable from this environment |
+
+### Checks
+
+| Check | Result |
+|---|---|
+| `pytest -m "not live"` against local PostgreSQL 16 | **358 passed**, up from 336: 22 new |
+| `mypy app` | clean, 269 files |
+| `ruff check .` | clean |
+| `npm run test` | **192 passed**, up from 176: 16 new |
+| `npm run build` (`tsc -b` and Vite) | clean |
+| `npm run lint` | one warning, present before slice 1 (`main.tsx`, unused `StrictMode`) |
+
+### Deviations from the plan
+
+| # | Planned | Actual | Why | Approved by |
+|---|---|---|---|---|
+| D-9 | 4.2 §5: `forgetFromCapture` returns `... \| MemoryNotFound` | Returns `... \| ForgetTargetGone`, a capture-owned type | The card's case is "already forgotten elsewhere", not a lookup miss, and capture's union keeps its own members | logged, pending user |
+| D-10 | 4.2 §5: `ForgetCandidates` has no search text | It carries `searchText`; the frontend reads it as `forgetText` | The no-match card quotes the words. The alias is needed because `MemoriesListed.searchText` is nullable and codegen refuses one field name with two types in one selection | logged, pending user |
+| D-11 | 4.2 §6: the unconfirmed `/forget` step not stated | Offering candidates writes no capture turn | Only a confirmed forget is history. Writing the offer would store the words typed, which FR-28 forbids | logged, pending user |
+| D-12 | Design §4: "Memories with a 'Memory forgotten' note" | The note is the app's toast, with the design's copy. `Toast` now omits its link when `linkLabel` is empty | The toast is the app's one success note; a forget has nothing to open | logged, pending user |
+| D-13 | Not stated | On the detail page, `MemoryNotFound` from `forgetMemory` is treated as forgotten | The memory was already forgotten from another tab; the user gets the outcome they asked for | logged, pending user |
+| D-14 | 4.2 §4: `RecordsStore` drops forgotten rows | `RecordsStore` is unchanged | The All tab reads memories through `MemoriesStore`, so `removeMany` drops them there already | logged, pending user |
+
+Slice 1's D-7 said Forget arrives with slice 3. It arrived with slice 2 after
+the reorder, and the detail page now has it.
+
 ## Deferred
 
 | Item | Why deferred | Where it goes next |
 |---|---|---|
-| Conflict check (FR-10 to FR-14) | Slice 2 | `04.2-conflicts.md`, not yet drafted |
-| Forget (FR-21 to FR-29) | Slice 3 | `04.3-forget.md`, not yet drafted |
+| Conflict check (FR-10 to FR-14) | Slice 3, after the reorder | `04.3-conflicts.md`, not yet drafted |
 | Backup window in the forget copy | User deferred it to launch, 2026-09-25 | Before launch |
 
 ## Notes for the next feature
@@ -117,3 +164,4 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-25 | Created with slice 1's record | Slice 1 built | pending |
+| 2026-09-25 | Slice 2's record added; Deferred table corrected for the slice reorder | Slice 2 built | pending |

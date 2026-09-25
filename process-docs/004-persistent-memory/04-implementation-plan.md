@@ -70,7 +70,7 @@ slice before each lands, as 003 did.
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
 | 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | approved 2026-09-25; built 2026-09-25, T-1.1, T-1.11, T-1.14 owed |
-| 2 | [04.2-forget.md](./04.2-forget.md) | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | draft |
+| 2 | [04.2-forget.md](./04.2-forget.md) | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | approved 2026-09-25; built 2026-09-25, T-2.11 owed |
 | 3 | `04.3-conflicts.md` | A contradicting save asks which is correct; the three answers and "Decide later" work; "Keep the new one" forgets through slice 2; mobile conflict card | 1, 2 | not started |
 
 Slice 3 depends on slice 2: its "Keep the new one" answer forgets the old
