@@ -3,15 +3,17 @@ doc: epic
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 0
-status: draft
+status: approved
 owner: user
 created: 2026-09-24
 updated: 2026-09-25
-approved_on: null
+approved_on: 2026-09-25
 supersedes: null
 ---
 
 # Epic — Persistent Memory
+
+> **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
 
 Context: [Product](../product/product.md) · [V1 features](../product/v1-features.md)
 
@@ -184,3 +186,4 @@ All nine answered by the user on 2026-09-25, each with the recommended option. Q
 | 2026-09-24 | Created | User asked to proceed with 004 | pending |
 | 2026-09-25 | Conflicting memories brought into scope: on save, a contradiction pauses the save and asks the user which memory is correct. Q9 revised, Q10 added and answered, cons and risks updated | User asked for conflicts to be planned in this feature | user |
 | 2026-09-25 | Q1 to Q9 answered, each with the recommended option. Requirements, alternatives and risks updated to match | User answered the open questions | user |
+| 2026-09-25 | Approved | User approved, proceed to PRD | user |
