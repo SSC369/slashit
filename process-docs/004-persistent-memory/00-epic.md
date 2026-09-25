@@ -15,8 +15,8 @@ supersedes: null
 
 Context: [Product](../product/product.md) · [V1 features](../product/v1-features.md)
 
-Over the 150-line budget by about twenty-five lines: nine answered questions and
-the forget-versus-soft-delete exception each need a row, and none repeats another.
+Over the 150-line budget by about forty lines: ten questions, the forget
+exception and conflict handling each need rows, and none repeats another.
 
 ## As supplied
 
@@ -59,7 +59,7 @@ tasks.
 |---|---|---|---|
 | Save | `/remember <fact>` and `/add-memory <fact>` both create a memory. The user's wording is kept as the memory's text | Source §16 names both. `/add-memory` is what `/add` filters to in §9 | Both ship as synonyms, per Q1 |
 | Category | Each memory carries one category, assigned by Slashit on save and editable afterwards | Source §15 and §19 show a category on every memory | A fixed four: Personal, People, Professional, Life, per Q2 |
-| No required fields beyond the fact | A non-empty argument always creates a memory, without a follow-up question | 001's confirmation model asks only when a required field is missing. A fact has one field | So category must never block creation. A failed classification saves the memory uncategorised |
+| No required fields beyond the fact | A non-empty argument always creates a memory, without a follow-up question | 001's confirmation model asks only when a required field is missing. A fact has one field | So category must never block creation. A failed classification saves the memory uncategorised. The one thing that can pause a save is a conflict, below |
 | Memories view | A Memories filter in Records lists every memory with its text, category and save date | Principle 1: "if Slashit can record it, the user can see it". Source §11 and §15 | Rides on 001's records view. Filter by category is likely, sort by date is inherited |
 | Memory detail | Shows the text, category, created time and origin, with Edit and Forget | Source §19 draws this card exactly | "Forget", not "Delete", is the source's label |
 | Edit | The user edits text and category from the detail | Source §18 | Editing text does not re-run classification unless asked. See Risks |
@@ -72,7 +72,8 @@ tasks.
 | Origin | Every memory stores its origin and creation time | Principle 5. Source §19 shows "Source: Jarvis conversation" | Always "command" in V1, since conversation is out |
 | Isolation | Memories are read only by their owner, and only the owner's memories reach a prompt | Principle 7 | Memories hold the most sensitive data in the product: documents, family, finances |
 | Secret warning | Text that looks like a secret, such as a full card or ID number or a password, saves with a one-line caution | The user stays in control, and gets a nudge before the most sensitive data reaches a model | Warns, never blocks, per Q8 |
-| Contradictions | None in V1. A newer memory and the one it contradicts both stand | Resolving them is the mem0 problem, and doing it silently breaks P4 | Per Q9. The user edits or forgets the old one |
+| Conflicts | On save, Slashit checks the new memory against the user's existing memories. If it contradicts one or more, nothing is saved yet: Slashit shows the new and the existing memories side by side and asks the user which is correct | Two memories that disagree make retrieval return the stale one. Resolving it silently, as mem0 does, breaks P4, so the user decides | Per Q9, revised 2026-09-25. Three choices, per Q10: keep the new one, which forgets the old, hard-deleted per Q6; keep the old one, which discards the new; or both are correct, which keeps both. Checked on save only, never on edit. This looks simple and is not: detecting a contradiction is a model judgement, and it will sometimes be wrong both ways |
+| Conflict question | The question does not block: the user can leave it, run other commands and answer later, as with 001's pending question (FR-36, FR-37). Unanswered, nothing is saved | Reuses a pattern the user already knows rather than inventing a second | |
 
 ## Pros
 
@@ -102,11 +103,12 @@ tasks.
   description. 001 deliberately kept edit and delete out of commands (FR-24).
   Memory breaks that rule because the source demands it, and the matching is
   new, fallible machinery.
-- Without contradiction handling, memories rot. "Preferred airline is Emirates"
-  and a later "preferred airline is Qatar" both stand, and retrieval can return
-  the stale one.
-- Every save is a model call for the category, adding cost on a free product.
-  Small, but not zero.
+- Conflict checking is fallible. It will miss some contradictions and flag
+  some pairs that are both true, such as two different friends' birthdays. A
+  false flag costs the user a question they did not need.
+- Every save is now a model call for the category and a comparison against
+  existing memories, adding cost and latency on a free product. The comparison
+  grows with the number of memories the user holds.
 
 ## Best practices and prior art
 
@@ -115,7 +117,7 @@ tasks.
 | ChatGPT Memory | Saves facts from conversation automatically or on request, shows "Memory updated", lists them in a Manage memories screen where each can be deleted | A visible notice at the moment of saving, and one screen listing everything held | Automatic saving the user did not ask for. OpenAI's own help pages say deleting a chat does not delete memories taken from it, which users found surprising. The same trap sits in our capture history |
 | Google Gemini, Saved info | The user explicitly adds facts about themselves in a settings list, and the assistant uses them in answers | Explicit save only, which matches commands-only capture | A settings list is a second-class home. Here memory is a record type in Records |
 | Claude, memory | Memory the user can view and edit as a summary, scoped per project | Letting the user read exactly what is held, in plain words | A single edited summary loses the per-fact edit and forget the source asks for |
-| mem0, open-source memory layer | Each new fact is compared to existing ones and resolved as add, update, delete or no-op | The four-way decision is the known answer to contradiction | Silent updates. Whatever resolves a conflict must be visible and undoable, per P4 |
+| mem0, open-source memory layer | Each new fact is compared to existing ones and resolved as add, update, delete or no-op | Comparing each new fact to existing ones at save time, the known answer to contradiction | Silent updates. Here the user makes the call, per Q9 |
 | Mem, the notes app | Pitched self-organising notes with automatic tagging | Categories assigned by the product, not the user | It leaned on AI organisation the user could not predict. Keep the category set small and editable |
 
 ## Alternatives considered
@@ -138,13 +140,15 @@ tasks.
 | `/forget` matches the wrong memory and the user confirms without reading | medium | high | Confirmation text that names the memory in full, and a count of how often a forget is followed by a re-save |
 | Categories disagree with the user often enough that they stop trusting the view | medium | low | Share of memories whose category is edited after save |
 | Edited text keeps a category that no longer fits | medium | low | Same measure, split by edited and unedited |
-| Contradicting memories both stand and retrieval returns the stale one | high over time | medium | Duplicate-looking pairs per user after a month |
+| Conflict check flags pairs that are both true, and users learn to click through | medium | medium | Share of conflict questions answered "both are correct" |
+| Conflict check misses a contradiction and both memories stand | medium | medium | Duplicate-looking pairs per user after a month |
+| Comparing against every existing memory makes saves slow or costly as memories grow | medium over time | medium | Save latency and model cost per save, split by how many memories the user holds |
 | Users paste secrets, such as full card or ID numbers, into memory | medium | high | Unknown until real use. Q8's warning is the mitigation |
 | The model provider's data terms do not meet the bar for this data | unknown | high | Already open as Q10 in the product doc, and it becomes sharper here |
 
 ## Open questions
 
-All nine answered by the user on 2026-09-25, each with the recommended option.
+All nine answered by the user on 2026-09-25, each with the recommended option. Q9 was then revised the same day at the user's request, and Q10 followed from it.
 
 | # | Question | Answer |
 |---|---|---|
@@ -156,7 +160,8 @@ All nine answered by the user on 2026-09-25, each with the recommended option.
 | ~~Q6~~ | What does forget delete? | **Hard delete, and scrub the `/remember` line from capture history.** An exception to 001's soft delete, for memories only |
 | ~~Q7~~ | Do memories feed other captures in V1? | **No. Deferred to 005.** |
 | ~~Q8~~ | Warn when a memory looks like a secret? | **Warn with one line, still save.** |
-| ~~Q9~~ | What happens when a new memory contradicts an old one? | **Nothing in V1.** Both stand; recorded as a risk |
+| ~~Q9~~ | What happens when a new memory contradicts an old one? | **Revised 2026-09-25: ask the user to choose the correct one.** Was "nothing in V1". See Conflicts in Requirements |
+| ~~Q10~~ | Q9 opened this: when flagged memories are in fact both true, can the user keep both? Does the check run on edits too? | **Three choices: keep the new, keep the old, or both are correct. Checked on save only, never on edit.** |
 
 > Assumption: Memory Management, listed separately as P1 in `v1-features.md` §1,
 > is the edit, forget and view part of this epic, not a later one. No epic in
@@ -177,4 +182,5 @@ All nine answered by the user on 2026-09-25, each with the recommended option.
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-09-24 | Created | User asked to proceed with 004 | pending |
+| 2026-09-25 | Conflicting memories brought into scope: on save, a contradiction pauses the save and asks the user which memory is correct. Q9 revised, Q10 added and answered, cons and risks updated | User asked for conflicts to be planned in this feature | user |
 | 2026-09-25 | Q1 to Q9 answered, each with the recommended option. Requirements, alternatives and risks updated to match | User answered the open questions | user |
