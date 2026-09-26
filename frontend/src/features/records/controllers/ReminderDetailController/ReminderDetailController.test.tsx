@@ -220,6 +220,33 @@ describe("ReminderDetailController", () => {
     expect(screen.getByText("Records page")).toBeInTheDocument();
   });
 
+  it("removes its bell notifications on delete, without waiting on a refetch", () => {
+    loadedAs(standup);
+    mockDelete.mockImplementation((args) => args.onReminderDeleted("r1"));
+    const store = renderAt("/records/reminders/r1");
+    store.notifications.receive({
+      id: "n1",
+      kind: "REMINDER",
+      targetId: "r1",
+      title: "Standup notes",
+      detail: "",
+      marker: "NONE",
+      occurredAt: "2026-09-24T04:00:00Z",
+      createdAt: "2026-09-24T04:00:00Z",
+      read: false,
+      action: null,
+      actedAt: null,
+      showPopup: true,
+    });
+    expect(store.notifications.unreadCount).toBe(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /Delete/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete reminder" }));
+
+    expect(store.notifications.getAll()).toHaveLength(0);
+    expect(store.notifications.unreadCount).toBe(0);
+  });
+
   it("disables Edit and Delete while offline", () => {
     mockUseOnlineStatus.mockReturnValue(false);
     loadedAs(standup);

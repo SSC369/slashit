@@ -102,6 +102,20 @@ export class NotificationsStoreModel {
     this.popupIds = this.popupIds.filter((id) => this.items.get(id)?.targetId !== reminderId);
   }
 
+  /** The reminder a notification points at is gone (deleted): every item for
+   * it disappears from the list, the count and the pop-up stack right away,
+   * matching what the backend now hides (D-56) without waiting on a refetch. */
+  removeByTarget(targetId: string): void {
+    for (const [id, item] of this.items) {
+      if (item.targetId !== targetId) continue;
+      if (!item.read) this.unreadCount = Math.max(this.unreadCount - 1, 0);
+      this.items.delete(id);
+      this.order = this.order.filter((orderId) => orderId !== id);
+      this.actionStates.delete(id);
+    }
+    this.popupIds = this.popupIds.filter((id) => this.items.get(id) !== undefined);
+  }
+
   setActionState(id: string, state: NotificationActionState | null): void {
     if (state === null) {
       this.actionStates.delete(id);

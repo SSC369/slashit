@@ -150,6 +150,7 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
     const removeAndLeave = (): void => {
       store.reminders.remove(id);
       store.records.remove(id);
+      store.notifications.removeByTarget(id);
       setIsDeleteOpen(false);
       goToReminders();
     };
