@@ -90,6 +90,7 @@ from app.domains.notifications.interactors.send_email import SendEmailInteractor
 from app.domains.notifications.interactors.stream_notifications import (
     StreamNotificationsInteractor,
 )
+from app.domains.notifications.interfaces.ports import EmailSenderPort
 from app.domains.notifications.repositories.notification_repository import (
     SqlNotificationRepository,
 )
@@ -99,6 +100,7 @@ from app.domains.notifications.services.notification_service import (
     NotificationService,
 )
 from app.domains.notifications.services.resend_sender import ResendEmailSender
+from app.domains.notifications.services.smtp_sender import SmtpEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
@@ -560,6 +562,20 @@ def build_send_email_interactor(session: AsyncSession) -> SendEmailInteractor:
     """Wired outside a request `Context`, for `notifications/jobs.py`, on the
     service-role connection the account address needs (T3)."""
     settings = get_settings()
+    sender: EmailSenderPort
+    if settings.environment == "local":
+        sender = SmtpEmailSender(
+            host=settings.smtp_host,
+            port=settings.smtp_port,
+            username=settings.smtp_username,
+            password=settings.smtp_password,
+            use_tls=settings.smtp_use_tls,
+            sender=settings.smtp_from,
+        )
+    else:
+        sender = ResendEmailSender(
+            api_key=settings.resend_api_key, sender=settings.reminder_email_from
+        )
     return SendEmailInteractor(
         notification_repository=SqlNotificationRepository(session),
         recipient=IdentityRecipientAdapter(
@@ -568,9 +584,7 @@ def build_send_email_interactor(session: AsyncSession) -> SendEmailInteractor:
                 auth_account_repository=SqlAuthAccountRepository(session),
             )
         ),
-        sender=ResendEmailSender(
-            api_key=settings.resend_api_key, sender=settings.reminder_email_from
-        ),
+        sender=sender,
         app_base_url=settings.app_base_url,
         now_provider=_utc_now,
     )

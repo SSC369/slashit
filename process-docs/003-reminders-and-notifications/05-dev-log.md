@@ -220,10 +220,11 @@ Supabase project.
 | D-39 | Return-to rides a `?next=` parameter on `/sign-in`. Only a path on this origin is honoured | Decision 1. Checking the path keeps the parameter from becoming an open redirect | Supabase's Redirect URLs must allow paths under the site URL (`/**`), or Google lands on the site root. Logged in 002's dev log |
 | D-40 | The capture card shows "Change default time" when `whenNote` is the server's default-time sentence | No field says which rule wrote the note (D-2), and adding one for a link was more than the link is worth | A change to that sentence in `schedule_planner.py` must change `DEFAULT_TIME_NOTE` in `ReminderCards.tsx` too |
 | D-41 | The `email_paused` notice uses the `MailX` icon | The artboard's icon was not matched glyph for glyph | Visual only |
+| D-51 | `SmtpEmailSender` (`notifications/services/smtp_sender.py`) implements `EmailSenderPort` beside `ResendEmailSender`. `deps.py`'s `build_send_email_interactor` picks it when `ENVIRONMENT=local`; every other environment still uses Resend. New settings: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Risk 2 in this sub-plan's table assumed no real send would happen before a Resend domain is verified. The user asked for a real local send sooner, against any SMTP relay reachable from a developer machine, so T-3.10's mechanics (content, cap, retries) could be checked before that domain exists | `smtplib` is blocking, run in a thread; it carries no idempotency key, so a retried job can send twice, accepted because this path only ever runs with `ENVIRONMENT=local`. `resend_sender.py`'s "the only Resend and queue calls" still holds: this is the only SMTP call, in the same `services/` folder repo-rules §6.3 asks for. Not unit-tested directly, matching `ResendEmailSender` |
 
 ### Not done, and why
 
-- **T-3.10, the first real email.** No verified sending domain or Resend key exists. Everything up to the provider call is tested; the call itself is tested against a fake.
+- **T-3.10, the first real email through Resend.** No verified sending domain or Resend key exists. Everything up to the provider call is tested; the call itself is tested against a fake. A real send is now reachable locally through SMTP instead (D-51), for checking content, the cap and retries ahead of a Resend domain.
 - **The browser pass**, for T-1.14's reason.
 - **Resend bounce and complaint webhooks.** Out of this slice by 4.3 §3; they need a deployed public URL.
 - **`DarkSettingsReminders`** uses the existing dark tokens and was not checked by eye (D-31).
@@ -306,7 +307,7 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 | Owed | Blocked on |
 |---|---|
 | T-1.14, T-2.15: live browser passes, with the artboard check | A Supabase project reachable from the test environment, and a model key |
-| T-3.10: first real email | A verified sending domain and a Resend key |
+| T-3.10: first real email through Resend, for staging and production | A verified sending domain and a Resend key. A real send is reachable now in local through SMTP (D-51) |
 | Supabase Redirect URLs allow paths under the site URL (D-39) | Dashboard access |
 
 ## Next up
@@ -320,8 +321,9 @@ Work continues from a local machine, on `main`. Do these in order; each closes a
 | 3 | Run the API, the worker (`python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`) and `npm run dev` | Step 2 | — |
 | 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | D-39 |
 | 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | T-1.14, T-2.15, D-31 |
-| 6 | Verify a sending domain in Resend (SPF, DKIM). Set `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, `REMINDER_EMAIL_ENABLED=true`. Fire one reminder; confirm the email arrives and its link opens the reminder after sign-in | Domain, Resend key | T-3.10 |
-| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done |
+| 6a | Local: fill `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` in `backend/.env` from any reachable SMTP relay, set `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT=local`, and fire one reminder to confirm content, the cap and retries (D-51) | An SMTP relay | Confidence ahead of T-3.10 |
+| 6b | Once a domain is owned: verify it in Resend (SPF, DKIM). Set `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT` staging or production. Fire one reminder; confirm the email arrives and its link opens the reminder after sign-in | Domain, Resend key | T-3.10 |
+| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6b | Index definition of done |
 
 Local test database used in the cloud session: PostgreSQL 16 on port 54329 with a stub `auth` schema. Locally, point `DATABASE_URL` at any PostgreSQL 16 for `pytest -m "not live"`.
 
@@ -334,3 +336,4 @@ Local test database used in the cloud session: PostgreSQL 16 on port 54329 with 
 | 2026-09-23 | Slice 3 built: migration 0021, email delivery with its daily cap and paused notice, the `send_email` job, `updateReminderSettings`, the Settings reminders section with every drawn state, the `email_paused` notice, return to the link after sign-in, and the "Change default time" link. 260 backend and 147 frontend tests pass. Email ships off; the first real send (T-3.10) waits on a sending domain | User: "Commit and proceed with next", approving 4.3 | user |
 | 2026-09-23 | Slice 4 built: migration 0022, timezone moves through `reminders.timezone_changed`, hourly reconciliation, the 90-day soft delete, the firing kill switch, and cross-slice cases X-1 and X-2. 276 backend and 148 frontend tests pass; a real worker moved a reminder from Kolkata to London time. The feature's definition of done is checked; three live checks remain owed | User: "1", approving 4.4 | user |
 | 2026-09-26 | "Next up" added: the steps to close T-1.14, T-2.15 and T-3.10 from a local machine. Branch merged into `main` | User: "Merge code into main i will work from laptop and add into dev logs as to work on this next" | user |
+| 2026-09-26 | `SmtpEmailSender` added beside `ResendEmailSender` (D-51), used only when `ENVIRONMENT=local`, so a real reminder email can be seen before a Resend domain exists | User: "since we have not deployed yet, can you use smtp for sending emails for local, after app completed, I will take domain and get resend creds for it" | user |

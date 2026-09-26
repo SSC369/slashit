@@ -62,6 +62,17 @@ class Settings(BaseSettings):
     # Where the email's "Open in Slashit" link points.
     app_base_url: str = "http://localhost:5173"
 
+    # SMTP stands in for Resend while ENVIRONMENT is "local" (003 dev log,
+    # 2026-09-26): no domain is verified yet, and this lets a developer see a
+    # real send. `deps.py` picks the sender by environment; staging and
+    # production always use Resend, never these.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_use_tls: bool = True
+    smtp_from: str = ""
+
     # Supabase caches its JWKS for ten minutes. Caching longer than the issuer
     # does risks rejecting valid tokens signed with a freshly rotated key.
     jwks_cache_seconds: int = 600
@@ -75,10 +86,20 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _require_email_credentials_when_enabled(self) -> "Settings":
-        """Email on with no key or sender stops the process at startup."""
-        if self.reminder_email_enabled and not (
-            self.resend_api_key and self.reminder_email_from
-        ):
+        """Email on with no key or sender stops the process at startup.
+
+        Local reads SMTP credentials; every other environment reads Resend's,
+        since only Resend ever sends there.
+        """
+        if not self.reminder_email_enabled:
+            return self
+        if self.environment == "local":
+            if not (self.smtp_host and self.smtp_from):
+                raise ValueError(
+                    "REMINDER_EMAIL_ENABLED needs SMTP_HOST and SMTP_FROM "
+                    "when ENVIRONMENT is local"
+                )
+        elif not (self.resend_api_key and self.reminder_email_from):
             raise ValueError(
                 "REMINDER_EMAIL_ENABLED needs RESEND_API_KEY and REMINDER_EMAIL_FROM"
             )
@@ -104,7 +125,7 @@ class Settings(BaseSettings):
 
         **A secret added to ``Settings`` without being added here is a defect.**
         """
-        secrets = {self.gemini_api_key, self.resend_api_key}
+        secrets = {self.gemini_api_key, self.resend_api_key, self.smtp_password}
 
         # A connection error renders the DSN, and the DSN carries the password.
         # Both encoded and decoded forms: the DSN carries one, an exception may
