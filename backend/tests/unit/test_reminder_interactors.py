@@ -30,6 +30,7 @@ from app.domains.reminders.interfaces.dtos import (
     ReminderNeedsWhen,
 )
 from app.domains.reminders.services.schedule import RepeatKind
+from tests.fakes.fake_notification_port import FakeNotificationPort
 from tests.fakes.fake_reminder_repository import FakeReminderRepository
 from tests.fakes.fake_user_clock_port import FakeUserClockPort
 
@@ -175,7 +176,7 @@ async def test_a_deleted_reminder_frees_a_place_under_the_cap() -> None:
         await _created(repository=repository, user_id=user_id, fields=_fields())
         for _ in range(MAX_ACTIVE_REMINDERS)
     ]
-    await DeleteReminderInteractor(reminder_repository=repository).delete_reminder(
+    await _delete(repository).delete_reminder(
         dto=DeleteReminderInputDTO(user_id=user_id, reminder_id=created[0].id)
     )
 
@@ -213,6 +214,16 @@ def _update(repository: FakeReminderRepository) -> UpdateReminderInteractor:
         reminder_repository=repository,
         user_clock=FakeUserClockPort(),
         now_provider=_now,
+    )
+
+
+def _delete(
+    repository: FakeReminderRepository,
+    notifications: FakeNotificationPort | None = None,
+) -> DeleteReminderInteractor:
+    return DeleteReminderInteractor(
+        reminder_repository=repository,
+        notifications=notifications or FakeNotificationPort(),
     )
 
 
@@ -329,7 +340,7 @@ async def test_delete_clears_the_next_fire_time() -> None:
     user_id = uuid.uuid4()
     reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
 
-    await DeleteReminderInteractor(reminder_repository=repository).delete_reminder(
+    await _delete(repository).delete_reminder(
         dto=DeleteReminderInputDTO(user_id=user_id, reminder_id=reminder.id)
     )
 
@@ -337,13 +348,30 @@ async def test_delete_clears_the_next_fire_time() -> None:
     assert await repository.get_by_id(user_id=user_id, reminder_id=reminder.id) is None
 
 
+async def test_delete_hides_its_notifications() -> None:
+    """A reminder's notification history stops showing once it is deleted,
+    so an old "Open" never lands on a page saying the reminder is gone."""
+    repository = FakeReminderRepository(now_provider=_now)
+    notifications = FakeNotificationPort()
+    user_id = uuid.uuid4()
+    reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
+
+    await _delete(repository, notifications).delete_reminder(
+        dto=DeleteReminderInputDTO(user_id=user_id, reminder_id=reminder.id)
+    )
+
+    assert notifications.hidden_reminder_ids == [reminder.id]
+
+
 async def test_deleting_a_missing_reminder_is_not_found() -> None:
+    notifications = FakeNotificationPort()
     with pytest.raises(ReminderNotFoundError):
-        await DeleteReminderInteractor(
-            reminder_repository=FakeReminderRepository(now_provider=_now)
+        await _delete(
+            FakeReminderRepository(now_provider=_now), notifications
         ).delete_reminder(
             dto=DeleteReminderInputDTO(user_id=uuid.uuid4(), reminder_id=uuid.uuid4())
         )
+    assert notifications.hidden_reminder_ids == []
 
 
 async def test_list_puts_upcoming_soonest_first() -> None:

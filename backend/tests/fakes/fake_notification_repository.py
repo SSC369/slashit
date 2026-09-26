@@ -212,6 +212,17 @@ class FakeNotificationRepository:
                     read_at=row.read_at or acted_at,
                 )
 
+    async def soft_delete_for_target(
+        self, *, user_id: uuid.UUID, target_id: uuid.UUID, now: datetime
+    ) -> int:
+        live_ids = [
+            row.id
+            for row in self._live_rows_for(user_id=user_id)
+            if row.target_id == target_id
+        ]
+        self.deleted_ids.update(live_ids)
+        return len(live_ids)
+
     async def soft_delete_created_before(
         self, *, cutoff: datetime, now: datetime, limit: int
     ) -> int:

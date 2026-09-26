@@ -370,7 +370,8 @@ def build_update_reminder_interactor(context: Context) -> UpdateReminderInteract
 
 def build_delete_reminder_interactor(context: Context) -> DeleteReminderInteractor:
     return DeleteReminderInteractor(
-        reminder_repository=SqlReminderRepository(context.session)
+        reminder_repository=SqlReminderRepository(context.session),
+        notifications=_build_reminder_notifications_port(session=context.session),
     )
 
 

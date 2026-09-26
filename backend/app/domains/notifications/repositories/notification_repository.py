@@ -374,6 +374,23 @@ class SqlNotificationRepository:
                 )
             )
 
+    async def soft_delete_for_target(
+        self, *, user_id: uuid.UUID, target_id: uuid.UUID, now: datetime
+    ) -> int:
+        async with user_transaction(self.session, user_id) as scoped:
+            result = await scoped.execute(
+                update(Notification)
+                .where(
+                    Notification.user_id == user_id,
+                    Notification.target_id == target_id,
+                    Notification.deleted_at.is_(None),
+                )
+                .values(deleted_at=now)
+                .returning(Notification.id)
+            )
+            stamped_ids = result.scalars().all()
+        return len(stamped_ids)
+
     async def soft_delete_created_before(
         self, *, cutoff: datetime, now: datetime, limit: int
     ) -> int:

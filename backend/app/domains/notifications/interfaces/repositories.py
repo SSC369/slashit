@@ -94,6 +94,13 @@ class NotificationRepository(Protocol):
         """Stamps what was done about the firing, and marks it read."""
         ...
 
+    async def soft_delete_for_target(
+        self, *, user_id: UUID, target_id: UUID, now: datetime
+    ) -> int:
+        """Stamps ``deleted_at`` on every live notification pointed at this
+        target (a deleted reminder, say). Returns how many."""
+        ...
+
     async def soft_delete_created_before(
         self, *, cutoff: datetime, now: datetime, limit: int
     ) -> int:
