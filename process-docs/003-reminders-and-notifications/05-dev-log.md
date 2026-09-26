@@ -6,7 +6,7 @@ stage: 5
 status: draft
 owner: user
 created: 2026-09-23
-updated: 2026-09-23
+updated: 2026-09-26
 approved_on: null
 supersedes: null
 ---
@@ -309,6 +309,22 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 | T-3.10: first real email | A verified sending domain and a Resend key |
 | Supabase Redirect URLs allow paths under the site URL (D-39) | Dashboard access |
 
+## Next up
+
+Work continues from a local machine, on `main`. Do these in order; each closes an item under "What the feature still owes".
+
+| # | Step | Needs | Closes |
+|---|---|---|---|
+| 1 | Fill `backend/.env` and `frontend/.env` from their `.env.example`: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GEMINI_API_KEY`; `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GRAPHQL_HTTP_URL`, `VITE_GRAPHQL_WS_URL` | Supabase project, Gemini key | — |
+| 2 | `alembic upgrade head` against the Supabase database, so migrations 0016 to 0022 are applied | Step 1 | — |
+| 3 | Run the API, the worker (`python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`) and `npm run dev` | Step 2 | — |
+| 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | D-39 |
+| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | T-1.14, T-2.15, D-31 |
+| 6 | Verify a sending domain in Resend (SPF, DKIM). Set `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, `REMINDER_EMAIL_ENABLED=true`. Fire one reminder; confirm the email arrives and its link opens the reminder after sign-in | Domain, Resend key | T-3.10 |
+| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done |
+
+Local test database used in the cloud session: PostgreSQL 16 on port 54329 with a stub `auth` schema. Locally, point `DATABASE_URL` at any PostgreSQL 16 for `pytest -m "not live"`.
+
 ## Change log
 
 | Date | Change | Why | Approved by |
@@ -317,3 +333,4 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 | 2026-09-23 | Slice 2 built: migrations 0019 and 0020, the `notifications` domain, firing, Done and Snooze, the live feed over LISTEN/NOTIFY and a WebSocket, the bell, panel, pop-ups and row actions. 243 backend and 128 frontend tests pass; a real worker fired a reminder; 2,000 due at once fired at p95 28.5 s. Live browser pass blocked in this environment | User: "Proceed", approving 4.2 | user |
 | 2026-09-23 | Slice 3 built: migration 0021, email delivery with its daily cap and paused notice, the `send_email` job, `updateReminderSettings`, the Settings reminders section with every drawn state, the `email_paused` notice, return to the link after sign-in, and the "Change default time" link. 260 backend and 147 frontend tests pass. Email ships off; the first real send (T-3.10) waits on a sending domain | User: "Commit and proceed with next", approving 4.3 | user |
 | 2026-09-23 | Slice 4 built: migration 0022, timezone moves through `reminders.timezone_changed`, hourly reconciliation, the 90-day soft delete, the firing kill switch, and cross-slice cases X-1 and X-2. 276 backend and 148 frontend tests pass; a real worker moved a reminder from Kolkata to London time. The feature's definition of done is checked; three live checks remain owed | User: "1", approving 4.4 | user |
+| 2026-09-26 | "Next up" added: the steps to close T-1.14, T-2.15 and T-3.10 from a local machine. Branch merged into `main` | User: "Merge code into main i will work from laptop and add into dev logs as to work on this next" | user |
