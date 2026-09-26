@@ -22,8 +22,8 @@ they happen, per rule 5 of the root ruleset.
 
 Backend and frontend built 2026-09-23. Verified against a real local
 PostgreSQL 16 with a stub Supabase `auth` schema, and in unit and component
-tests. **Not yet verified live in a browser** against a real Supabase session
-and the real model: see T-1.14 and "Not done, and why".
+tests. **Verified live in a browser** against a real Supabase session and the
+real model, 2026-09-26: see T-1.14.
 
 ### Tasks
 
@@ -42,7 +42,7 @@ and the real model: see T-1.14 and "Not done, and why".
 | T-1.11 | Reminders tab and All tab with every list state | **done** | Loading, grouped list, empty, error, no match, offline and session ended, each with a test in `RecordsController.test.tsx`. Done and Snooze on rows are slice 2 |
 | T-1.12 | Detail, edit, delete with every state | **done** | Detail, loading, not found, invalid, time passed, save failed, deleted while editing, success toast, deleting, delete failed, offline: `ReminderDetailController.test.tsx`, 11 cases |
 | T-1.13 | Log AD-7 against 001 in its dev log | **done** | Entry D-44 in `001-capture-and-records-foundation/05-dev-log.md` |
-| T-1.14 | Live pass against the real database and model in a browser | **blocked** | This container has no Supabase project to sign in against and its Gemini key is a placeholder. See "Not done, and why" |
+| T-1.14 | Live pass against the real database and model in a browser | **done**, 2026-09-26 | `/remind test browser pass in 2 minutes` through a real Supabase session and Gemini: resolved to today 9:03 PM, capture card showed the result; Reminders tab, detail and delete checked. Edit not exercised this pass. Light theme only; mobile and dark not checked (D-31) |
 
 ### Verification
 
@@ -59,7 +59,7 @@ and the real model: see T-1.14 and "Not done, and why".
 | `oxlint` | One warning, pre-existing: unused `StrictMode` import in `main.tsx` |
 | `vitest run` | **112 passed** (65 before this slice) |
 | `npm run build` | Clean production build |
-| Browser pass | Not run. See T-1.14 |
+| Browser pass | **Run**, 2026-09-26. See T-1.14 |
 
 ### Deviations
 
@@ -81,11 +81,12 @@ and the real model: see T-1.14 and "Not done, and why".
 | D-14 | Offline, the Reminders tab shows the design's reminder-specific note inside the pane. 001's global offline banner still shows above it | The global banner is rendered by the app shell on every route; suppressing it for one tab would be a special case in the shell | Two offline notices on this one tab. A design follow-up, not a defect |
 | D-15 | A `/remind` refused for the cap or because the model is unreadable puts the command back in the bar, and the capture Enter handler now clears the bar **before** submitting | The design's copy says "kept below". Clearing after submitting erased a restore that arrived first; a component test caught it | 001's task refusal card is unchanged |
 | D-16 | `RemindAsk`'s three quick answers ("In 1 hour", "This evening, 7:00 PM", "Tomorrow, 9:00 AM") are fixed text sent as the answer and read by the model like typed text | The design draws them as fixed chips | "This evening, 7:00 PM" asked after 7 PM resolves to tomorrow, and the card says so through D-2's note |
+| D-53 | `ReminderDetailView` gets Done and Snooze buttons when `reminder.state === "FIRED"`, wired the same way as the Reminders tab row (2026-09-26). `RowActions` was pulled out of `ReminderTable.tsx` into a shared `ReminderRowActions.tsx` so both places use one component. Fixed in the same change: the detail page's `Status` field used its own `"Done" : "Active"` ternary, disagreeing with the pill above it (which used the shared tone map and could say "Missed" or the fired label); both now read `REMINDER_STATUS_LABEL[reminderStatusTone(reminder)]` | The user opened a reminder from its email link, saw it was fired, and had no way to mark it done or snooze it without leaving the page. FR-27 draws every field but the canvas never drew this action, and nothing in 04.1 or 04.2 called for it | `ReminderDetailController` gained the same `handleDone`/`handleSnooze`/`applyAction` triple `RemindersController` already had, single-reminder rather than a map. Two new tests in `ReminderDetailController.test.tsx` |
+| D-55 | The `FIRED` tone's label changed from "Fired, not done" to "Needs action" | The user was offered three short options ("Fired", "Needs action", "Pending") after asking for shorter status text, and picked "Needs action" | `REMINDER_STATUS_LABEL.FIRED` in `formatReminder.ts`, and the design comment in `components/styles.ts`. Upcoming/Missed/Done were already short and are unchanged |
 
 ### Not done, and why
 
-- **T-1.14, the live browser pass.** The frontend signs in through Supabase and the backend checks that token against Supabase's keys. This container has neither a Supabase project nor a working Gemini key, so the one path that ties them together, `/remind` in a browser, cannot run here. Everything below it is verified: the API against a real database, the UI against mocked operations. Owed before this slice is called done: one pass on a machine with `backend/.env` and `frontend/.env` pointing at the real project.
-- **"Change default time" link** on the default-time card (`RemindResolved`). The control it links to arrives in slice 3 (FR-31), so a link now would lead nowhere useful. Added with slice 3.
+ **"Change default time" link** on the default-time card (`RemindResolved`). The control it links to arrives in slice 3 (FR-31), so a link now would lead nowhere useful. Added with slice 3.
 - **Done and Snooze** on Needs attention rows, and the Needs attention group itself in practice. Nothing fires until slice 2, so no reminder reaches that state yet.
 
 ### Incidents and defects
@@ -99,8 +100,7 @@ and the real model: see T-1.14 and "Not done, and why".
 
 Backend and frontend built 2026-09-23. Verified against a real local
 PostgreSQL 16, a real Procrastinate worker, and a real WebSocket, and in unit
-and component tests. **Not yet verified live in a browser**: T-2.15 hits the
-same missing Supabase project as T-1.14.
+and component tests. **Verified live in a browser**, 2026-09-26: see T-2.15.
 
 ### Tasks
 
@@ -120,7 +120,7 @@ same missing Supabase project as T-1.14.
 | T-2.12 | Pop-up stack and Snooze menu | **done** | TC-2.17, TC-2.18: acting, failed, offline, resulting times |
 | T-2.13 | Done and Snooze on Needs attention rows | **done** | TC-2.19, and a failed Done kept on its row |
 | T-2.14 | Load check | **done** | TC-2.20, below |
-| T-2.15 | Live pass in a browser | **blocked** | As T-1.14: no Supabase project to sign in against in this container |
+| T-2.15 | Live pass in a browser | **done**, 2026-09-26 | The reminder from T-1.14 fired live over the real WebSocket: bell badge, panel row and pop-up all showed it at its due time. Done tested from the panel, cleared the badge and stamped "marked done" in the list and detail. Snooze not tested this pass. Light theme only (D-31) |
 
 ### Verification
 
@@ -134,7 +134,7 @@ same missing Supabase project as T-1.14.
 | TC-2.20, 2,000 reminders due in one minute across 20 users, local | Default concurrency: all fired, p50 24.7 s, **p95 41.3 s**, max 43.1 s. `--concurrency=10`: p50 16.0 s, **p95 28.5 s**, max 29.7 s. NFR-1 asks for 60 s. Measured, not `estimate`; a hosted database will differ |
 | `tsc -b`, `oxlint`, `npm run build` | Clean; oxlint's one warning is still the old `StrictMode` import |
 | `vitest run` | **128 passed** (112 after slice 1) |
-| Browser pass | Not run. See T-2.15 |
+| Browser pass | **Run**, 2026-09-26. See T-2.15 |
 
 ### Deviations
 
@@ -155,10 +155,10 @@ same missing Supabase project as T-1.14.
 | D-29 | The Reminders tab does not update live when a reminder fires; it reloads on its next visit | A push carries a notification, not the reminder's new state. The bell, panel and pop-up do update live | Known gap. A second subscription payload, or a refetch on push, would close it |
 | D-30 | A failed Done or Snooze on a Reminders row says "That didn't save. Try again." beside it | The design drew row actions but not their failure | Copy not on the canvas; to review |
 | D-31 | Mobile artboards `MobileNotifications`, `MobileReminderToast` unmatched, per decision 2. The dark artboards use the existing dark tokens and were not checked by eye | Decision 2 | Owed with a mobile shell and a browser pass |
+| D-54 | The Reminders tab table gains its own Actions column; Done and Snooze no longer sit inside the Status cell beside the pill (2026-09-26) | The user found the combined cell clumsy in a live browser pass and asked for a separate column | `ReminderTable.tsx`: `COLUMN_COUNT` 4 to 5, one more `<th>`, the pill and `ReminderRowActions` split across two `<td>`s. No behaviour change; existing tests already query by role and text, not column position, and all still pass |
 
 ### Not done, and why
 
-- **T-2.15, the live browser pass**, for T-1.14's reason. The pieces under it are each proven on real infrastructure: the worker, the database, NOTIFY and a real WebSocket.
 - **Live refresh of the Reminders tab** on a push (D-29).
 
 ### Incidents and defects
@@ -174,9 +174,10 @@ same missing Supabase project as T-1.14.
 
 Backend and frontend built 2026-09-23. Verified against a real local
 PostgreSQL 16, in unit, integration and component tests. Email ships switched
-off (decision 2): **no real email has been sent**. T-3.10 waits on a verified
-sending domain and a Resend key, and the browser pass waits on T-1.14's
-Supabase project.
+off (decision 2). T-3.10, redefined by D-52 to a real send through SMTP, sent
+and confirmed 2026-09-26. Resend itself, a verified sending domain and full
+email testing move to epic 012, Production Readiness. The browser pass ran
+2026-09-26, see T-1.14.
 
 ### Tasks
 
@@ -191,7 +192,7 @@ Supabase project.
 | T-3.7 | `email_paused` notice in the panel | **done** | TC-3.11: title, detail, no Done, Snooze or Open |
 | T-3.8 | Return to the link after sign-in | **done** | TC-3.12, email and Google. Logged against 002 (D-39) |
 | T-3.9 | "Change default time" link on the capture card | **done** | Asserted in the capture test; links to `/settings` (D-40) |
-| T-3.10 | Real send, once a domain and key exist | **waiting** | No sending domain or key exists (build plan Q9). Set `REMINDER_EMAIL_ENABLED`, `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, fire one reminder, and record the email here |
+| T-3.10 | Real send | **done**, 2026-09-26 | Redefined by D-52: closes on a real send through SMTP, not Resend. `/remind test smtp email take two in 2 minutes` fired, `notifications.email_sent` logged (`handoff_ms=5255`), and the email was confirmed received at the account address. Resend production integration and full email testing move to epic 012, Production Readiness |
 
 ### Verification
 
@@ -203,8 +204,8 @@ Supabase project.
 | `alembic downgrade 0020_procrastinate_schema` then `upgrade head` | Clean |
 | `tsc -b`, `oxlint`, `npm run build` | Clean; oxlint's one warning is still the old `StrictMode` import |
 | `vitest run` | **147 passed** (128 after slice 2) |
-| Real email | Not sent. See T-3.10 |
-| Browser pass | Not run. See T-1.14 |
+| Real email | **Sent**, 2026-09-26, through SMTP. See T-3.10 |
+| Browser pass | **Run**, 2026-09-26. See T-1.14 |
 
 ### Deviations
 
@@ -221,12 +222,11 @@ Supabase project.
 | D-40 | The capture card shows "Change default time" when `whenNote` is the server's default-time sentence | No field says which rule wrote the note (D-2), and adding one for a link was more than the link is worth | A change to that sentence in `schedule_planner.py` must change `DEFAULT_TIME_NOTE` in `ReminderCards.tsx` too |
 | D-41 | The `email_paused` notice uses the `MailX` icon | The artboard's icon was not matched glyph for glyph | Visual only |
 | D-51 | `SmtpEmailSender` (`notifications/services/smtp_sender.py`) implements `EmailSenderPort` beside `ResendEmailSender`. `deps.py`'s `build_send_email_interactor` picks it when `ENVIRONMENT=local`; every other environment still uses Resend. New settings: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Risk 2 in this sub-plan's table assumed no real send would happen before a Resend domain is verified. The user asked for a real local send sooner, against any SMTP relay reachable from a developer machine, so T-3.10's mechanics (content, cap, retries) could be checked before that domain exists | `smtplib` is blocking, run in a thread; it carries no idempotency key, so a retried job can send twice, accepted because this path only ever runs with `ENVIRONMENT=local`. `resend_sender.py`'s "the only Resend and queue calls" still holds: this is the only SMTP call, in the same `services/` folder repo-rules §6.3 asks for. Not unit-tested directly, matching `ResendEmailSender` |
+| D-52 | T-3.10 is redefined: it closes on a real send through SMTP, verified locally. The real Resend send, a verified sending domain, and full email testing (deliverability, bounce and complaint webhooks, spam checks) move out of this feature into epic 012, Production Readiness, in `process-docs/index.md` | The user asked to test email through SMTP within this feature, and to open a later "Production Readiness" epic whose own sub-plan integrates Resend for real and tests every email path. Waiting on a domain was blocking this feature's own done for a task that belongs to a later, dedicated epic | This feature's definition of done no longer needs a Resend domain. `03-build-plan.md` Q9 ("no sending domain or key yet") is answered by SMTP for this feature; Resend itself is out of scope here, tracked in epic 012 instead |
 
 ### Not done, and why
 
-- **T-3.10, the first real email through Resend.** No verified sending domain or Resend key exists. Everything up to the provider call is tested; the call itself is tested against a fake. A real send is now reachable locally through SMTP instead (D-51), for checking content, the cap and retries ahead of a Resend domain.
-- **The browser pass**, for T-1.14's reason.
-- **Resend bounce and complaint webhooks.** Out of this slice by 4.3 §3; they need a deployed public URL.
+- **Resend bounce and complaint webhooks.** Out of this slice by 4.3 §3; they need a deployed public URL. Resend itself is out of this feature (D-52), tracked in epic 012.
 - **`DarkSettingsReminders`** uses the existing dark tokens and was not checked by eye (D-31).
 
 ### Incidents and defects
@@ -290,6 +290,7 @@ component tests. This is the last slice; what the feature still owes is under
 | I-9 | `ruff format app`, and later `ruff format tests/fakes`, reformatted five old files outside this slice | I-7 again: formatting a folder instead of the changed files | Reverted with `git checkout`. Format changed files by name only |
 | I-10 | 43 integration tests failed to connect mid-session | The local PostgreSQL had stopped | Restarted; the suite passed |
 | I-11 | 002's `updateTimezone` integration test failed with `AppNotOpen` | D-47 | The `job_queue` fixture |
+| I-12 | On the local machine used for T-1.14/T-2.15, every request to Supabase's JWKS endpoint failed with `PyJWKClientConnectionError` / `CERTIFICATE_VERIFY_FAILED`, so every GraphQL call returned "Not authenticated" | This machine's Python is the python.org build, whose own CA bundle is empty until `Install Certificates.command` is run; `PyJWKClient` uses `urllib`, which reads that bundle rather than the OS keychain curl uses | Backend started with `SSL_CERT_FILE` pointed at the venv's `certifi` bundle. Not a code change; needed again on any machine with the same Python build. Worth a line in a future local-setup doc |
 
 ## What the feature still owes
 
@@ -297,18 +298,20 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 
 | Item | State |
 |---|---|
-| Every task shipped or dropped | Shipped, except T-1.14, T-2.15 and T-3.10 |
+| Every task shipped or dropped | **Shipped.** Every task, including T-3.10 (D-52) |
 | X-1 to X-6 against a real database | **Pass.** X-7 measured in slice 2 |
-| Every artboard matched | Not confirmed. No browser pass has run; mobile and dark artboards are unchecked (D-31) |
+| Every artboard matched | Light theme confirmed live, 2026-09-26 (T-1.14, T-2.15). Mobile and dark artboards still unchecked (D-31) |
 | Firing delay, duplicates, reconciliation and email outcomes logged | **Yes**: `reminders.fire_one` delay, the unique constraints, `reminders.lost`, `notifications.email_*` |
 | 001's dev log records AD-7 | **Yes**, as 001's D-44 (see D-8) |
-| `index.md` shows `shipped` | **No.** Blocked on the three items below |
+| `index.md` shows `shipped` | **No.** Blocked on the item below |
 
 | Owed | Blocked on |
 |---|---|
-| T-1.14, T-2.15: live browser passes, with the artboard check | A Supabase project reachable from the test environment, and a model key |
-| T-3.10: first real email through Resend, for staging and production | A verified sending domain and a Resend key. A real send is reachable now in local through SMTP (D-51) |
-| Supabase Redirect URLs allow paths under the site URL (D-39) | Dashboard access |
+| Mobile and dark artboards (D-31), and Edit/Snooze in the browser pass | A pass with the browser resized and dark mode forced |
+
+Resend's own real send, a verified sending domain, and full email testing are
+out of this feature's definition of done: they move to epic 012, Production
+Readiness (D-52).
 
 ## Next up
 
@@ -317,13 +320,12 @@ Work continues from a local machine, on `main`. Do these in order; each closes a
 | # | Step | Needs | Closes |
 |---|---|---|---|
 | 1 | Fill `backend/.env` and `frontend/.env` from their `.env.example`: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_JWKS_URL`, `SUPABASE_PUBLISHABLE_KEY`, `GEMINI_API_KEY`; `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_GRAPHQL_HTTP_URL`, `VITE_GRAPHQL_WS_URL` | Supabase project, Gemini key | — |
-| 2 | `alembic upgrade head` against the Supabase database, so migrations 0016 to 0022 are applied | Step 1 | — |
+| 2 | `alembic upgrade head` against the Supabase database, so migrations 0016 to 0022 are applied | Step 1 | **Done**, 2026-09-26. Ran clean, `0015_drop_pw_verify_hook` to `0022_notifications_soft_delete` |
 | 3 | Run the API, the worker (`python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`) and `npm run dev` | Step 2 | — |
-| 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | D-39 |
-| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | T-1.14, T-2.15, D-31 |
-| 6a | Local: fill `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` in `backend/.env` from any reachable SMTP relay, set `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT=local`, and fire one reminder to confirm content, the cap and retries (D-51) | An SMTP relay | Confidence ahead of T-3.10 |
-| 6b | Once a domain is owned: verify it in Resend (SPF, DKIM). Set `RESEND_API_KEY`, `REMINDER_EMAIL_FROM`, `APP_BASE_URL`, `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT` staging or production. Fire one reminder; confirm the email arrives and its link opens the reminder after sign-in | Domain, Resend key | T-3.10 |
-| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6b | Index definition of done |
+| 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | **Done**, 2026-09-26. D-39 |
+| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | **Done in part**, 2026-09-26. `/remind`, the Reminders tab, detail, delete, and a live firing with bell, panel and pop-up, Done, all checked in light theme (T-1.14, T-2.15). Edit, Snooze, mobile and dark still owed (D-31) |
+| 6 | Local: fill `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` in `backend/.env` from any reachable SMTP relay, set `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT=local`, and fire one reminder to confirm content, the cap and retries | An SMTP relay | **Done**, 2026-09-26. Gmail SMTP; `notifications.email_sent` logged and the email confirmed received. T-3.10 (D-52) |
+| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done. Step 5's Edit, Snooze, mobile and dark still open (D-31) |
 
 Local test database used in the cloud session: PostgreSQL 16 on port 54329 with a stub `auth` schema. Locally, point `DATABASE_URL` at any PostgreSQL 16 for `pytest -m "not live"`.
 
@@ -337,3 +339,7 @@ Local test database used in the cloud session: PostgreSQL 16 on port 54329 with 
 | 2026-09-23 | Slice 4 built: migration 0022, timezone moves through `reminders.timezone_changed`, hourly reconciliation, the 90-day soft delete, the firing kill switch, and cross-slice cases X-1 and X-2. 276 backend and 148 frontend tests pass; a real worker moved a reminder from Kolkata to London time. The feature's definition of done is checked; three live checks remain owed | User: "1", approving 4.4 | user |
 | 2026-09-26 | "Next up" added: the steps to close T-1.14, T-2.15 and T-3.10 from a local machine. Branch merged into `main` | User: "Merge code into main i will work from laptop and add into dev logs as to work on this next" | user |
 | 2026-09-26 | `SmtpEmailSender` added beside `ResendEmailSender` (D-51), used only when `ENVIRONMENT=local`, so a real reminder email can be seen before a Resend domain exists | User: "since we have not deployed yet, can you use smtp for sending emails for local, after app completed, I will take domain and get resend creds for it" | user |
+| 2026-09-26 | Migrations 0016 to 0022 applied to the Supabase database (step 2). Redirect URLs updated in Supabase (step 4). Backend, worker and frontend run against the real project (step 3). T-1.14 and T-2.15 closed: `/remind`, the Reminders tab, detail, delete, a live firing over the real WebSocket, and Done all verified in a browser against the real Supabase session and Gemini, light theme. Fixed I-12 (`SSL_CERT_FILE` for the JWKS fetch) along the way. Edit, Snooze, and the mobile and dark artboards (D-31) remain | User: "go" / "proceed" on each step | user |
+| 2026-09-26 | T-3.10 redefined (D-52): closes on a real send through SMTP, not Resend. Resend's own production integration and full email testing move to a new epic, 012 Production Readiness, added to `process-docs/index.md`'s Planned list | User: "I did not get any email when reminder triggered, we also need to test that. we need to test with smtp in this feat. in feats at last add another feat like prod ready in that one of the sub feat is to integrate resend and test all email related things" | user |
+| 2026-09-26 | T-3.10 closed: `REMINDER_EMAIL_ENABLED=true` set with Gmail SMTP credentials, a reminder fired, `notifications.email_sent` logged, and the user confirmed the email arrived. Every task in this feature is now shipped or redefined and closed; only D-31's mobile/dark artboards and Edit/Snooze in the browser pass remain before `index.md` can show `shipped` | User confirmed receipt when asked | user |
+| 2026-09-26 | Done and Snooze added to the reminder detail page (D-53); the Reminders tab table gained a separate Actions column (D-54); the fired status label shortened to "Needs action" (D-55), user's pick of three offered. 150 frontend tests pass (148 before), `tsc -b` and `oxlint` clean | User: opened a reminder from an email link and found no Done/Snooze there; asked for an Actions column instead of the combined Status cell; asked for shorter status text and picked from three options | user |
