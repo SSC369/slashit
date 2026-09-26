@@ -34,7 +34,7 @@ export const toastMessageStyles = "min-w-0 truncate";
 export const toastLinkStyles = "shrink-0 font-medium underline underline-offset-2";
 export const toastCloseStyles = "ml-1 flex shrink-0 opacity-70 hover:opacity-100";
 
-// Reminder status pill (design §8: Upcoming · Fired, not done · Missed · Done)
+// Reminder status pill (design §8: Upcoming · Needs action · Missed · Done)
 export const statusPillBaseStyles =
   "inline-flex h-[23px] items-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 text-[11.5px] font-medium";
 export const statusPillUpcomingStyles = "border-command-wash bg-command-wash text-command";

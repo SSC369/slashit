@@ -4,12 +4,17 @@ import { useEffect, useState, type ReactElement } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import useDeleteReminder from "../../../../api/mutations/DeleteReminder/useDeleteReminder";
+import useMarkReminderDone from "../../../../api/mutations/MarkReminderDone/useMarkReminderDone";
+import useSnoozeReminder from "../../../../api/mutations/SnoozeReminder/useSnoozeReminder";
 import useUpdateReminder from "../../../../api/mutations/UpdateReminder/useUpdateReminder";
 import useGetReminder from "../../../../api/queries/GetReminder/useGetReminder";
 import { useResponseHandler } from "../../../../api/queries/GetReminder/responseHandler";
 import { API_FAILED, API_FETCHING } from "../../../../constants/apiConstants";
 import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
+import type { ReminderFieldsFragment } from "../../../../fragments/ReminderFields.generated";
+import type { NotificationActionState } from "../../../../stores/NotificationsStore";
 import { useStore } from "../../../../stores/StoreProvider";
+import type { SnoozeOptionType } from "../../../../utils/formatNotification";
 import { formatReminderDateTime } from "../../../../utils/formatReminder";
 import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
 import PageTopbar from "../../../../components/PageTopbar";
@@ -50,11 +55,14 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
   const [editBanner, setEditBanner] = useState<EditBannerType>("NONE");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [actionState, setActionState] = useState<NotificationActionState | null>(null);
 
   const { triggerAPI: triggerGetReminder, data, apiStatus, apiError } = useGetReminder();
   const { handleResponse } = useResponseHandler();
   const { triggerAPI: triggerUpdateReminder, apiStatus: updateApiStatus } = useUpdateReminder();
   const { triggerAPI: triggerDeleteReminder, apiStatus: deleteApiStatus } = useDeleteReminder();
+  const { triggerAPI: triggerMarkDone } = useMarkReminderDone();
+  const { triggerAPI: triggerSnooze } = useSnoozeReminder();
 
   const reminder = store.reminders.get(id);
   const isEditing = mode === "EDIT";
@@ -154,6 +162,33 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
     });
   };
 
+  const applyAction = (updated: ReminderFieldsFragment, action: "DONE" | "SNOOZED"): void => {
+    store.reminders.upsert(updated);
+    store.notifications.applyReminderAction(updated.id, action);
+    setActionState(null);
+  };
+
+  const handleDone = (target: ReminderFieldsFragment): void => {
+    setActionState({ kind: "DONE", status: "ACTING" });
+    triggerMarkDone({
+      id: target.id,
+      onReminderActed: (updated) => applyAction(updated, "DONE"),
+      onReminderNotFound: () => setIsNotFound(true),
+      onRequestFailed: () => setActionState({ kind: "DONE", status: "FAILED" }),
+    });
+  };
+
+  const handleSnooze = (target: ReminderFieldsFragment, option: SnoozeOptionType): void => {
+    setActionState({ kind: "SNOOZE", status: "ACTING" });
+    triggerSnooze({
+      id: target.id,
+      option,
+      onReminderActed: (updated) => applyAction(updated, "SNOOZED"),
+      onReminderNotFound: () => setIsNotFound(true),
+      onRequestFailed: () => setActionState({ kind: "SNOOZE", status: "FAILED" }),
+    });
+  };
+
   const isSessionEnded = apiStatus === API_FAILED && isSessionEndedError(apiError);
   const hasLoadFailed = apiStatus === API_FAILED && reminder === null;
 
@@ -219,11 +254,15 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
       <ReminderDetailView
         reminder={reminder}
         isOffline={!isOnline}
+        actionState={actionState}
+        defaultReminderTime={store.settings.defaultReminderTime}
         onEdit={() => navigate(`/records/reminders/${id}/edit`)}
         onDelete={() => {
           setDeleteError(null);
           setIsDeleteOpen(true);
         }}
+        onDone={handleDone}
+        onSnooze={handleSnooze}
       />
     );
   };

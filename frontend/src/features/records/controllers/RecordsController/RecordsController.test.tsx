@@ -1,5 +1,6 @@
 import { CombinedGraphQLErrors } from "@apollo/client/errors";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { useSyncExternalStore } from "react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -16,14 +17,35 @@ const {
   mockUseOnlineStatus,
   mockMarkDone,
   mockSnooze,
-} = vi.hoisted(() => ({
-  mockUseGetRecords: vi.fn(),
-  mockUseRecordsViewOpened: vi.fn(),
-  mockUseGetReminders: vi.fn(),
-  mockUseOnlineStatus: vi.fn(),
-  mockMarkDone: vi.fn(),
-  mockSnooze: vi.fn(),
-}));
+  recordsResult,
+} = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  return {
+    mockUseGetRecords: vi.fn(),
+    mockUseRecordsViewOpened: vi.fn(),
+    mockUseGetReminders: vi.fn(),
+    mockUseOnlineStatus: vi.fn(),
+    mockMarkDone: vi.fn(),
+    mockSnooze: vi.fn(),
+    // `useGetRecords` needs to behave like the real Apollo hook: able to
+    // update its own return value asynchronously on an already-mounted
+    // component, the same way a response arriving later would. A plain
+    // `vi.fn()` return value has no way to notify React of that on its own
+    // (and `RecordsController` is `observer`-wrapped, which applies
+    // `React.memo`, so a parent-driven `rerender()` with unchanged props is
+    // bailed out and never re-invokes the mock at all) — subscribing through
+    // `useSyncExternalStore` fixes both.
+    recordsResult: {
+      subscribe: (listener: () => void) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      notify: () => {
+        listeners.forEach((listener) => listener());
+      },
+    },
+  };
+});
 
 vi.mock("../../../../api/mutations/MarkReminderDone/useMarkReminderDone", () => ({
   default: () => ({ triggerAPI: mockMarkDone, apiStatus: 0, apiError: null }),
@@ -42,7 +64,7 @@ vi.mock("../../../../hooks/useOnlineStatus", () => ({
 }));
 
 vi.mock("../../../../api/queries/GetRecords/useGetRecords", () => ({
-  default: () => mockUseGetRecords(),
+  default: () => useSyncExternalStore(recordsResult.subscribe, () => mockUseGetRecords()),
 }));
 
 vi.mock("../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened", () => ({
@@ -57,6 +79,15 @@ const renderWithProviders = () =>
       </StoreProvider>
     </MemoryRouter>,
   );
+
+/** Simulates a `useGetRecords` response landing after the component already
+ * rendered (a tab switch, a debounced search), the way the real hook would. */
+const setRecordsResult = (value: ReturnType<typeof mockUseGetRecords>): void => {
+  act(() => {
+    mockUseGetRecords.mockReturnValue(value);
+    recordsResult.notify();
+  });
+};
 
 describe("RecordsController", () => {
   beforeEach(() => {
@@ -146,6 +177,80 @@ describe("RecordsController", () => {
     expect(screen.getByText("Call Mom")).toBeInTheDocument();
     expect(screen.getByText("Reminder")).toBeInTheDocument();
     expect(screen.getByText("Reminders carry a round marker, tasks a square one")).toBeInTheDocument();
+  });
+
+  describe("Tasks tab", () => {
+    it("shows the skeleton, not a stale flash, the moment a loaded tab is switched", () => {
+      mockUseGetRecords.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: {
+          records: [
+            {
+              __typename: "Task",
+              id: "1",
+              title: "Finish API docs",
+              dueAt: null,
+              status: "pending",
+              isOverdue: false,
+              origin: "command",
+              originalInput: null,
+              createdAt: "2026-09-13T00:00:00Z",
+              updatedAt: "2026-09-13T00:00:00Z",
+            },
+          ],
+        },
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      renderWithProviders();
+      expect(screen.getByText("Finish API docs")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+
+      // The mocked hook's apiStatus/data are still the All tab's stale
+      // response at this instant; switching tabs must show the skeleton
+      // regardless, never the bare table (stale row) or an empty view.
+      expect(screen.queryByText("Finish API docs")).not.toBeInTheDocument();
+      expect(screen.queryByText("No tasks yet")).not.toBeInTheDocument();
+      expect(screen.queryByText("Every record here was created by a command")).not.toBeInTheDocument();
+    });
+
+    it("shows its own empty view once the Tasks tab actually loads with zero tasks", () => {
+      // A reminder on the All tab, so the tab bar is showing (not the
+      // full-page "first ever" empty state) when Tasks is clicked.
+      mockUseGetRecords.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: { records: [{ __typename: "Reminder", ...reminder({ description: "Call Mom" }) }] },
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      renderWithProviders();
+
+      fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+      // Simulate the debounced Tasks request completing.
+      setRecordsResult({ triggerAPI: vi.fn(), data: { records: [] }, apiStatus: API_SUCCESS, apiError: null });
+
+      expect(screen.getByText("No tasks yet")).toBeInTheDocument();
+    });
+
+    it("shows the no-match view, not the empty view, for a search with zero results", () => {
+      mockUseGetRecords.mockReturnValue({
+        triggerAPI: vi.fn(),
+        data: { records: [{ __typename: "Reminder", ...reminder({ description: "Call Mom" }) }] },
+        apiStatus: API_SUCCESS,
+        apiError: null,
+      });
+      renderWithProviders();
+      fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
+      setRecordsResult({ triggerAPI: vi.fn(), data: { records: [] }, apiStatus: API_SUCCESS, apiError: null });
+      expect(screen.getByText("No tasks yet")).toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: "zzz" } });
+      setRecordsResult({ triggerAPI: vi.fn(), data: { records: [] }, apiStatus: API_SUCCESS, apiError: null });
+
+      expect(screen.getByText("No tasks match “zzz”")).toBeInTheDocument();
+      expect(screen.queryByText("No tasks yet")).not.toBeInTheDocument();
+    });
   });
 
   describe("Reminders tab", () => {

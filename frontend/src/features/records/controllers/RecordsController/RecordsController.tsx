@@ -1,5 +1,6 @@
+import { ClipboardList, SearchX } from "lucide-react";
 import { observer } from "mobx-react-lite";
-import { useEffect, type ChangeEvent, type ReactElement } from "react";
+import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 
 import useGetRecords from "../../../../api/queries/GetRecords/useGetRecords";
@@ -11,6 +12,7 @@ import { useStore } from "../../../../stores/StoreProvider";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
 import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
+import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
 import RemindersController from "../RemindersController/RemindersController";
@@ -30,6 +32,7 @@ const RecordsController = (): ReactElement => {
   const { triggerAPI: triggerRecordsViewOpened } = useRecordsViewOpened();
 
   const { kindFilter, searchText, sortField } = store.records;
+  const trimmedSearch = searchText.trim();
 
   useEffect(() => {
     // PRD section 8's "weekly actives opening a records view" metric. Fired
@@ -40,6 +43,21 @@ const RecordsController = (): ReactElement => {
   }, []);
 
   const isRemindersTab = kindFilter === "REMINDERS";
+
+  // A tab, search or sort change makes the current `apiStatus` stale until a
+  // response for the new filter lands. Without this, switching tabs shows a
+  // false "0 records" flash: `apiStatus` is still SUCCESS from the previous
+  // tab, and `getVisible()` already returns nothing for the new one. Setting
+  // state during render (React's documented pattern for resetting state when
+  // a derived value changes) catches the change before the first paint, so
+  // there is no flash to begin with.
+  const currentFilterKey = `${kindFilter}|${searchText}|${sortField}`;
+  const [committedFilterKey, setCommittedFilterKey] = useState(currentFilterKey);
+  const [isFilterPending, setIsFilterPending] = useState(false);
+  if (committedFilterKey !== currentFilterKey) {
+    setCommittedFilterKey(currentFilterKey);
+    setIsFilterPending(true);
+  }
 
   useEffect(() => {
     // The Reminders tab loads its own grouped query.
@@ -66,6 +84,7 @@ const RecordsController = (): ReactElement => {
       data,
       onRecordsLoaded: (records) => store.records.setRecords(records),
     });
+    setIsFilterPending(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
@@ -86,15 +105,20 @@ const RecordsController = (): ReactElement => {
   };
 
   const records = store.records.getVisible();
-  const hasLoadedOnce = apiStatus === API_SUCCESS;
-  const showEmpty =
-    hasLoadedOnce && records.length === 0 && !searchText && kindFilter === "ALL";
+  const hasLoadedOnce = apiStatus === API_SUCCESS && !isFilterPending;
+  const isTrulyEmpty = hasLoadedOnce && records.length === 0 && !trimmedSearch;
+  const isNoMatch = hasLoadedOnce && records.length === 0 && trimmedSearch !== "";
+  const noun = kindFilter === "TASKS" ? "tasks" : "records";
+
+  // The very first time this account has anything at all, on the All tab,
+  // the whole tab bar is hidden too: there is nothing yet to filter.
+  const showFirstEverEmpty = isTrulyEmpty && kindFilter === "ALL";
 
   return (
     <div className={Styles.pageStyles}>
       <PageTopbar title="Records" />
 
-      {showEmpty ? (
+      {showFirstEverEmpty ? (
         <EmptyRecords onStartCapturing={() => navigate("/")} />
       ) : (
         <div className={RecordsStyles.paneStyles}>
@@ -129,12 +153,24 @@ const RecordsController = (): ReactElement => {
           </div>
           {isRemindersTab ? (
             <RemindersController />
-          ) : (
-            <RecordTable
-              records={records}
-              onOpenRecord={handleOpenRecord}
-              isLoading={!hasLoadedOnce}
+          ) : isNoMatch ? (
+            <ReminderListNotice
+              icon={<SearchX size={24} />}
+              title={`No ${noun} match “${trimmedSearch}”`}
+              body="Search covers the title. Try another word, or clear the search."
+              actionLabel="Clear search"
+              onAction={() => store.records.setSearchText("")}
             />
+          ) : isTrulyEmpty ? (
+            <ReminderListNotice
+              icon={<ClipboardList size={24} />}
+              title="No tasks yet"
+              body="Tasks appear here the moment you add one. Nothing is hidden from this view."
+              actionLabel="Start capturing"
+              onAction={() => navigate("/")}
+            />
+          ) : (
+            <RecordTable records={records} onOpenRecord={handleOpenRecord} isLoading={!hasLoadedOnce} />
           )}
         </div>
       )}

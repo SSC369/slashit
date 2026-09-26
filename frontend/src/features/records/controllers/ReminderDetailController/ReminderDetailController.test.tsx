@@ -9,12 +9,15 @@ import { StoreProvider } from "../../../../stores/StoreProvider";
 import { buildReminder } from "../../../../testing/reminderFixture";
 import ReminderDetailController from "./ReminderDetailController";
 
-const { mockUseGetReminder, mockUpdate, mockDelete, mockUseOnlineStatus } = vi.hoisted(() => ({
-  mockUseGetReminder: vi.fn(),
-  mockUpdate: vi.fn(),
-  mockDelete: vi.fn(),
-  mockUseOnlineStatus: vi.fn(),
-}));
+const { mockUseGetReminder, mockUpdate, mockDelete, mockMarkDone, mockSnooze, mockUseOnlineStatus } =
+  vi.hoisted(() => ({
+    mockUseGetReminder: vi.fn(),
+    mockUpdate: vi.fn(),
+    mockDelete: vi.fn(),
+    mockMarkDone: vi.fn(),
+    mockSnooze: vi.fn(),
+    mockUseOnlineStatus: vi.fn(),
+  }));
 
 vi.mock("../../../../api/queries/GetReminder/useGetReminder", () => ({
   default: () => mockUseGetReminder(),
@@ -24,6 +27,12 @@ vi.mock("../../../../api/mutations/UpdateReminder/useUpdateReminder", () => ({
 }));
 vi.mock("../../../../api/mutations/DeleteReminder/useDeleteReminder", () => ({
   default: () => ({ triggerAPI: mockDelete, apiStatus: API_INITIAL, apiError: null }),
+}));
+vi.mock("../../../../api/mutations/MarkReminderDone/useMarkReminderDone", () => ({
+  default: () => ({ triggerAPI: mockMarkDone, apiStatus: API_INITIAL, apiError: null }),
+}));
+vi.mock("../../../../api/mutations/SnoozeReminder/useSnoozeReminder", () => ({
+  default: () => ({ triggerAPI: mockSnooze, apiStatus: API_INITIAL, apiError: null }),
 }));
 vi.mock("../../../../hooks/useOnlineStatus", () => ({
   useOnlineStatus: () => mockUseOnlineStatus(),
@@ -85,6 +94,27 @@ describe("ReminderDetailController", () => {
     expect(screen.getByText("Mon to Fri, every week")).toBeInTheDocument();
     expect(screen.getByText("Asia/Kolkata")).toBeInTheDocument();
     expect(screen.getAllByText("Not yet")).toHaveLength(2);
+  });
+
+  it("shows Done and Snooze for a reminder that needs attention, and Done marks it done", () => {
+    const fired = buildReminder({ id: "r1", description: "Standup notes", state: "FIRED" });
+    loadedAs(fired);
+    mockMarkDone.mockImplementation((args) => args.onReminderActed({ ...fired, state: "DONE" }));
+    renderAt("/records/reminders/r1");
+
+    expect(screen.getAllByText("Needs action")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("button", { name: /Done/ }));
+
+    expect(mockMarkDone).toHaveBeenCalledWith(expect.objectContaining({ id: "r1" }));
+    expect(screen.queryByRole("button", { name: /Done/ })).not.toBeInTheDocument();
+  });
+
+  it("does not show Done or Snooze once a reminder is done", () => {
+    loadedAs(buildReminder({ id: "r1", state: "DONE" }));
+    renderAt("/records/reminders/r1");
+
+    expect(screen.queryByRole("button", { name: /Done/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Snooze/ })).not.toBeInTheDocument();
   });
 
   it("shows the skeleton until the reminder arrives", () => {
