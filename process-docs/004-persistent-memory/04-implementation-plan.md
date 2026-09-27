@@ -3,10 +3,10 @@ doc: implementation-plan
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 4
-status: approved
+status: in-review
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 split: true
@@ -15,6 +15,9 @@ split: true
 # Implementation Plan (LLD) — Persistent Memory
 
 > **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
+
+> **Re-opened** 2026-09-27 by the soft-delete change record, pending approval.
+> Slice 4 added; the scrub port contract in §4 changes.
 
 Context: [PRD](./01-prd.md) · [Design](./02-design.md) · [Build plan](./03-build-plan.md)
 
@@ -35,6 +38,7 @@ Tables this feature touches, by migration:
 | `capture_turns` | changed: `forgotten_at`, `affected_count`, the scrub check constraint, outcome `memory_forgotten` | `0028_forget` | 2 |
 | `pending_captures` | changed: `missing_field` value `memory_conflict`, `candidate_text`, `candidate_category`, `conflicting_memory_ids` | `0029_memory_conflicts` | 3 |
 | `capture_turns` | changed: outcome `memory_conflict_resolved` | `0029_memory_conflicts` | 3 |
+| `memories`, `capture_turns` | changed: both scrub check constraints dropped | `0030_soft_forget` | 4, pending |
 
 The build plan's §3 named five migrations. They are split here by slice, so
 each slice migrates only what it uses. The schema is unchanged.
@@ -72,6 +76,7 @@ slice before each lands, as 003 did.
 | 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | approved 2026-09-25; built 2026-09-25, T-1.1, T-1.11, T-1.14 owed |
 | 2 | [04.2-forget.md](./04.2-forget.md) | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | approved 2026-09-25; built 2026-09-25, T-2.11 owed |
 | 3 | [04.3-conflicts.md](./04.3-conflicts.md) | A contradicting save asks which is correct; the three answers and "Decide later" work; "Keep the new one" forgets through slice 2; mobile conflict card | 1, 2 | approved 2026-09-27; built 2026-09-27, T-3.10, T-3.11 owed |
+| 4 | [04.4-soft-delete.md](./04.4-soft-delete.md) | Forget hides and keeps: rows and turn words stay, no API returns them; confirm copy says so | 1, 2, 3 | draft 2026-09-27, blocked on PRD Q7 to Q10 and design Q4 |
 
 Slice 3 depends on slice 2: its "Keep the new one" answer forgets the old
 memory, and forget is slice 2's.
@@ -167,6 +172,9 @@ class TurnScrubPort(Protocol):
     async def scrub_turns_for_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int: ...
 ```
 
+Changing, pending 4.4: becomes `TurnHidePort.hide_turns_for_memories`, which
+stamps `forgotten_at` and leaves the words.
+
 Called inside the forget transaction. It scrubs every turn whose
 `resulting_memory_id` is in the list. That is enough for FR-23 because of one
 rule slice 3 must keep: a conflict turn never stores an existing memory's text.
@@ -206,10 +214,11 @@ Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 
 ## 7. Definition of done, for the feature
 
-- Every task in 04.1 to 04.3 is shipped or explicitly dropped in the dev log.
+- Every task in 04.1 to 04.4 is shipped or explicitly dropped in the dev log.
 - NFR-1: T7 boundary tests pass for read, edit, lookup, conflict candidate and
   forget.
-- NFR-2: after a forget, the text is found in no table.
+- NFR-2: after a forget, the text is returned by no API the user can call and
+  is still stored. Changed 2026-09-27, pending.
 - NFR-3: the logging test passes with memory text in every logged field.
 - NFR-4 to NFR-7 measured and recorded in the dev log, with the evaluation set
   results.
@@ -223,3 +232,4 @@ Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 | 2026-09-25 | Created as the index, with sub-plan 4.1 drafted | Build plan approved; user asked to proceed | pending |
 | 2026-09-25 | Approved. Two amendments at approval: 003 is merged into this branch (AD-10 amended), and the category set is drafted as slice 1's first task and corrected in parallel instead of before approval | User approved and asked to proceed with dev | user |
 | 2026-09-25 | Slices 2 and 3 swapped: 4.2 is now Forget, 4.3 Conflicts. Migrations renumbered to `0028_forget` and `0029_memory_conflicts`; `0028` also gains `capture_turns.affected_count` for "Forgot 2 memories". Rollout: all three slices ship together. The scrub port and forget contracts move from slice 3 to slice 2. Re-opened: none; neither sub-plan had been drafted | "Keep the new one" forgets the old memory, so conflicts cannot finish before forget exists. User chose the swap | user |
+| 2026-09-27 | Slice 4, [04.4-soft-delete.md](./04.4-soft-delete.md), added with migration `0030_soft_forget`. The scrub port contract in §4 changes to a hide port. NFR-2's done line inverted. Re-opened: 4.2 (C-2.1, C-2.3, C-2.9) and 4.3 (C-3.6) | PRD and build plan change records of the same date | pending |

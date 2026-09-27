@@ -3,10 +3,10 @@ doc: prd
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 1
-status: approved
+status: in-review
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -15,11 +15,16 @@ supersedes: null
 
 > **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
 
+> **Re-opened** 2026-09-27 by the soft-delete change record, pending approval.
+> FR-22, FR-23, FR-28, FR-29 and NFR-2 carry the proposed text. See the change
+> log and Q7 to Q10.
+
 Context: [Epic](./00-epic.md) · [Product](../product/product.md) ·
 [001 PRD](../001-capture-and-records-foundation/01-prd.md)
 
-Over the 150-line budget by about fifty lines: forget and conflict handling
-each carry several testable behaviours that cannot be merged.
+Over the 150-line budget by about seventy lines: forget and conflict handling
+each carry several testable behaviours that cannot be merged, and the
+soft-delete change adds four open questions.
 
 ## 1. Problem
 
@@ -27,7 +32,7 @@ Slashit records what the user has to do, but not what the user knows. Facts
 such as a passport's expiry, a parent's birthday or a preferred airline have no
 home, so job J2, "What do I need to remember?", goes unserved. These are also
 the most sensitive facts a person holds, so the user must be able to see every
-one and remove any of them for good.
+one and remove any of them from view.
 
 ## 2. Users and jobs
 
@@ -117,25 +122,30 @@ one and remove any of them for good.
 | id | Requirement | Priority | Story |
 |---|---|---|---|
 | FR-21 | Forget from the memory detail asks for confirmation, naming the memory's full text | must | US-4 |
-| FR-22 | A forgotten memory is removed permanently. It no longer appears in the records view, in `/memories`, in any count, or in any conflict check, and it cannot be restored | must | US-6 |
-| FR-23 | Forgetting a memory replaces its words in capture history with "A memory was saved here and later forgotten". This covers the turn that saved it and any conflict question that showed it | must | US-6 |
+| FR-22 | A forgotten memory is hidden from the user everywhere. It no longer appears in the records view, in `/memories`, in any count, or in any conflict check, and the user cannot restore it. Slashit keeps the memory, including its words, for the period set by Q7 | must | US-6 |
+| FR-23 | Forgetting a memory shows "A memory was saved here and later forgotten" in capture history in place of its words. This covers the turn that saved it and any conflict question that showed it. The words are kept, hidden, as in FR-22 | must | US-6 |
 | FR-24 | `/forget <which>` with exactly one matching memory asks for confirmation, naming its full text | must | US-4 |
 | FR-25 | `/forget <which>` with several matching memories lists them, lets the user pick one, then confirms it by name | must | US-4 |
 | FR-26 | `/forget <which>` with no match says so and forgets nothing | must | US-4 |
 | FR-27 | An instruction to forget every memory states the count and requires explicit confirmation, following 001's FR-21 | must | US-4 |
-| FR-28 | A confirmed `/forget` turn keeps only "Forgot 1 memory" or the count in capture history, not the words used to find it | must | US-6 |
-| FR-29 | Every forget confirmation says that backup copies are removed within the backup retention window, and states that window | must | US-6 |
+| FR-28 | A confirmed `/forget` turn shows only "Forgot 1 memory" or the count in capture history, not the words used to find it | must | US-6 |
+| FR-29 | Every forget confirmation says the memory is hidden from the user and kept by Slashit, in the wording chosen in design Q4. It never says the memory is erased or removed for good | must | US-6 |
 
 > Assumption: FR-28 extends FR-23's promise to the `/forget` line itself,
 > because "forget my passport number" can carry the fact. Strike it if the
 > forget line should stay as typed.
+
+> Assumption, 2026-09-27: the words after `/forget` are still never stored.
+> Not storing is not deleting, so the soft-delete rule does not reach them.
+> Strike this to keep them hidden instead; the forget request then has to carry
+> the typed line.
 
 ## 7. Non-functional requirements
 
 | id | Requirement | Number | How it is measured |
 |---|---|---|---|
 | NFR-1 | A user's memories are never readable by another user, in storage or in a model prompt | Zero incidents | Authorisation tests on every memory path |
-| NFR-2 | After a forget, the memory's text is found in no store the product reads | Zero matches | Test that forgets a memory, then searches every store for its text |
+| NFR-2 | After a forget, the memory's text is returned by nothing the user can reach, and Slashit still holds it | Zero matches through the product; the stored memory and history still hold the text | Test that forgets a memory, calls every read the user can make, then checks the stored memory and history |
 | NFR-3 | Memory text never appears in application logs or analytics events | Zero occurrences | Log and event review, and a test asserting it |
 | NFR-4 | A save is confirmed, or its conflict question shown, promptly | Under 8 s at p95 for a user with 1,000 memories. Revised 2026-09-25 from 2 s: every save makes one model call, and 001 measured those at 5.3 to 8.5 s (001 dev log, I-1 and I-2) | Server timing from submit to response |
 | NFR-5 | `/memories` and the Memories filter respond promptly | Under 1 s at p95 for a user with 1,000 memories | Load test |
@@ -171,7 +181,8 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Forget leaves the fact recoverable somewhere | high, as built today | high | FR-22, FR-23, FR-28 and NFR-2, with FR-29 disclosing backups honestly |
+| A forgotten fact shows to the user again through a read that skips the hide | medium | high | NFR-2's test over every read |
+| Users take forget to mean erase, and Slashit keeps the fact | high | high | FR-29's copy says it is kept. Q8 |
 | `/forget` picks the wrong memory and the user confirms without reading | medium | high | FR-24 and FR-25 name the full text before anything goes |
 | The conflict check over-flags and users click through | medium | medium | FR-11's "both are correct", NFR-7, and the conflict-answer metric |
 | The conflict check misses a contradiction | medium | medium | NFR-7. Edit or forget remains available |
@@ -188,7 +199,11 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | ~~Q3~~ | What does capture history show where a forgotten memory was saved? | PRD | user | **Answered 2026-09-25.** A placeholder, no words. FR-23 |
 | ~~Q4~~ | How are backups handled after forget? | PRD | user | **Answered 2026-09-25.** Disclose the retention window. FR-29 |
 | ~~Q5~~ | Are NFR-4 to NFR-7's numbers acceptable? | build plan | user | **NFR-4 answered 2026-09-25:** 8 s, matching 001. NFR-5 to NFR-7 kept as drafted, answered in the build plan's Q6 the same day |
-| Q6 | What is the backup retention window FR-29 states? | build plan | tech-stack | Open |
+| Q6 | What is the backup retention window FR-29 states? | build plan | tech-stack | Open. Moot if Q7 keeps forgotten memories, since the live copy outlives any backup |
+| Q7 | How long is a forgotten memory kept, and is it ever erased? | 4.4 | user | Open. **(Recommended)** Kept indefinitely in V1, revisited with Q8 before launch: matches the request, no job to build. · Kept a fixed period, such as 30 days, then erased: a bounded promise the copy can state, but it is a hard delete. · Kept until the account is closed: needs account deletion, which V1 lacks. · Other |
+| Q8 | The user was promised erasure. Keeping the words has privacy and legal weight: India's DPDP Act 2023 §12 and the EU GDPR Art. 17 give a right to erasure, and anyone with database access can read a forgotten fact. How is that handled? | launch | user | Open. **(Recommended)** Copy says plainly it is kept (FR-29), and a legal read is added to epic 012 before launch. · Offer a separate "erase permanently" action alongside forget: honours erasure, but is the hard delete this change removes. · Accept the risk with no review: fastest, and the exposure stays. · Other |
+| Q9 | Which other hard deletes does this change cover? Inventory in [4.4 §10](./04.4-soft-delete.md#10-where-user-data-is-lost-today) | 4.4 scope | user | Open. **(Recommended)** Memories and their history only, now; each other row becomes a change record in its own epic: 001 pending questions, 002's unverified-account purge and the cascades from it, and the "cannot be undone" copy on task and reminder delete. · All of them in this change: one sweep, but it re-opens 001 and 002 from here. · Also keep edit history for memories: nothing overwritten, a larger model change. · Other |
+| Q10 | A card number or PIN the user forgets is now kept. What happens to facts that trip the secret caution? | 4.4 | user | Open. **(Recommended)** Keep them, and add to the caution: "Forgetting it hides it but Slashit keeps a copy." Honest, one rule. · Erase the text of cautioned memories on forget: protects secrets, one exception to the rule. · Blank only the matched digits on forget, keep the rest: protects the secret, more code. · Other |
 
 ## 12. Out of scope
 
@@ -196,7 +211,7 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 - Memories as context for other captures. 005.
 - A `/memory` command. It falls to 001's FR-12, which suggests `/memories`.
 - Reminders or events from dated memories.
-- Scrubbing backups. Disclosed, per FR-29.
+- Erasing forgotten memories. Kept, per FR-22 and Q7.
 - Sharing memories. One account, one owner.
 
 ## Change log
@@ -207,3 +222,4 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | 2026-09-25 | Approved | User approved, proceed to design | user |
 | 2026-09-25 | NFR-4 revised from 2 s to 8 s at p95, and Q5 updated. Found while drafting the build plan: every save needs a model call, measured at 5.3 to 8.5 s in 001. Stale downstream: none. The approved design already shows 001's loading turn during a save, and no screen promises a time | User chose to match 001's 8 s budget | user |
 | 2026-09-25 | G4 and its metric now count any memory save within five minutes of a forget, not a similar one. Q5 closed: NFR-5 to NFR-7 stand. Stale downstream: none; the design draws no metric | Build plan Q8: the tombstone erases the text a similarity check would need. User accepted | user |
+| 2026-09-27 | FR-22, FR-23, FR-28, FR-29 and NFR-2 rewritten: a forgotten memory and its history words are hidden from the user everywhere and kept by Slashit. §1, §10 and §12 follow. Q7 to Q10 added. Stale downstream: epic Q6, design copy and three confirm artboards, build plan AD-2, AD-3, §3, §6, §7, §9, the implementation plan index, 4.2 tests C-2.1, C-2.3, C-2.9, 4.3 test C-3.6, `product/product.md` §3 P4 and §4, and the built code in [4.4 §10](./04.4-soft-delete.md#10-where-user-data-is-lost-today). Reverses the user's epic Q6 and build plan Q1 answers of 2026-09-25 | User: "make sure user data is not deleted, just make it a soft delete", memories included | pending |

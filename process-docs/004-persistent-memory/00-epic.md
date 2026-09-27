@@ -3,10 +3,10 @@ doc: epic
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 0
-status: approved
+status: in-review
 owner: user
 created: 2026-09-24
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -187,3 +187,4 @@ All nine answered by the user on 2026-09-25, each with the recommended option. Q
 | 2026-09-25 | Conflicting memories brought into scope: on save, a contradiction pauses the save and asks the user which memory is correct. Q9 revised, Q10 added and answered, cons and risks updated | User asked for conflicts to be planned in this feature | user |
 | 2026-09-25 | Q1 to Q9 answered, each with the recommended option. Requirements, alternatives and risks updated to match | User answered the open questions | user |
 | 2026-09-25 | Approved | User approved, proceed to PRD | user |
+| 2026-09-27 | Q6 reversed, pending: forget becomes a soft delete, the words hidden but kept. As supplied: "from backend make sure user data is not deleted, just make it a soft delete but not complete delete. data related to memory too". Re-opens the PRD, design, build plan and implementation plan; see the PRD change log | User's request | pending |
