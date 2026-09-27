@@ -241,7 +241,7 @@ class MemoryService:
     ) -> MemoriesForgottenDTO:
         """Forget the caller's live memories among ``memory_ids`` (FR-22, FR-23).
 
-        The history scrub runs before the tombstone. If the tombstone then
+        The history turns go before the memory. If the memory delete then
         fails, the memory is still visible and a retry finishes the job; the
         other order could strand the fact's words in history (sub-plan 4.2 §5).
         """
@@ -250,10 +250,10 @@ class MemoryService:
         )
         if not live_ids:
             return MemoriesForgottenDTO(count=0)
-        await self.turn_scrub.scrub_turns_for_memories(
+        await self.turn_scrub.delete_turns_for_memories(
             user_id=user_id, memory_ids=live_ids
         )
-        forgotten_count = await self.memory_repository.tombstone_memories(
+        forgotten_count = await self.memory_repository.delete_memories(
             user_id=user_id, memory_ids=live_ids
         )
         await self._record_event(user_id=user_id, event_type="memory_forgotten")

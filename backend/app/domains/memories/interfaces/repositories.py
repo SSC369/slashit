@@ -84,9 +84,9 @@ class MemoryRepository(Protocol):
         """How many live memories match any term, for "{n} more match"."""
         ...
 
-    async def tombstone_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
-        """Stamp ``deleted_at`` and set every readable column to NULL, in one
-        UPDATE (AD-2). Returns how many live rows it changed."""
+    async def delete_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
+        """Delete the caller's live memories among these ids (AD-2, amended
+        2026-09-27). Returns how many rows it deleted."""
         ...
 
     async def set_embedding(

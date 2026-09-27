@@ -116,7 +116,7 @@ class FakeMemoryRepository:
     async def count_by_terms(self, *, user_id: UUID, terms: list[str]) -> int:
         return len(await self.find_by_terms(user_id=user_id, terms=terms, limit=10_000))
 
-    async def tombstone_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
+    async def delete_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
         if self.tombstone_should_fail:
             raise RuntimeError("simulated tombstone failure")
         forgotten = 0
@@ -209,15 +209,15 @@ class FakeReembedQueue:
 
 
 class FakeTurnScrub:
-    """Records which memories' turns were scrubbed, and in what order relative
-    to the tombstone (sub-plan 4.2 §5: scrub first)."""
+    """Records which memories' turns were deleted, and in what order relative
+    to the memory delete (sub-plan 4.2 §5: turns first)."""
 
     def __init__(self, *, repository: FakeMemoryRepository | None = None) -> None:
         self.repository = repository
         self.scrubbed: list[UUID] = []
         self.live_when_scrubbed: list[bool] = []
 
-    async def scrub_turns_for_memories(
+    async def delete_turns_for_memories(
         self, *, user_id: UUID, memory_ids: list[UUID]
     ) -> int:
         self.scrubbed.extend(memory_ids)

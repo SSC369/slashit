@@ -158,7 +158,7 @@ async def test_keep_new_replaces_the_old_memory_and_its_history(
 
 
 @pytest.mark.usefixtures("patched_jwks", "conflict_model", "job_queue")
-async def test_forgetting_a_kept_memory_scrubs_its_whole_thread(
+async def test_forgetting_a_kept_memory_deletes_its_whole_thread(
     client: AsyncClient,
     settings: Settings,
     signing_key: ec.EllipticCurvePrivateKey,
@@ -185,8 +185,8 @@ async def test_forgetting_a_kept_memory_scrubs_its_whole_thread(
         for item in history["captureHistory"]["items"]
         if item["outcome"] in {"QUESTION_ASKED", "MEMORY_CONFLICT_RESOLVED"}
     ]
-    assert len(thread) == 2
-    assert all(item["forgotten"] and item["inputText"] == "" for item in thread)
+    # Sub-plan 4.4: the question and the answer are deleted, not blanked.
+    assert thread == []
     assert await _text_found_anywhere(session_factory, "Qatar") == []
 
 

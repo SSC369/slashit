@@ -165,25 +165,21 @@ async def test_forget_from_records_leaves_no_trace(
     assert after["memories"] == []
     assert lookup["memories"] == []
     assert detail["memory"] == {"__typename": "MemoryNotFound"}
-    forgotten_turns = [
-        item for item in history["captureHistory"]["items"] if item["forgotten"]
-    ]
-    # The direct save, the answer, and since sub-plan 4.3 the question the
-    # answer closed: the scrub reaches every turn of a thread.
-    assert len(forgotten_turns) == 3
-    assert all(item["inputText"] == "" for item in forgotten_turns)
-    assert all(item["answerText"] is None for item in forgotten_turns)
+    # Sub-plan 4.4: forget deletes the direct save, the answer and the
+    # question it closed, and the memory rows, leaving no trace.
+    items = history["captureHistory"]["items"]
+    assert [item for item in items if item["forgotten"]] == []
+    assert [
+        item for item in items if item["outcome"] in {"MEMORY_SAVED", "QUESTION_ASKED"}
+    ] == []
     async with session_factory() as session, session.begin():
-        tombstone = (
+        remaining = (
             await session.execute(
-                text(
-                    "SELECT deleted_at IS NOT NULL, text, original_input, category, "
-                    "embedding FROM memories WHERE id = :id"
-                ),
-                {"id": first_id},
+                text("SELECT count(*) FROM memories WHERE id IN (:first, :second)"),
+                {"first": first_id, "second": second_id},
             )
-        ).one()
-    assert tombstone == (True, None, None, None, None)
+        ).scalar_one()
+    assert remaining == 0
     assert await _text_found_anywhere(session_factory, "P7788123") == []
 
 

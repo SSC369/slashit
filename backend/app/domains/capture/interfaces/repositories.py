@@ -61,10 +61,10 @@ class CaptureTurnRepository(Protocol):
         affected_count: int | None = None,
     ) -> None: ...
 
-    async def scrub_turns_for_memories(
+    async def delete_turns_for_memories(
         self, *, user_id: UUID, memory_ids: list[UUID]
     ) -> int:
-        """FR-23: blank every turn that saved one of these memories."""
+        """FR-23: delete every turn of these memories' threads."""
         ...
 
     async def list_turns_for_user(

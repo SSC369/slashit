@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import cast
 
-from sqlalchemy import literal, or_, select, tuple_, update
+from sqlalchemy import delete, literal, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -83,16 +83,16 @@ class SqlCaptureTurnRepository:
                 )
             )
 
-    async def scrub_turns_for_memories(
+    async def delete_turns_for_memories(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
     ) -> int:
-        """The one UPDATE this table permits (AD-3). The check constraint in
-        migration 0028 refuses a scrubbed row that keeps any words."""
+        """FR-23, amended 2026-09-27: forget deletes the thread's turns outright,
+        no placeholder (sub-plan 4.4)."""
         if not memory_ids:
             return 0
         async with user_transaction(self.session, user_id) as scoped:
-            scrubbed_ids = await scoped.scalars(
-                update(CaptureTurn)
+            deleted_ids = await scoped.scalars(
+                delete(CaptureTurn)
                 .where(
                     CaptureTurn.user_id == user_id,
                     or_(
@@ -108,17 +108,10 @@ class SqlCaptureTurnRepository:
                             )
                         ),
                     ),
-                    CaptureTurn.forgotten_at.is_(None),
-                )
-                .values(
-                    input_text="",
-                    question_text=None,
-                    answer_text=None,
-                    forgotten_at=datetime.now(UTC),
                 )
                 .returning(CaptureTurn.id)
             )
-            return len(list(scrubbed_ids))
+            return len(list(deleted_ids))
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

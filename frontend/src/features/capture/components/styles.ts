@@ -114,8 +114,6 @@ export const memoryListRowStyles =
 export const memoryHintStyles = "px-4 py-3 text-[13px] text-foreground-secondary";
 
 // Forget (004 design: ForgetPick, ForgetConfirm, ForgetAll, HistoryForgotten)
-export const historyForgottenStyles =
-  "mt-2 rounded-[10px] border border-dashed border-border-strong px-3.5 py-2.5 text-[13px] italic text-foreground-tertiary";
 export const forgetPickRowStyles = "flex cursor-pointer items-center gap-3 border-t border-border px-4 py-3";
 export const forgetPickRowOnStyles = "bg-accent-wash";
 export const forgetRadioStyles = "h-4 w-4 shrink-0 accent-[var(--color-accent)]";

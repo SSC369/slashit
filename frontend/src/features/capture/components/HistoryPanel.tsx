@@ -35,7 +35,6 @@ const OUTCOME_PILL: Record<
 
 /** FR-28: the `/forget` row names the count and nothing typed. */
 const pillLabel = (turn: CaptureTurnFieldsFragment): string => {
-  if (turn.forgotten) return "Forgotten";
   if (turn.outcome === "MEMORY_FORGOTTEN" && turn.affectedCount !== null) {
     return `Forgot ${turn.affectedCount} ${turn.affectedCount === 1 ? "memory" : "memories"}`;
   }
@@ -44,9 +43,8 @@ const pillLabel = (turn: CaptureTurnFieldsFragment): string => {
 
 const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement => {
   const { turn } = props;
-  const pill = turn.forgotten
-    ? { className: Styles.pillMutedStyles, icon: <Eraser size={12} /> }
-    : OUTCOME_PILL[turn.outcome];
+  // Sub-plan 4.4: a forgotten memory's turns are deleted, so none reach here.
+  const pill = OUTCOME_PILL[turn.outcome];
 
   return (
     <div className={Styles.historyRowStyles}>
@@ -56,11 +54,7 @@ const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement =>
         </span>
         <span className={Styles.historyTimeStyles}>{formatRelativeTime(turn.createdAt)}</span>
       </div>
-      {turn.forgotten ? (
-        <div className={Styles.historyForgottenStyles}>A memory was saved here and later forgotten</div>
-      ) : (
-        <div className={Styles.historyInputTextStyles}>{turn.inputText}</div>
-      )}
+      <div className={Styles.historyInputTextStyles}>{turn.inputText}</div>
       {turn.questionText && (
         <div className={Styles.historyDetailStyles}>Asked: {turn.questionText}</div>
       )}

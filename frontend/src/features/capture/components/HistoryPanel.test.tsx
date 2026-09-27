@@ -173,7 +173,7 @@ describe("HistoryPanel", () => {
     expect(screen.getByText("Question asked")).toBeInTheDocument();
   });
 
-  it("F-2.3: shows the placeholder for a forgotten turn and a count-only /forget row", () => {
+  it("F-2.3, F-4.1: a count-only /forget row and no placeholder", () => {
     mockUseGetCaptureHistory.mockReturnValue({
       triggerAPI: mockTriggerAPI,
       data: {
@@ -191,18 +191,6 @@ describe("HistoryPanel", () => {
               affectedCount: 2,
               createdAt: new Date().toISOString(),
             },
-            {
-              id: "turn-5",
-              inputText: "",
-              outcome: "MEMORY_SAVED",
-              resultingTaskId: null,
-              resultingPendingCaptureId: null,
-              questionText: null,
-              answerText: null,
-              forgotten: true,
-              affectedCount: null,
-              createdAt: new Date().toISOString(),
-            },
           ],
           nextCursor: null,
         },
@@ -213,8 +201,7 @@ describe("HistoryPanel", () => {
 
     render(<HistoryPanel isOpen onClose={vi.fn()} />);
 
-    expect(screen.getByText("A memory was saved here and later forgotten")).toBeInTheDocument();
-    expect(screen.getByText("Forgotten")).toBeInTheDocument();
+    expect(screen.queryByText("A memory was saved here and later forgotten")).not.toBeInTheDocument();
     expect(screen.getByText("Forgot 2 memories")).toBeInTheDocument();
     expect(screen.getByText("/forget")).toBeInTheDocument();
   });

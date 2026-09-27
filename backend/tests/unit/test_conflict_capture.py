@@ -203,7 +203,7 @@ async def test_a_fact_given_as_an_answer_can_raise_a_conflict() -> None:
     assert turn.resulting_pending_capture_id == asked.pending_capture_id
 
 
-async def test_forgetting_the_saved_memory_scrubs_its_question_turn() -> None:
+async def test_forgetting_the_saved_memory_deletes_its_question_turn() -> None:
     """C-3.6, FR-23: the question turn holds the typed fact but no memory id."""
     harness = Harness()
     asked = await harness.ask()
@@ -214,9 +214,9 @@ async def test_forgetting_the_saved_memory_scrubs_its_question_turn() -> None:
     )
     assert isinstance(outcome, MemorySavedDTO)
 
-    scrubbed = await harness.turns.scrub_turns_for_memories(
+    deleted = await harness.turns.delete_turns_for_memories(
         user_id=USER, memory_ids=[outcome.memory.id]
     )
 
-    assert scrubbed == 2
-    assert all(turn.forgotten and turn.input_text == "" for turn in harness.turns.rows)
+    assert deleted == 2
+    assert harness.turns.rows == []

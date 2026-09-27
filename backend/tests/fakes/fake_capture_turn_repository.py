@@ -1,7 +1,6 @@
 """An in-memory CaptureTurnRepository."""
 
 import uuid
-from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.domains.capture.interfaces.dtos import (
@@ -48,7 +47,7 @@ class FakeCaptureTurnRepository:
         self.rows.append(turn)
         self._owner_by_turn_id[turn.id] = user_id
 
-    async def scrub_turns_for_memories(
+    async def delete_turns_for_memories(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
     ) -> int:
         owned = [
@@ -60,25 +59,14 @@ class FakeCaptureTurnRepository:
             if row.resulting_memory_id in memory_ids
             and row.resulting_pending_capture_id is not None
         }
-        scrubbed = 0
-        for index, row in enumerate(self.rows):
-            if (
-                self._owner_by_turn_id.get(row.id) == user_id
-                and (
-                    row.resulting_memory_id in memory_ids
-                    or row.resulting_pending_capture_id in threads
-                )
-                and not row.forgotten
-            ):
-                self.rows[index] = replace(
-                    row,
-                    input_text="",
-                    question_text=None,
-                    answer_text=None,
-                    forgotten=True,
-                )
-                scrubbed += 1
-        return scrubbed
+        doomed = {
+            row.id
+            for row in owned
+            if row.resulting_memory_id in memory_ids
+            or row.resulting_pending_capture_id in threads
+        }
+        self.rows = [row for row in self.rows if row.id not in doomed]
+        return len(doomed)
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

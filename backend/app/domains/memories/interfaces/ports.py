@@ -48,14 +48,14 @@ class MemoryAnalyticsPort(Protocol):
 
 
 class TurnScrubPort(Protocol):
-    """FR-23: erase the words of every capture turn that saved these memories.
+    """FR-23: delete every capture turn of these memories' threads.
 
     Owned by memories, implemented by capture's ``CaptureTurnScrubber``, which
     satisfies it structurally and imports nothing from memories, so the domain
     graph stays acyclic (build plan §2). Wired in ``core/deps.py``.
     """
 
-    async def scrub_turns_for_memories(
+    async def delete_turns_for_memories(
         self, *, user_id: UUID, memory_ids: list[UUID]
     ) -> int: ...
 

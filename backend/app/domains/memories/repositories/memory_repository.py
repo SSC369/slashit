@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import Select, func, select, update
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -165,31 +165,22 @@ class SqlMemoryRepository:
             )
         return int(matched_count or 0)
 
-    async def tombstone_memories(
+    async def delete_memories(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
     ) -> int:
         if not memory_ids:
             return 0
-        now = datetime.now(UTC)
         async with user_transaction(self.session, user_id) as scoped:
-            forgotten_ids = await scoped.scalars(
-                update(Memory)
+            deleted_ids = await scoped.scalars(
+                delete(Memory)
                 .where(
                     Memory.user_id == user_id,
                     Memory.deleted_at.is_(None),
                     Memory.id.in_(memory_ids),
                 )
-                .values(
-                    deleted_at=now,
-                    updated_at=now,
-                    text=None,
-                    original_input=None,
-                    category=None,
-                    embedding=None,
-                )
                 .returning(Memory.id)
             )
-            return len(list(forgotten_ids))
+            return len(list(deleted_ids))
 
     async def set_embedding(
         self,
