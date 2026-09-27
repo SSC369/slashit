@@ -42,7 +42,7 @@ real model, 2026-09-26: see T-1.14.
 | T-1.11 | Reminders tab and All tab with every list state | **done** | Loading, grouped list, empty, error, no match, offline and session ended, each with a test in `RecordsController.test.tsx`. Done and Snooze on rows are slice 2 |
 | T-1.12 | Detail, edit, delete with every state | **done** | Detail, loading, not found, invalid, time passed, save failed, deleted while editing, success toast, deleting, delete failed, offline: `ReminderDetailController.test.tsx`, 11 cases |
 | T-1.13 | Log AD-7 against 001 in its dev log | **done** | Entry D-44 in `001-capture-and-records-foundation/05-dev-log.md` |
-| T-1.14 | Live pass against the real database and model in a browser | **done**, 2026-09-26 | `/remind test browser pass in 2 minutes` through a real Supabase session and Gemini: resolved to today 9:03 PM, capture card showed the result; Reminders tab, detail and delete checked. Edit not exercised this pass. Light theme only; mobile and dark not checked (D-31) |
+| T-1.14 | Live pass against the real database and model in a browser | **done**, 2026-09-27 | `/remind test browser pass in 2 minutes` through a real Supabase session and Gemini: resolved to today 9:03 PM, capture card showed the result; Reminders tab, detail, edit and delete all checked. Edit closed 2026-09-27: title and time changed, saved, reflected on the detail page. Light theme only; mobile and dark not checked (D-31) |
 
 ### Verification
 
@@ -121,7 +121,7 @@ and component tests. **Verified live in a browser**, 2026-09-26: see T-2.15.
 | T-2.12 | Pop-up stack and Snooze menu | **done** | TC-2.17, TC-2.18: acting, failed, offline, resulting times |
 | T-2.13 | Done and Snooze on Needs attention rows | **done** | TC-2.19, and a failed Done kept on its row |
 | T-2.14 | Load check | **done** | TC-2.20, below |
-| T-2.15 | Live pass in a browser | **done**, 2026-09-26 | The reminder from T-1.14 fired live over the real WebSocket: bell badge, panel row and pop-up all showed it at its due time. Done tested from the panel, cleared the badge and stamped "marked done" in the list and detail. Snooze not tested this pass. Light theme only (D-31) |
+| T-2.15 | Live pass in a browser | **done**, 2026-09-27 | The reminder from T-1.14 fired live over the real WebSocket: bell badge, panel row and pop-up all showed it at its due time. Done tested from the panel, cleared the badge and stamped "marked done" in the list and detail. Snooze closed 2026-09-27: "10 minutes" picked from the detail page, `nextFireAt` and `whenText` updated, status back to Upcoming, "Then" showed "Snoozed". Light theme only (D-31) |
 
 ### Verification
 
@@ -301,14 +301,14 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 |---|---|
 | Every task shipped or dropped | **Shipped.** Every task, including T-3.10 (D-52) |
 | X-1 to X-6 against a real database | **Pass.** X-7 measured in slice 2 |
-| Every artboard matched | Light theme confirmed live, 2026-09-26 (T-1.14, T-2.15). Mobile and dark artboards still unchecked (D-31) |
+| Every artboard matched | Light theme confirmed live, 2026-09-27: `/remind`, the Reminders tab, detail, edit, delete, a live firing (bell, panel, pop-up), Done and Snooze all checked (T-1.14, T-2.15). Mobile and dark artboards still unchecked (D-31) |
 | Firing delay, duplicates, reconciliation and email outcomes logged | **Yes**: `reminders.fire_one` delay, the unique constraints, `reminders.lost`, `notifications.email_*` |
 | 001's dev log records AD-7 | **Yes**, as 001's D-44 (see D-8) |
 | `index.md` shows `shipped` | **No.** Blocked on the item below |
 
 | Owed | Blocked on |
 |---|---|
-| Mobile and dark artboards (D-31), and Edit/Snooze in the browser pass | A pass with the browser resized and dark mode forced |
+| Mobile and dark artboards (D-31) | A pass with the browser resized and dark mode forced |
 
 Resend's own real send, a verified sending domain, and full email testing are
 out of this feature's definition of done: they move to epic 012, Production
@@ -324,9 +324,9 @@ Work continues from a local machine, on `main`. Do these in order; each closes a
 | 2 | `alembic upgrade head` against the Supabase database, so migrations 0016 to 0022 are applied | Step 1 | **Done**, 2026-09-26. Ran clean, `0015_drop_pw_verify_hook` to `0022_notifications_soft_delete` |
 | 3 | Run the API, the worker (`python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`) and `npm run dev` | Step 2 | — |
 | 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | **Done**, 2026-09-26. D-39 |
-| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | **Done in part**, 2026-09-26. `/remind`, the Reminders tab, detail, delete, and a live firing with bell, panel and pop-up, Done, all checked in light theme (T-1.14, T-2.15). Edit, Snooze, mobile and dark still owed (D-31) |
+| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | **Done**, 2026-09-27, in light theme (T-1.14, T-2.15). Mobile and dark still owed (D-31) |
 | 6 | Local: fill `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` in `backend/.env` from any reachable SMTP relay, set `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT=local`, and fire one reminder to confirm content, the cap and retries | An SMTP relay | **Done**, 2026-09-26. Gmail SMTP; `notifications.email_sent` logged and the email confirmed received. T-3.10 (D-52) |
-| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done. Step 5's Edit, Snooze, mobile and dark still open (D-31) |
+| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done. Only D-31's mobile and dark artboards remain open |
 
 Local test database used in the cloud session: PostgreSQL 16 on port 54329 with a stub `auth` schema. Locally, point `DATABASE_URL` at any PostgreSQL 16 for `pytest -m "not live"`.
 
@@ -344,3 +344,4 @@ Local test database used in the cloud session: PostgreSQL 16 on port 54329 with 
 | 2026-09-26 | T-3.10 redefined (D-52): closes on a real send through SMTP, not Resend. Resend's own production integration and full email testing move to a new epic, 012 Production Readiness, added to `process-docs/index.md`'s Planned list | User: "I did not get any email when reminder triggered, we also need to test that. we need to test with smtp in this feat. in feats at last add another feat like prod ready in that one of the sub feat is to integrate resend and test all email related things" | user |
 | 2026-09-26 | T-3.10 closed: `REMINDER_EMAIL_ENABLED=true` set with Gmail SMTP credentials, a reminder fired, `notifications.email_sent` logged, and the user confirmed the email arrived. Every task in this feature is now shipped or redefined and closed; only D-31's mobile/dark artboards and Edit/Snooze in the browser pass remain before `index.md` can show `shipped` | User confirmed receipt when asked | user |
 | 2026-09-26 | Done and Snooze added to the reminder detail page (D-53); the Reminders tab table gained a separate Actions column (D-54); the fired status label shortened to "Needs action" (D-55), user's pick of three offered. 150 frontend tests pass (148 before), `tsc -b` and `oxlint` clean | User: opened a reminder from an email link and found no Done/Snooze there; asked for an Actions column instead of the combined Status cell; asked for shorter status text and picked from three options | user |
+| 2026-09-27 | Edit and Snooze closed live (T-1.14, T-2.15): edited a fired reminder's title and time and confirmed the save; snoozed it 10 minutes from its detail page and confirmed `nextFireAt`, "Then" and status all updated. Only D-31's mobile and dark artboards remain before `index.md` can show `shipped` | User: "check and test what are pending to test in 003" | user |
