@@ -8,6 +8,7 @@ import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapt
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
 import useResolveMemoryConflict from "../../../../api/mutations/ResolveMemoryConflict/useResolveMemoryConflict";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
+import { clearOfflineReadCache } from "../../../../api/lib/offlineReadCache";
 import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
 import {
@@ -278,7 +279,10 @@ const CommandCenterController = (): ReactElement => {
       answer,
       onMemorySaved: ({ memory, secretCaution }) => {
         store.memories.upsert(memory);
-        if (answer === "KEEP_NEW") store.forgetMemories(oldIds);
+        if (answer === "KEEP_NEW") {
+          store.forgetMemories(oldIds);
+          void clearOfflineReadCache();
+        }
         store.capture.resolveTurn(turnId, {
           status: "memorySaved",
           memory,

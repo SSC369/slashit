@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   signIn: vi.fn(),
   signInWithOAuth: vi.fn(),
   clearStore: vi.fn(),
+  clearOfflineReadCache: vi.fn(),
   authListener: null as null | ((event: string, session: unknown) => void),
 }));
 
@@ -29,6 +30,9 @@ vi.mock("../api/lib/supabaseClient", () => ({
       signInWithOAuth: (args: unknown) => mocks.signInWithOAuth(args),
     },
   },
+}));
+vi.mock("../api/lib/offlineReadCache", () => ({
+  clearOfflineReadCache: () => mocks.clearOfflineReadCache(),
 }));
 vi.mock("../api/lib/apolloClient", () => ({
   apolloClient: { clearStore: () => mocks.clearStore() },
@@ -134,6 +138,7 @@ describe("RequireAuth, a session that ends (002 sub-plan 4.4)", () => {
     expect(await screen.findByText(EXPIRED_NOTICE)).toBeInTheDocument();
     expect(store.toast.current).toBeNull();
     expect(mocks.clearStore).toHaveBeenCalledTimes(1);
+    expect(mocks.clearOfflineReadCache).toHaveBeenCalledTimes(1);
   });
 
   it("002 T-4.7: the user's own sign-out shows no notice and still empties the stores", async () => {

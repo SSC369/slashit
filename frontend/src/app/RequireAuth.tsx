@@ -4,6 +4,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import useGetMe from "../api/queries/GetMe/useGetMe";
 import { useResponseHandler } from "../api/queries/GetMe/responseHandler";
 import { apolloClient } from "../api/lib/apolloClient";
+import { clearOfflineReadCache } from "../api/lib/offlineReadCache";
 import {
   resetSessionExpiry,
   takeSignOutReason,
@@ -42,6 +43,7 @@ const RequireAuth = (): ReactElement | null => {
         // 002 FR-24: nothing from the ended session stays, for either reason.
         store.clear();
         void apolloClient.clearStore();
+        void clearOfflineReadCache();
         // Only a SIGNED_OUT the user did not ask for shows the notice (FR-23).
         // A page opened with no session at all is not an expired one.
         setSignOutReason(event === "SIGNED_OUT" ? takeSignOutReason() : undefined);

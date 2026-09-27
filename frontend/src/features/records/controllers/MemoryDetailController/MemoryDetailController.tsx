@@ -7,6 +7,7 @@ import useForgetMemory from "../../../../api/mutations/ForgetMemory/useForgetMem
 import useUpdateMemory from "../../../../api/mutations/UpdateMemory/useUpdateMemory";
 import useGetMemory from "../../../../api/queries/GetMemory/useGetMemory";
 import { useResponseHandler } from "../../../../api/queries/GetMemory/responseHandler";
+import { clearOfflineReadCache } from "../../../../api/lib/offlineReadCache";
 import PageTopbar from "../../../../components/PageTopbar";
 import { API_FAILED, API_FETCHING } from "../../../../constants/apiConstants";
 import { useOnlineStatus } from "../../../../hooks/useOnlineStatus";
@@ -123,6 +124,7 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
     const forgotten = (): void => {
       setIsForgetOpen(false);
       store.forgetMemories([id]);
+      void clearOfflineReadCache();
       store.toast.show({
         message: "Memory forgotten. It is gone from your records and your capture history.",
         linkLabel: "",

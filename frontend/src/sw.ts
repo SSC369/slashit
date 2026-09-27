@@ -9,6 +9,8 @@
 import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 import { registerRoute } from "workbox-routing";
 
+import { GRAPHQL_CACHE_NAME } from "./constants/offlineCacheConstants";
+
 declare const self: ServiceWorkerGlobalScope;
 
 precacheAndRoute(self.__WB_MANIFEST);
@@ -23,8 +25,6 @@ self.addEventListener("message", (event) => {
     self.skipWaiting();
   }
 });
-
-const GRAPHQL_CACHE_NAME = "graphql-cache-v1";
 
 // FR-40: only these four read operations are cached. Everything else
 // (submitCapture, answerPendingCapture, updateTask, ...) always hits the
