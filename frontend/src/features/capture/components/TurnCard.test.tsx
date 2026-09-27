@@ -23,6 +23,15 @@ const baseProps = {
   onEditReminder: vi.fn(),
   onOpenReminder: vi.fn(),
   onOpenReminders: vi.fn(),
+  onEditMemory: vi.fn(),
+  onOpenMemory: vi.fn(),
+  onOpenMemories: vi.fn(),
+  onForgetSelect: vi.fn(),
+  onForgetContinue: vi.fn(),
+  onForgetConfirm: vi.fn(),
+  onForgetCancel: vi.fn(),
+  onConflictAnswer: vi.fn(),
+  onConflictDefer: vi.fn(),
 };
 
 describe("TurnCard", () => {
@@ -38,5 +47,21 @@ describe("TurnCard", () => {
 
     expect(screen.getByPlaceholderText("Type an answer…")).not.toBeDisabled();
     expect(screen.queryByRole("status", { name: "Saving" })).not.toBeInTheDocument();
+  });
+
+  it("004 P-4: a memory save loads with Memory and Category, not task fields", () => {
+    render(<TurnCard turn={{ id: "t-2", said: "/remember Blood group O+", status: "loading" }} {...baseProps} />);
+
+    expect(screen.getByText("Memory")).toBeInTheDocument();
+    expect(screen.getByText("Category")).toBeInTheDocument();
+    expect(screen.queryByText("Task")).not.toBeInTheDocument();
+  });
+
+  it.each(["/memories passport"])("004 P-4: %s loads with no fields", (said) => {
+    render(<TurnCard turn={{ id: "t-3", said, status: "loading" }} {...baseProps} />);
+
+    expect(screen.getByText(/Reading your command/)).toBeInTheDocument();
+    expect(screen.queryByText("Task")).not.toBeInTheDocument();
+    expect(screen.queryByText("Memory")).not.toBeInTheDocument();
   });
 });

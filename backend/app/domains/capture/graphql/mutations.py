@@ -15,10 +15,16 @@ from app.core.context import Context
 from app.core.deps import (
     build_answer_pending_capture_interactor,
     build_discard_pending_capture_interactor,
+    build_resolve_memory_conflict_interactor,
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
+    MemoriesListed,
+    MemoryConflictAsked,
+    MemoryDiscarded,
+    MemorySaved,
     NonCommandGuidance,
+    PendingCaptureNotFound,
     PendingQuestionCreated,
     ReminderCreated,
     ReminderLimitReached,
@@ -30,6 +36,7 @@ from app.domains.capture.graphql.types import (
 from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
+    MemoryConflictAskedDTO,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
     ReminderListDTO,
@@ -41,6 +48,16 @@ from app.domains.gateway.public import (
     ProviderUnavailable,
     SharedQuotaExhausted,
     UserLimitReached,
+)
+from app.domains.memories.public import (
+    ConflictAnswer,
+    MemoryDiscardedDTO,
+    MemoryListDTO,
+    MemorySavedDTO,
+    MemoryTooLong,
+    MemoryTooLongDTO,
+    memory_dto_to_type,
+    memory_too_long_to_type,
 )
 from app.domains.records.public import TaskDTO, task_dto_to_type
 from app.domains.reminders.public import ReminderDTO, reminder_dto_to_type
@@ -55,6 +72,10 @@ CaptureResult = Annotated[
     | ReminderCreated
     | RemindersListed
     | ReminderLimitReached
+    | MemorySaved
+    | MemoriesListed
+    | MemoryTooLong
+    | MemoryConflictAsked
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -71,6 +92,9 @@ def _capture_outcome_to_result(
     *, outcome: CaptureOutcome | AnswerOutcome
 ) -> CaptureResult:
     """The one place a capture outcome DTO becomes a GraphQL type."""
+    memory_result = _memory_outcome_to_result(outcome=outcome)
+    if memory_result is not None:
+        return memory_result
     if isinstance(outcome, ReminderDTO):
         return cast(
             CaptureResult,
@@ -128,6 +152,52 @@ def _capture_outcome_to_result(
     return cast(CaptureResult, outcome)
 
 
+def _memory_outcome_to_result(
+    *, outcome: CaptureOutcome | AnswerOutcome
+) -> CaptureResult | None:
+    """Epic 004's three outcomes, or None for any other."""
+    if isinstance(outcome, MemorySavedDTO):
+        return cast(
+            CaptureResult,
+            MemorySaved(
+                memory=memory_dto_to_type(memory=outcome.memory),
+                secret_caution=outcome.secret_caution,
+            ),
+        )
+    if isinstance(outcome, MemoryListDTO):
+        return cast(
+            CaptureResult,
+            MemoriesListed(
+                memories=[
+                    memory_dto_to_type(memory=memory) for memory in outcome.memories
+                ],
+                search_text=outcome.search_text,
+            ),
+        )
+    if isinstance(outcome, MemoryTooLongDTO):
+        return cast(CaptureResult, memory_too_long_to_type(too_long=outcome))
+    if isinstance(outcome, MemoryConflictAskedDTO):
+        return cast(
+            CaptureResult,
+            MemoryConflictAsked(
+                pending_capture_id=strawberry.ID(str(outcome.pending_capture_id)),
+                question=outcome.question,
+                new_text=outcome.text,
+                category=outcome.category,
+                conflicting=[
+                    memory_dto_to_type(memory=memory) for memory in outcome.conflicting
+                ],
+            ),
+        )
+    return None
+
+
+ResolveMemoryConflictResult = Annotated[
+    MemorySaved | MemoryDiscarded | PendingCaptureNotFound,
+    strawberry.union("ResolveMemoryConflictResult"),
+]
+
+
 @strawberry.type
 class CaptureMutations:
     @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
@@ -163,3 +233,38 @@ class CaptureMutations:
             user_id=user_id, pending_capture_id=UUID(str(pending_capture_id))
         )
         return True
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    async def resolve_memory_conflict(
+        self, info: Info, pending_capture_id: strawberry.ID, answer: ConflictAnswer
+    ) -> ResolveMemoryConflictResult:
+        """Epic 004, FR-11 to FR-13: the answer to "Which is correct?"."""
+        context = cast(Context, info.context)
+        user_id = cast(UUID, context.user_id)
+        interactor = build_resolve_memory_conflict_interactor(context)
+        outcome = await interactor.resolve_memory_conflict(
+            user_id=user_id,
+            pending_capture_id=UUID(str(pending_capture_id)),
+            answer=answer,
+        )
+        if isinstance(outcome, MemorySavedDTO):
+            return cast(
+                ResolveMemoryConflictResult,
+                MemorySaved(
+                    memory=memory_dto_to_type(memory=outcome.memory),
+                    secret_caution=outcome.secret_caution,
+                ),
+            )
+        if isinstance(outcome, MemoryDiscardedDTO):
+            return cast(
+                ResolveMemoryConflictResult,
+                MemoryDiscarded(
+                    message="Kept your earlier memory. Nothing new was saved."
+                ),
+            )
+        return cast(
+            ResolveMemoryConflictResult,
+            PendingCaptureNotFound(
+                message="This question was already answered. Nothing changed."
+            ),
+        )

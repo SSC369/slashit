@@ -33,3 +33,13 @@ async def test_protected_field_refuses_a_garbage_token(client: AsyncClient) -> N
 
     assert body.get("errors")
     assert "Not authenticated" in str(body["errors"])
+
+
+async def test_refusal_carries_the_unauthenticated_code(client: AsyncClient) -> None:
+    """002 T-4.1: the client signs out on this code (FR-23, AD-8), so both a
+    missing and an unverifiable token must carry it."""
+    for headers in ({}, {"Authorization": "Bearer not.a.token"}):
+        response = await client.post("/graphql", json=ME_QUERY, headers=headers)
+        errors = response.json()["errors"]
+
+        assert errors[0]["extensions"] == {"code": "UNAUTHENTICATED"}

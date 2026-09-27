@@ -26,6 +26,11 @@ export const errorBannerStyles =
   "mb-[18px] flex items-start gap-2.5 rounded-[10px] border border-destructive-wash " +
   "bg-destructive-wash px-4 py-3.5 text-[13px] leading-relaxed text-destructive";
 
+/** 002 FR-23: neutral, not the red banner. The user did nothing wrong. */
+export const infoNoteStyles =
+  "mb-[18px] flex items-start gap-2.5 rounded-[10px] border border-border-strong " +
+  "bg-card px-4 py-3.5 text-[13px] leading-relaxed text-foreground-secondary";
+
 export const googleButtonStyles =
   "mb-[18px] flex h-11 w-full items-center justify-center gap-2.5 rounded-md border " +
   "border-border-strong bg-card text-sm font-medium text-foreground " +

@@ -34,8 +34,9 @@ class AllowanceService:
         if limit is None:
             limit = DEFAULT_REQUESTS_PER_DAY
 
+        # Tech stack T9: embeddings are recorded but never counted.
         used = await self.usage_repository.count_since(
-            user_id=user_id, since=window_start
+            user_id=user_id, since=window_start, operation="generate"
         )
 
         return AllowanceDTO(

@@ -3,6 +3,7 @@ import { makeAutoObservable } from "mobx";
 export interface Toast {
   id: string;
   message: string;
+  /** Empty for a toast with nothing to open, such as "Memory forgotten". */
   linkLabel: string;
   linkTo: string;
 }

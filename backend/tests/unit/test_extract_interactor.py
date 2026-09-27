@@ -174,6 +174,8 @@ def test_usage_row_holds_no_user_text() -> None:
         "output_tokens",
         "outcome",
         "latency_ms",
+        # Epic 004: "generate" or "embed", an enum that cannot hold text.
+        "operation",
     }
 
     actual = {f.name for f in dataclasses.fields(UsageRecord)}

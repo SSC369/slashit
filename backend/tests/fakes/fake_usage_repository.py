@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from app.domains.gateway.interfaces.dtos import UsageRecord
+from app.domains.gateway.interfaces.dtos import OperationValue, UsageRecord
 
 
 class FakeUsageRepository:
@@ -14,13 +14,17 @@ class FakeUsageRepository:
         self._limit = limit
         self._used = used
         self.record_should_fail = False
+        self.counted_operations: list[OperationValue] = []
 
     async def record(self, *, usage: UsageRecord, occurred_at: datetime) -> None:
         if self.record_should_fail:
             raise RuntimeError("simulated write failure")
         self.records.append(usage)
 
-    async def count_since(self, *, user_id: UUID, since: datetime) -> int:
+    async def count_since(
+        self, *, user_id: UUID, since: datetime, operation: OperationValue
+    ) -> int:
+        self.counted_operations.append(operation)
         return self._used
 
     async def get_request_limit_for_user(self, *, user_id: UUID) -> int | None:

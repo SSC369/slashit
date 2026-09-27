@@ -9,6 +9,7 @@ from app.domains.capture.interfaces.dtos import (
     MissingField,
     PendingCaptureDTO,
 )
+from app.domains.memories.public import MemoryCategory
 
 
 class PendingCaptureRepository(Protocol):
@@ -21,6 +22,18 @@ class PendingCaptureRepository(Protocol):
         missing_field: MissingField,
         question_text: str,
         original_input: str,
+    ) -> PendingCaptureDTO: ...
+
+    async def create_pending_conflict(
+        self,
+        *,
+        user_id: UUID,
+        command_name: str,
+        question_text: str,
+        original_input: str,
+        candidate_text: str,
+        candidate_category: MemoryCategory | None,
+        conflicting_memory_ids: list[UUID],
     ) -> PendingCaptureDTO: ...
 
     async def get_pending_capture(
@@ -44,7 +57,15 @@ class CaptureTurnRepository(Protocol):
         question_text: str | None,
         answer_text: str | None,
         resulting_reminder_id: UUID | None = None,
+        resulting_memory_id: UUID | None = None,
+        affected_count: int | None = None,
     ) -> None: ...
+
+    async def delete_turns_for_memories(
+        self, *, user_id: UUID, memory_ids: list[UUID]
+    ) -> int:
+        """FR-23: delete every turn of these memories' threads."""
+        ...
 
     async def list_turns_for_user(
         self, *, user_id: UUID, cursor: str | None, limit: int

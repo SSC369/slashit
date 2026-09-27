@@ -15,6 +15,7 @@ import EmptyRecords from "../../components/EmptyRecords";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
+import MemoriesController from "../MemoriesController/MemoriesController";
 import RemindersController from "../RemindersController/RemindersController";
 import * as Styles from "./styles";
 
@@ -22,6 +23,7 @@ const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "ALL", label: "All" },
   { filter: "TASKS", label: "Tasks" },
   { filter: "REMINDERS", label: "Reminders" },
+  { filter: "MEMORIES", label: "Memories" },
 ];
 
 const RecordsController = (): ReactElement => {
@@ -43,6 +45,9 @@ const RecordsController = (): ReactElement => {
   }, []);
 
   const isRemindersTab = kindFilter === "REMINDERS";
+  const isMemoriesTab = kindFilter === "MEMORIES";
+  // Both tabs load their own queries; the records query serves All and Tasks.
+  const hasOwnQuery = isRemindersTab || isMemoriesTab;
 
   // A tab, search or sort change makes the current `apiStatus` stale until a
   // response for the new filter lands. Without this, switching tabs shows a
@@ -60,8 +65,8 @@ const RecordsController = (): ReactElement => {
   }
 
   useEffect(() => {
-    // The Reminders tab loads its own grouped query.
-    if (isRemindersTab) return;
+    // The Reminders and Memories tabs load their own queries.
+    if (hasOwnQuery) return;
     const timeoutId = window.setTimeout(() => {
       triggerAPI({
         filter: {
@@ -77,6 +82,14 @@ const RecordsController = (): ReactElement => {
     }, 250);
     return () => window.clearTimeout(timeoutId);
   }, [kindFilter, searchText, sortField]);
+
+  // A refetch whose result equals the last one keeps the same `data` object,
+  // so the effect below never fires and the table would stay on its skeleton
+  // (Reminders or Memories tab, then back to All). The request's own
+  // LOADING-to-SUCCESS change ends the pending state instead.
+  useEffect(() => {
+    if (apiStatus === API_SUCCESS) setIsFilterPending(false);
+  }, [apiStatus]);
 
   useEffect(() => {
     if (!data) return;
@@ -99,6 +112,10 @@ const RecordsController = (): ReactElement => {
   const handleOpenRecord = (row: RecordRow): void => {
     if (row.kind === "REMINDER") {
       navigate(`/records/reminders/${row.reminder.id}`);
+      return;
+    }
+    if (row.kind === "MEMORY") {
+      navigate(`/records/memories/${row.memory.id}`);
       return;
     }
     navigate(`/records/${row.task.id}`);
@@ -137,14 +154,13 @@ const RecordsController = (): ReactElement => {
                   {tab.label}
                 </button>
               ))}
-              <span className={RecordsStyles.tabHintStyles}>More types arrive with later epics</span>
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
               <div className={RecordsStyles.searchBoxStyles}>
                 <input
                   className={RecordsStyles.searchInputStyles}
                   type="text"
-                  placeholder="Search records"
+                  placeholder={isMemoriesTab ? "Search memories" : "Search records"}
                   value={searchText}
                   onChange={handleSearchChange}
                 />
@@ -153,6 +169,8 @@ const RecordsController = (): ReactElement => {
           </div>
           {isRemindersTab ? (
             <RemindersController />
+          ) : isMemoriesTab ? (
+            <MemoriesController />
           ) : isNoMatch ? (
             <ReminderListNotice
               icon={<SearchX size={24} />}

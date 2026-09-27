@@ -1,4 +1,4 @@
-import { Bell, Check, Clock, History, Trash2, X } from "lucide-react";
+import { Bell, Bookmark, Check, Clock, Eraser, History, Scale, Search, Trash2, X } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 
 import useGetCaptureHistory from "../../../api/queries/GetCaptureHistory/useGetCaptureHistory";
@@ -23,17 +23,34 @@ const OUTCOME_PILL: Record<
   DISCARDED: { className: Styles.pillMutedStyles, label: "Discarded", icon: <Trash2 size={12} /> },
   REFUSED: { className: Styles.pillErrStyles, label: "Refused", icon: <X size={12} /> },
   REMINDER_CREATED: { className: Styles.pillDoneStyles, label: "Reminder set", icon: <Bell size={12} /> },
+  MEMORY_SAVED: { className: Styles.pillDoneStyles, label: "Memory saved", icon: <Bookmark size={12} /> },
+  MEMORY_LISTED: { className: Styles.pillMutedStyles, label: "Memories listed", icon: <Search size={12} /> },
+  MEMORY_FORGOTTEN: { className: Styles.pillMutedStyles, label: "Forgot memories", icon: <Eraser size={12} /> },
+  MEMORY_CONFLICT_RESOLVED: {
+    className: Styles.pillDoneStyles,
+    label: "Conflict answered",
+    icon: <Scale size={12} />,
+  },
+};
+
+/** FR-28: the `/forget` row names the count and nothing typed. */
+const pillLabel = (turn: CaptureTurnFieldsFragment): string => {
+  if (turn.outcome === "MEMORY_FORGOTTEN" && turn.affectedCount !== null) {
+    return `Forgot ${turn.affectedCount} ${turn.affectedCount === 1 ? "memory" : "memories"}`;
+  }
+  return OUTCOME_PILL[turn.outcome].label;
 };
 
 const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement => {
   const { turn } = props;
+  // Sub-plan 4.4: a forgotten memory's turns are deleted, so none reach here.
   const pill = OUTCOME_PILL[turn.outcome];
 
   return (
     <div className={Styles.historyRowStyles}>
       <div className={Styles.historyRowHeadStyles}>
         <span className={`${Styles.pillBaseStyles} ${pill.className}`}>
-          {pill.icon} {pill.label}
+          {pill.icon} {pillLabel(turn)}
         </span>
         <span className={Styles.historyTimeStyles}>{formatRelativeTime(turn.createdAt)}</span>
       </div>

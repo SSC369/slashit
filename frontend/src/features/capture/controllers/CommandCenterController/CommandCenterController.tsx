@@ -6,10 +6,16 @@ import { useNavigate } from "react-router";
 import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCapture/responseHandler";
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
+import useResolveMemoryConflict from "../../../../api/mutations/ResolveMemoryConflict/useResolveMemoryConflict";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
+import { clearOfflineReadCache } from "../../../../api/lib/offlineReadCache";
 import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
-import { ARGUMENTLESS_COMMANDS, CAPTURE_COMMANDS } from "../../../../constants/captureCommands";
+import {
+  ARGUMENTLESS_COMMANDS,
+  CAPTURE_COMMANDS,
+  MEMORY_SAVE_COMMANDS,
+} from "../../../../constants/captureCommands";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
 import { whenTextInSentence } from "../../../../utils/formatReminder";
@@ -19,10 +25,15 @@ import CommandPalette from "../../components/CommandPalette";
 import EmptyState from "../../components/EmptyState";
 import HistoryPanel from "../../components/HistoryPanel";
 import TurnCard from "../../components/TurnCard";
+import WaitingPill from "../../components/WaitingPill";
+import type { ConflictAnswer } from "../../../../../types.generated";
 import * as StreamStyles from "../../components/styles";
 import * as Styles from "./styles";
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
+
+const isMemorySave = (said: string): boolean =>
+  MEMORY_SAVE_COMMANDS.some((command) => said === command || said.startsWith(`${command} `));
 
 interface CaptureResultTarget {
   store: RootStore;
@@ -39,6 +50,12 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
   // RemindModelDown: a /remind the model could not read keeps its own copy.
   // Every other command keeps 001's refusal card, unchanged.
   const refuseUnreadable = (message: string): void => {
+    // Epic 004 FR-9: a memory save refused on the model keeps its own copy.
+    if (isMemorySave(said)) {
+      captureStore.resolveTurn(turnId, { status: "memoryModelDown" });
+      restoreInput(said);
+      return;
+    }
     if (said.startsWith("/remind")) {
       captureStore.resolveTurn(turnId, { status: "modelDown" });
       restoreInput(said);
@@ -64,6 +81,30 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
     onReminderLimitReached: ({ limit }) => {
       captureStore.resolveTurn(turnId, { status: "reminderLimit", limit });
       restoreInput(said);
+    },
+    onMemorySaved: ({ memory, secretCaution }) => {
+      captureStore.resolveTurn(turnId, { status: "memorySaved", memory, secretCaution });
+      store.memories.upsert(memory);
+    },
+    onMemoriesListed: ({ memories, searchText }) =>
+      captureStore.resolveTurn(turnId, { status: "memoryList", memories, searchText }),
+    onMemoryTooLong: ({ length, limit }) => {
+      captureStore.resolveTurn(turnId, { status: "memoryTooLong", length, limit });
+      restoreInput(said);
+    },
+    onMemoryConflictAsked: ({ pendingCaptureId, newText, category, conflicting }) => {
+      // The card reads these back from the store, so an edit or forget made
+      // in Records before the answer shows here too (sub-plan 4.3 §6).
+      for (const memory of conflicting) store.memories.upsert(memory);
+      captureStore.resolveTurn(turnId, {
+        status: "memoryConflict",
+        pendingCaptureId,
+        newText,
+        category,
+        conflicting,
+        deferred: false,
+        error: null,
+      });
     },
     onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
       captureStore.resolveTurn(turnId, { status: "pending", pendingCaptureId, question, answerDraft: "" }),
@@ -99,6 +140,9 @@ const CommandCenterController = (): ReactElement => {
     apiStatus: answerApiStatus,
   } = useAnswerPendingCapture();
   const { triggerAPI: triggerDiscardPendingCapture } = useDiscardPendingCapture();
+  const { triggerAPI: triggerResolveMemoryConflict, apiStatus: resolveApiStatus } =
+    useResolveMemoryConflict();
+  const [resolvingTurnId, setResolvingTurnId] = useState<string | null>(null);
 
   const paletteOpen = isPaletteOpen(input);
   const matches = paletteOpen ? filterCommands(input) : [];
@@ -220,6 +264,52 @@ const CommandCenterController = (): ReactElement => {
     submit(said);
   };
 
+  const handleConflictAnswer = (turnId: string, answer: ConflictAnswer): void => {
+    const turn = store.capture.turns.get(turnId);
+    if (!turn || turn.status !== "memoryConflict" || !isOnline) return;
+    // Only those still live: the server forgets no others (sub-plan 4.3 §6).
+    const oldIds = turn.conflicting
+      .map((memory) => memory.id)
+      .filter((memoryId) => store.memories.get(memoryId) !== null);
+
+    store.capture.setConflictError(turnId, null);
+    setResolvingTurnId(turnId);
+    triggerResolveMemoryConflict({
+      pendingCaptureId: turn.pendingCaptureId,
+      answer,
+      onMemorySaved: ({ memory, secretCaution }) => {
+        store.memories.upsert(memory);
+        if (answer === "KEEP_NEW") {
+          store.forgetMemories(oldIds);
+          void clearOfflineReadCache();
+        }
+        store.capture.resolveTurn(turnId, {
+          status: "memorySaved",
+          memory,
+          secretCaution,
+          resolution: answer === "KEEP_NEW" ? "KEEP_NEW" : "BOTH",
+          forgottenCount: answer === "KEEP_NEW" ? oldIds.length : 0,
+        });
+      },
+      onMemoryDiscarded: () => store.capture.resolveTurn(turnId, { status: "memoryDiscarded" }),
+      onPendingCaptureNotFound: () => store.capture.resolveTurn(turnId, { status: "conflictGone" }),
+      onRequestFailed: (requestError) => store.capture.setConflictError(turnId, requestError.message),
+    });
+  };
+
+  const handleConflictDefer = (turnId: string, deferred: boolean): void => {
+    store.capture.setConflictDeferred(turnId, deferred);
+  };
+
+  const handleShowWaiting = (): void => {
+    const waiting = store.capture
+      .getAll()
+      .find((turn) => turn.status === "pending" || turn.status === "memoryConflict");
+    if (!waiting) return;
+    if (waiting.status === "memoryConflict") store.capture.setConflictDeferred(waiting.id, false);
+    document.getElementById(`turn-${waiting.id}`)?.scrollIntoView({ block: "center" });
+  };
+
   const handleOpenReminder = (id: string): void => {
     navigate(`/records/reminders/${id}`);
   };
@@ -233,7 +323,30 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
-  const turns = store.capture.getAll();
+  const handleOpenMemory = (id: string): void => {
+    navigate(`/records/memories/${id}`);
+  };
+
+  const handleEditMemory = (id: string): void => {
+    navigate(`/records/memories/${id}/edit`);
+  };
+
+  const handleOpenMemories = (): void => {
+    store.records.setKindFilter("MEMORIES");
+    navigate("/records");
+  };
+
+  // Old memories are read live: an edit shows, a forgotten one drops out.
+  const turns = store.capture.getAll().map((turn) =>
+    turn.status === "memoryConflict"
+      ? {
+          ...turn,
+          conflicting: turn.conflicting
+            .map((memory) => store.memories.get(memory.id))
+            .filter((memory) => memory !== null),
+        }
+      : turn,
+  );
   const showEmpty = turns.length === 0 && !input;
   const streamRef = useRef<HTMLDivElement>(null);
 
@@ -280,6 +393,12 @@ const CommandCenterController = (): ReactElement => {
                 onEditReminder={handleEditReminder}
                 onOpenReminder={handleOpenReminder}
                 onOpenReminders={handleOpenReminders}
+                onEditMemory={handleEditMemory}
+                onOpenMemory={handleOpenMemory}
+                onOpenMemories={handleOpenMemories}
+                isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
+                onConflictAnswer={handleConflictAnswer}
+                onConflictDefer={handleConflictDefer}
               />
             ))}
           </div>
@@ -287,6 +406,7 @@ const CommandCenterController = (): ReactElement => {
       )}
 
       <div className={StreamStyles.dockStyles}>
+        <WaitingPill count={store.capture.waitingCount} onShow={handleShowWaiting} />
         <div className={StreamStyles.inputWrapStyles}>
           {paletteOpen && (
             <CommandPalette

@@ -4,7 +4,7 @@ title: Slashit Technical Stack
 status: current
 owner: user
 created: 2026-09-09
-updated: 2026-09-23
+updated: 2026-09-25
 ---
 
 # Slashit — Technical Stack
@@ -31,7 +31,8 @@ choice changes, it changes here, and the change log at the bottom records it.
 | ORM | SQLAlchemy 2.x, async |
 | Database driver | asyncpg |
 | Migrations | Alembic |
-| Vector search | pgvector, in the same database |
+| Vector search | pgvector, in the same database. Enabled by epic 004, `vector(768)` |
+| Embedding model | Gemini embedding model through the gateway's `embed`, 768 dimensions. Exact model name confirmed against Google's list at build (epic 004 AD-4) |
 | Auth | Supabase Auth |
 | Data isolation | PostgreSQL Row Level Security |
 | In-app notification transport | GraphQL subscriptions over WebSockets |
@@ -48,7 +49,7 @@ choice changes, it changes here, and the change log at the bottom records it.
 | Frontend hosting | Vercel |
 | Email | Resend |
 | Model framework | LangChain, `langchain-core` plus `langchain-google-genai` |
-| Model provider | Google Gemini Flash, paid tier. `gemini-3.6-flash` in V1 |
+| Model provider | Google Gemini Flash, paid tier. `gemini-3.6-flash` at reasoning effort "low" in V1; embeddings `gemini-embedding-001`, 768 dimensions |
 | LLM observability | Langfuse |
 
 ---
@@ -325,9 +326,10 @@ explicitly and argues for it.
 | T3 | The service-role key never reaches the browser, and never serves a request made on behalf of a user unless the resolver has already established ownership. It is for migrations and background jobs |
 | T4 | The model provider stays behind a boundary. Nothing above it knows which provider is in use, so a tier or vendor change is configuration, not a rewrite |
 | T5 | DataLoader from the first resolver, not retrofitted after the N+1 appears |
-| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store |
+| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half |
 | T7 | Every feature touching user data tests the boundary: a case where user A requests user B's record and receives nothing |
 | T8 | Every number in a build plan carries its source. A benchmark, a vendor page, a measurement, or the label `estimate` |
+| T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
 
 ---
 
@@ -422,12 +424,14 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
 | 2026-09-23 | Subscription backplane set to PostgreSQL `LISTEN/NOTIFY`, closing T-Q3. Background jobs run in a separate worker container. One backend domain per record type. Stale downstream: none; epic 003 is the first consumer | Decisions AD-1, AD-4 and AD-9 of epic 003's approved build plan, graduated per rule 8 of the process | user |
 | 2026-09-14 | T-Q3 and T-Q7's `Blocks` column renumbered from epic 002/004 to epic 003/005 | Epic 002, Authentication, inserted ahead of the old 002 to 010, which shifted to 003 to 011 (`product/v1-features.md`, 2026-09-14) | user |
 | 2026-09-13 | T-Q5 answered: frontend hosting is Vercel | Epic 001's build plan needed it | user |
 | 2026-09-09 | Created, absorbing decision records 0004, 0005 and 0006 | User removed the decisions folder and asked for one technical document | user |
 | 2026-09-09 | Server state moved from TanStack Query to Apollo Client. The pillar P2 objection to a normalised cache is preserved by making MobX stores the source of truth and Apollo a transport | User direction while drafting the repository rulesets | user |
 | 2026-09-12 | V1 model changed from `gemini-2.5-flash` to `gemini-3.6-flash`. The former returns 404 to new accounts, and Google's error names the latter as its replacement | Discovered by calling the API during epic 000 slice 3 | user |
+| 2026-09-27 | Reasoning effort set to "low"; embedding model confirmed live | At the default effort, epic 004's conflict judgement missed its 8 s budget (004 dev log D-22) | user |
 | 2026-09-12 | Added LangChain as the model framework, below the gateway's provider Protocol. Recorded that the wider AI toolkit is installed locally and not deployed | User direction while planning epic 000 slice 3 | user |
 | 2026-09-12 | Corrected the T-Q2 answer. The claim alone leaks every row because `postgres` carries `rolbypassrls`; `SET LOCAL ROLE authenticated` is mandatory alongside it. Stale downstream: none, no code had been written against the earlier answer | Measured against the live database while planning epic 000 slice 2 | user |
 | 2026-09-12 | Added ORM, database driver, migrations and a Python version. Named `gemini-2.5-flash` as the V1 model. Recorded the `SET LOCAL` answer to T-Q2 and that there is no mirrored users table | Decisions AD-2 to AD-7 and AD-9 locked by epic 000's approved build plan, graduated here per rule 6 of the process | user |

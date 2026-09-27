@@ -1,0 +1,7 @@
+#import "../../../fragments/MemoryFields.graphql"
+
+query GetMemories($filter: MemoriesFilterInput) {
+  memories(filter: $filter) {
+    ...MemoryFields
+  }
+}

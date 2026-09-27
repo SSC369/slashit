@@ -3,6 +3,7 @@ import { observer } from "mobx-react-lite";
 import type { ReactElement } from "react";
 import { Link, NavLink, Outlet } from "react-router";
 
+import { markUserSignOut } from "../api/lib/sessionExpiry";
 import { supabaseClient } from "../api/lib/supabaseClient";
 import InstallPrompt from "../components/InstallPrompt";
 import OfflineBanner from "../components/OfflineBanner";
@@ -40,9 +41,10 @@ const AppShell = (): ReactElement => {
 
   const handleSignOut = async (close: () => void): Promise<void> => {
     close();
-    // RequireAuth's onAuthStateChange listener clears store.auth and
-    // redirects to /sign-in the moment the session goes null; nothing else
-    // to do here.
+    // RequireAuth's onAuthStateChange listener clears every store and
+    // redirects to /sign-in the moment the session goes null. Marking the
+    // sign-out as the user's keeps the "session expired" notice off (002 FR-23).
+    markUserSignOut();
     await supabaseClient.auth.signOut();
   };
 

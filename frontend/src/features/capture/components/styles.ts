@@ -105,3 +105,41 @@ export const reminderListNameStyles = "truncate font-medium text-foreground";
 export const reminderListMetaStyles = "truncate text-foreground-secondary";
 export const quickAnswerRowStyles = "mt-3 flex flex-wrap gap-2";
 export const footLinkStyles = "text-accent hover:underline";
+
+// Memory cards (004 design: MemorySaved, MemorySecretCaution, MemoriesLookup, CaptureStates)
+export const memoryFieldsGridStyles = "grid grid-cols-[minmax(0,1fr)_170px] gap-px bg-border";
+export const cautionInCardStyles = "mx-4 my-3 rounded-[9px]";
+export const memoryListRowStyles =
+  "flex cursor-pointer items-center justify-between gap-4 px-4 py-2.5 hover:bg-background";
+export const memoryHintStyles = "px-4 py-3 text-[13px] text-foreground-secondary";
+
+// Forget (004 design: ForgetPick, ForgetConfirm, ForgetAll, HistoryForgotten)
+export const forgetPickRowStyles = "flex cursor-pointer items-center gap-3 border-t border-border px-4 py-3";
+export const forgetPickRowOnStyles = "bg-accent-wash";
+export const forgetRadioStyles = "h-4 w-4 shrink-0 accent-[var(--color-accent)]";
+export const forgetConfirmCardStyles = "overflow-hidden rounded-lg border border-destructive-wash bg-card";
+export const forgetConfirmBodyStyles = "flex gap-3.5 px-[18px] pb-3.5 pt-[18px]";
+export const forgetConfirmIconStyles =
+  "flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-destructive-wash text-destructive";
+export const forgetConfirmTitleStyles = "text-base font-semibold text-foreground";
+export const forgetConfirmTextStyles = "mt-1.5 text-[13.5px] text-foreground-secondary";
+export const forgetConfirmBackupStyles = "mt-2.5 text-[12.5px] text-foreground-tertiary";
+export const forgetActionsStyles = "flex justify-end gap-2.5 border-t border-border bg-background px-4 py-3";
+export const forgetErrorStyles = "px-4 pb-3 text-[13px] text-destructive";
+
+// Conflict (004 design: Main, MobileConflict). The pair is design delta `.pair`.
+export const conflictLeadStyles = "px-4 pt-3 text-[13.5px] text-foreground-secondary";
+export const conflictPairStyles = "grid grid-cols-1 gap-2.5 px-4 py-3 sm:grid-cols-2";
+export const conflictSideStyles = "rounded-[10px] border border-border bg-background px-3.5 py-3";
+export const conflictSideNewStyles = "border-accent bg-accent-wash";
+export const conflictSideTextStyles = "mt-1 text-[14.5px] font-medium text-foreground";
+export const conflictSideMetaStyles = "mt-1 text-xs text-foreground-tertiary";
+export const conflictAnswerRowStyles =
+  "flex cursor-pointer items-start gap-3 border-t border-border px-4 py-3 first:border-t-0";
+export const conflictAnswerRowOnStyles = "bg-accent-wash";
+export const conflictAnswerTitleStyles = "text-[14px] font-semibold text-foreground";
+export const conflictAnswerBodyStyles = "mt-0.5 text-[13px] text-foreground-secondary";
+export const conflictActionsStyles =
+  "flex flex-col-reverse gap-2.5 border-t border-border bg-background px-4 py-3 sm:flex-row sm:justify-end";
+export const conflictDeferredStyles = "flex items-center justify-between gap-3 px-4 py-3 text-[13px] text-foreground-secondary";
+export const waitingPillRowStyles = "mb-2 flex justify-center";

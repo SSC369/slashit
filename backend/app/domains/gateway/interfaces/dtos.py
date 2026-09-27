@@ -2,8 +2,10 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
+
+OperationValue = Literal["generate", "embed"]
 
 
 @dataclass(frozen=True)
@@ -31,6 +33,23 @@ class ProviderResult:
     data: dict[str, Any]
     input_tokens: int
     output_tokens: int
+    model: str
+
+
+@dataclass(frozen=True)
+class ProviderEmbedding:
+    """What a provider returns for one embedding. The provider reports no
+    token count for an embedding, so none is carried."""
+
+    vector: tuple[float, ...]
+    model: str
+
+
+@dataclass(frozen=True)
+class Embedding:
+    """Success for a caller of ``EmbedInteractor``. Epic 004."""
+
+    vector: tuple[float, ...]
     model: str
 
 
@@ -68,6 +87,8 @@ class UsageRecord:
     output_tokens: int
     outcome: str
     latency_ms: int | None
+    # Epic 004. Every call before embeddings existed was a generation.
+    operation: OperationValue = "generate"
 
     @property
     def total_tokens(self) -> int:

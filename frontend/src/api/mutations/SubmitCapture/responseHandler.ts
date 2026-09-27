@@ -1,4 +1,7 @@
+import type { MemoryFieldsFragment } from "../../../fragments/MemoryFields.generated";
+import type { MemoryConflictArgs } from "../../../constants/memoryConstants";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
+import type { SecretKind } from "../../../../types.generated";
 import type { TaskFieldsFragment } from "../../../fragments/TaskFields.generated";
 import type { SubmitCaptureMutation } from "./operation.generated";
 
@@ -8,6 +11,10 @@ export interface SubmitCaptureCallbacks {
   onReminderCreated?: (reminder: ReminderFieldsFragment) => void;
   onRemindersListed?: (reminders: ReminderFieldsFragment[]) => void;
   onReminderLimitReached?: (args: { message: string; limit: number }) => void;
+  onMemorySaved?: (args: { memory: MemoryFieldsFragment; secretCaution: SecretKind | null }) => void;
+  onMemoriesListed?: (args: { memories: MemoryFieldsFragment[]; searchText: string | null }) => void;
+  onMemoryTooLong?: (args: { message: string; length: number; limit: number }) => void;
+  onMemoryConflictAsked?: (args: MemoryConflictArgs) => void;
   onPendingQuestionCreated?: (args: { pendingCaptureId: string; question: string }) => void;
   onNonCommandGuidance?: (originalInput: string) => void;
   onUnrecognisedCommand?: (args: { attemptedName: string; closestMatches: string[] }) => void;
@@ -47,6 +54,27 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
         return;
       case "ReminderLimitReached":
         callbacks.onReminderLimitReached?.({ message: result.message, limit: result.limit });
+        return;
+      case "MemorySaved":
+        callbacks.onMemorySaved?.({ memory: result.memory, secretCaution: result.secretCaution });
+        return;
+      case "MemoriesListed":
+        callbacks.onMemoriesListed?.({ memories: result.memories, searchText: result.searchText });
+        return;
+      case "MemoryTooLong":
+        callbacks.onMemoryTooLong?.({
+          message: result.message,
+          length: result.length,
+          limit: result.limit,
+        });
+        return;
+      case "MemoryConflictAsked":
+        callbacks.onMemoryConflictAsked?.({
+          pendingCaptureId: result.pendingCaptureId,
+          newText: result.newText,
+          category: result.category,
+          conflicting: result.conflicting,
+        });
         return;
       case "PendingQuestionCreated":
         callbacks.onPendingQuestionCreated?.({

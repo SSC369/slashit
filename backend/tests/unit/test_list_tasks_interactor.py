@@ -6,9 +6,11 @@ FR-15, FR-16, FR-17, FR-25, FR-43.
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interfaces.dtos import TaskDTO
+from tests.fakes.fake_memory_port import FakeMemoryRecordsPort
 from tests.fakes.fake_reminder_records_port import FakeReminderRecordsPort
 from tests.fakes.fake_task_repository import FakeTaskRepository
 
@@ -37,7 +39,9 @@ async def test_kind_filter_tasks_returns_every_row() -> None:
     user_id = uuid.uuid4()
     repository = await _seeded_repository(user_id=user_id)
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(
@@ -58,7 +62,9 @@ async def test_search_matches_title_case_insensitively() -> None:
     user_id = uuid.uuid4()
     repository = await _seeded_repository(user_id=user_id)
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(
@@ -96,7 +102,9 @@ async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
         original_input=None,
     )
     interactor = ListTasksInteractor(
-        task_repository=repository, reminder_records=FakeReminderRecordsPort()
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=repository,
+        reminder_records=FakeReminderRecordsPort(),
     )
 
     tasks = await interactor.list_tasks(
@@ -134,3 +142,38 @@ async def test_overdue_pending_task_reports_overdue_and_done_does_not() -> None:
     )
     assert done is not None
     assert done.is_overdue is False
+
+
+async def test_the_all_tab_filter_includes_memories() -> None:
+    """004 C-16 as the All tab sends it: kind "ALL", not an omitted filter.
+    Found in 004's live browser pass, where the All tab showed no memories."""
+    user_id = uuid.uuid4()
+    now = datetime.now(UTC)
+    memory = MemoryDTO(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        text="Preferred airline is Qatar Airways",
+        category=MemoryCategory.PERSONAL,
+        origin="command",
+        original_input=None,
+        created_at=now,
+        updated_at=now,
+    )
+    interactor = ListTasksInteractor(
+        memory_records=FakeMemoryRecordsPort(memories=[memory]),
+        task_repository=await _seeded_repository(user_id=user_id),
+        reminder_records=FakeReminderRecordsPort(),
+    )
+
+    for kind_filter in (None, "ALL"):
+        records = await interactor.list_tasks(
+            dto=ListTasksInputDTO(
+                user_id=user_id,
+                kind_filter=kind_filter,
+                search=None,
+                sort_by="CREATED_AT",
+                sort_desc=False,
+            )
+        )
+
+        assert memory in records, kind_filter

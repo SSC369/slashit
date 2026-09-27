@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import cast
 
-from sqlalchemy import literal, select, tuple_
+from sqlalchemy import delete, literal, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -39,6 +39,9 @@ def _turn_to_dto(*, turn: CaptureTurn) -> CaptureTurnDTO:
         answer_text=turn.answer_text,
         created_at=turn.created_at,
         resulting_reminder_id=turn.resulting_reminder_id,
+        resulting_memory_id=turn.resulting_memory_id,
+        forgotten=turn.forgotten_at is not None,
+        affected_count=turn.affected_count,
     )
 
 
@@ -59,6 +62,8 @@ class SqlCaptureTurnRepository:
         question_text: str | None,
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
+        resulting_memory_id: uuid.UUID | None = None,
+        affected_count: int | None = None,
     ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
             scoped.add(
@@ -70,11 +75,43 @@ class SqlCaptureTurnRepository:
                     resulting_task_id=resulting_task_id,
                     resulting_pending_capture_id=resulting_pending_capture_id,
                     resulting_reminder_id=resulting_reminder_id,
+                    resulting_memory_id=resulting_memory_id,
+                    affected_count=affected_count,
                     question_text=question_text,
                     answer_text=answer_text,
                     created_at=datetime.now(UTC),
                 )
             )
+
+    async def delete_turns_for_memories(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> int:
+        """FR-23, amended 2026-09-27: forget deletes the thread's turns outright,
+        no placeholder (sub-plan 4.4)."""
+        if not memory_ids:
+            return 0
+        async with user_transaction(self.session, user_id) as scoped:
+            deleted_ids = await scoped.scalars(
+                delete(CaptureTurn)
+                .where(
+                    CaptureTurn.user_id == user_id,
+                    or_(
+                        CaptureTurn.resulting_memory_id.in_(memory_ids),
+                        # Sub-plan 4.3 §5: a conflict's question turn holds the
+                        # typed fact but no memory id. It shares a pending id
+                        # with the resolution turn that saved the memory.
+                        CaptureTurn.resulting_pending_capture_id.in_(
+                            select(CaptureTurn.resulting_pending_capture_id).where(
+                                CaptureTurn.user_id == user_id,
+                                CaptureTurn.resulting_memory_id.in_(memory_ids),
+                                CaptureTurn.resulting_pending_capture_id.is_not(None),
+                            )
+                        ),
+                    ),
+                )
+                .returning(CaptureTurn.id)
+            )
+            return len(list(deleted_ids))
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

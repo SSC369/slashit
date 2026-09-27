@@ -8,7 +8,11 @@ is then one file.
 
 from typing import Protocol
 
-from app.domains.gateway.interfaces.dtos import ExtractionRequest, ProviderResult
+from app.domains.gateway.interfaces.dtos import (
+    ExtractionRequest,
+    ProviderEmbedding,
+    ProviderResult,
+)
 
 
 class ModelProvider(Protocol):
@@ -20,5 +24,15 @@ class ModelProvider(Protocol):
             ProviderUnavailableError: outage or connection failure.
             ProviderTimeoutError: exceeded the time budget.
             MalformedResultError: the response did not match the schema.
+        """
+        ...
+
+    async def embed(self, *, text: str) -> ProviderEmbedding:
+        """Return the meaning vector for one text. Epic 004.
+
+        Raises:
+            SharedQuotaExhaustedError: the provider refused on quota.
+            ProviderUnavailableError: outage or connection failure.
+            ProviderTimeoutError: exceeded the time budget.
         """
         ...

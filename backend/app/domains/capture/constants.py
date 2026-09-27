@@ -24,7 +24,37 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     "/tasks",
     "/remind",
     "/reminders",
+    # Epic 004. `/memory` is deliberately absent (PRD, out of scope): it falls
+    # to FR-12's closest-match suggestion, which offers `/memories`.
+    "/remember",
+    "/add-memory",
+    "/memories",
+    # `/forget` is deliberately absent since sub-plan 4.5: forget is from a
+    # memory's detail page only, and `/forget` falls to FR-12's reply.
 )
+
+# Epic 004, FR-1: two names for one action.
+MEMORY_SAVE_COMMANDS: Final[tuple[str, ...]] = ("/remember", "/add-memory")
+
+# Epic 004, AD-7. A fact's 500-character limit (FR-4) is checked by memories on
+# the fact itself, and answered with a drawn state, so a memory command's whole
+# line may run past MAX_INPUT_LENGTH. This outer guard still protects the
+# gateway from an unbounded line.
+MAX_MEMORY_LINE_LENGTH: Final = 1000
+
+# FR-3. The one question an empty `/remember` asks.
+FACT_QUESTION: Final = "What should Slashit remember?"
+
+# Epic 004, FR-10. Fixed, so a conflict turn never stores an existing memory's
+# text: the old memories are shown live, by id (index §4).
+CONFLICT_QUESTION: Final = "Which is correct?"
+
+# What a resolution turn records as the answer. Fixed labels, never typed text.
+CONFLICT_ANSWER_LABELS: Final = {
+    "keep_new": "Keep the new one",
+    "keep_old": "Keep the old one",
+    "both": "Both are correct",
+}
 
 TASK_EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
     "type": "object",

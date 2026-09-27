@@ -1,0 +1,11 @@
+mutation ForgetMemory($id: ID!) {
+  forgetMemory(id: $id) {
+    __typename
+    ... on MemoriesForgotten {
+      count
+    }
+    ... on MemoryNotFound {
+      message
+    }
+  }
+}

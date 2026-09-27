@@ -1,6 +1,11 @@
 """A ModelProvider that returns or raises on command."""
 
-from app.domains.gateway.interfaces.dtos import ExtractionRequest, ProviderResult
+from app.domains.gateway.constants import EMBEDDING_DIMENSIONS
+from app.domains.gateway.interfaces.dtos import (
+    ExtractionRequest,
+    ProviderEmbedding,
+    ProviderResult,
+)
 
 
 class FakeProvider:
@@ -17,3 +22,11 @@ class FakeProvider:
             raise self._raises
         assert self._result is not None
         return self._result
+
+    async def embed(self, *, text: str) -> ProviderEmbedding:
+        self.calls += 1
+        if self._raises is not None:
+            raise self._raises
+        return ProviderEmbedding(
+            vector=tuple(0.0 for _ in range(EMBEDDING_DIMENSIONS)), model="fake-embed"
+        )

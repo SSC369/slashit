@@ -3,19 +3,24 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Text, Uuid
+from sqlalchemy import ARRAY, DateTime, Enum, Integer, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-MISSING_FIELDS = ("title", "due_at", "remind_at")
+MISSING_FIELDS = ("title", "due_at", "remind_at", "fact", "memory_conflict")
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
     "question_asked",
     "discarded",
     "refused",
     "reminder_created",
+    "memory_saved",
+    "memory_listed",
+    "memory_forgotten",
+    "memory_conflict_resolved",
 )
+MEMORY_CATEGORIES = ("personal", "people", "professional", "life")
 
 
 class PendingCapture(Base):
@@ -34,6 +39,12 @@ class PendingCapture(Base):
     question_text: Mapped[str] = mapped_column(Text)
     original_input: Mapped[str] = mapped_column(Text)
     asked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Epic 004, sub-plan 4.3: set only on a `memory_conflict` row.
+    candidate_text: Mapped[str | None] = mapped_column(Text)
+    candidate_category: Mapped[str | None] = mapped_column(
+        Enum(*MEMORY_CATEGORIES, name="memory_category", create_type=False)
+    )
+    conflicting_memory_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
 
 
 class CaptureTurn(Base):
@@ -52,6 +63,13 @@ class CaptureTurn(Base):
     resulting_pending_capture_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 003, migration 0018. No foreign key, as for resulting_task_id.
     resulting_reminder_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 004, migration 0025. No foreign key, as for resulting_task_id.
+    resulting_memory_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 004, migration 0028. Set by the forget scrub, the one UPDATE this
+    # table permits (AD-3); a check constraint keeps a scrubbed row wordless.
+    forgotten_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # A confirmed `/forget`: how many memories it removed (FR-28).
+    affected_count: Mapped[int | None] = mapped_column(Integer)
     question_text: Mapped[str | None] = mapped_column(Text)
     answer_text: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

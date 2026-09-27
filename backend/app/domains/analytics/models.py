@@ -8,7 +8,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-EVENT_TYPES = ("no_command_input", "records_view_opened")
+EVENT_TYPES = (
+    "no_command_input",
+    "records_view_opened",
+    # Epic 004, migration 0027.
+    "memory_saved",
+    "memory_lookup",
+    "memory_conflict_answered",
+    "memory_forgotten",
+    "memory_category_edited",
+    "memory_secret_caution",
+)
 
 
 class Event(Base):

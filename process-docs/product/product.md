@@ -4,7 +4,7 @@ title: Slashit Product
 status: in-review
 owner: user
 created: 2026-09-08
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Slashit — Product
@@ -86,6 +86,12 @@ Standing rules for every feature, so each PRD does not restate them.
 
 > Assumption: principles 6 and 7 are proposed defaults, not stated in the
 > source. Confirm or strike them.
+
+**Deleting records.** Records are soft-deleted: a deleted row stays, marked
+with when it was deleted, and every view skips it. This is the user's standing
+rule from 2026-09-19. **Memories are the one exception**: a forgotten memory is
+deleted outright, with its capture history, so forget means the fact is gone
+(epic 004, amended 2026-09-27 from an erased row that stayed).
 
 Principle 7 has a mechanism, not just an intention. See rule T2 in
 [the tech stack](../tech-stack.md#4-standing-technical-rules).
@@ -312,6 +318,7 @@ the first time a doc needs it. Keep definitions to one or two sentences.
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-25 | Deleting records stated in §4: soft delete everywhere, with memories as the one exception whose content is erased. Stale downstream: none | Epic 004's build plan AD-2 graduated on approval | user |
 | 2026-09-13 | Theme baseline corrected: no user override, device setting only. This document said "with a user override," settled 2026-09-09, but that override was proposed as FR-42 during epic 001's design and declined on 2026-09-13 (`001-capture-and-records-foundation/02-design.md` Q13). This document had not been updated to match | Found while reading this document before epic 001's build plan | user |
 | 2026-09-08 | Created as skeleton, then filled from the V1 product definition | Process bootstrap, then the user supplied the product | user |
 | 2026-09-08 | Surface, notifications, model provider, one account per user settled. Plain-language capture, the Life Inbox, and task priority and recurrence deferred out of V1. Pillar P1 marked partly deferred. Numeric targets deferred. Not charging in V1. No deadline. | User answered the blocking product questions and cut scope | user |
@@ -319,3 +326,4 @@ the first time a doc needs it. Keep definitions to one or two sentences.
 | 2026-09-09 | Stack revised, and the model tier moved from free to paid, so marginal cost per user is no longer zero | User asked for a stack fit for real users | user |
 | 2026-09-09 | Superseded `product-brief.md`. Absorbed the glossary and the name decision. V1 scope moved to [v1-features.md](./v1-features.md). Every technical row moved to [tech-stack.md](../tech-stack.md). | User asked for one product document, with technology kept out of it | user |
 | 2026-09-15 | Theme baseline reversed again: a user-facing light/dark toggle is back in scope, overriding the device setting when set. This reopens 001's design decision at Q13 (`001-capture-and-records-foundation/02-design.md`), settled 2026-09-13 the other way, and the 2026-09-13 entry above that recorded no toggle | User asked for a theme toggle while epic 002 was in dev, after first confirming they meant to leave the no-toggle decision alone, then changed their mind | user |
+| 2026-09-27 | §4: forgotten memories are deleted outright with their history, no longer kept as an empty row. Stale: epic 004 build plan AD-2, sub-plans 4.2 and 4.3 | User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |

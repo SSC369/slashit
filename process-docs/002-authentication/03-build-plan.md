@@ -6,7 +6,7 @@ stage: 3
 status: approved
 owner: user
 created: 2026-09-14
-updated: 2026-09-19
+updated: 2026-09-27
 approved_on: 2026-09-14
 supersedes: null
 ---
@@ -139,6 +139,7 @@ Not applicable. No model call exists anywhere in this feature.
 | AD-5 | Resend is wired in as Supabase Auth's SMTP provider, not a second, separate email code path | proposed | no |
 | AD-6 | FR-20 needs no code: Supabase Auth's automatic identity linking merges a Google sign-in into a matching, already-verified manual account by default | proposed | no |
 | AD-7 | FR-17 and FR-19 are enforced by the Password Verification Attempt and Before User Created Auth Hooks, both Postgres functions against `auth_attempts`. **Amended 2026-09-19: FR-17 only.** The Password Verification Attempt hook is Teams/Enterprise only (confirmed against the live project's dashboard, which offers just Send SMS, Send Email, Custom Access Token, Before User Created). FR-17's lockout moves into the app: `identity.SignInInteractor` calls Supabase's Auth REST API directly (`identity.SupabaseAuthService`) instead of the frontend calling `signInWithPassword`, and counts attempts itself before/after. FR-19 is untouched: Before User Created is available and stays registered | amended | no |
+| AD-8 | FR-23 is detected on the client from one signal: the server tags an authentication failure `extensions.code = "UNAUTHENTICATED"` over HTTP and closes a WebSocket with 4403. One client routine signs out locally, wipes every store and the GraphQL cache, and redirects with `reason=expired`. No periodic session check (Q3, answered 2026-09-27) | locked | no |
 
 ## 9. Risks
 
@@ -171,3 +172,4 @@ on by default for a verified email match (AD-6).
 | 2026-09-14 | Q1 answered: accept Supabase's native per-IP limit for FR-18, no custom OTP. Q2 answered: the recommended `aria-label`/`aria-live` convention stands. `auth_attempts` no longer carries a `code` kind; component map, data model, API surface, cross-cutting, alternatives, risks and AD-2/AD-3 updated to match | User accepted the recommendation for Q1 | user |
 | 2026-09-14 | Approved | User approved, proceed to implementation plan | user |
 | 2026-09-19 | AD-2, AD-3 and AD-7 amended: the Password Verification Attempt hook (FR-17) is Teams/Enterprise only, confirmed against the live project's dashboard. FR-17's lockout moves into the app: a new `signIn` GraphQL mutation (the one exception to AD-2's direct-client rule) calls Supabase's Auth REST API server-side and enforces the lock via `auth_attempts`, now written by the app rather than a hook, keyed by email. `04.1-manual-signup-and-signin.md` and `05-dev-log.md` carry the implementation detail. FR-19 (Before User Created) is unaffected | User confirmed the hook is missing from their dashboard, then chose the backend-proxy shape over a client-reported-outcome alternative that could not be trusted (a malicious client could always skip the report) | user |
+| 2026-09-27 | AD-8 added for FR-23 and FR-24. Stale: implementation plan index (slice 4 added) | PRD FR-23, FR-24 added | user, 2026-09-27: "approved" |

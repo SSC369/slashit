@@ -28,6 +28,8 @@ class FakeCaptureTurnRepository:
         question_text: str | None,
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
+        resulting_memory_id: uuid.UUID | None = None,
+        affected_count: int | None = None,
     ) -> None:
         turn = CaptureTurnDTO(
             id=uuid.uuid4(),
@@ -39,9 +41,32 @@ class FakeCaptureTurnRepository:
             answer_text=answer_text,
             created_at=datetime.now(UTC),
             resulting_reminder_id=resulting_reminder_id,
+            resulting_memory_id=resulting_memory_id,
+            affected_count=affected_count,
         )
         self.rows.append(turn)
         self._owner_by_turn_id[turn.id] = user_id
+
+    async def delete_turns_for_memories(
+        self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
+    ) -> int:
+        owned = [
+            row for row in self.rows if self._owner_by_turn_id.get(row.id) == user_id
+        ]
+        threads = {
+            row.resulting_pending_capture_id
+            for row in owned
+            if row.resulting_memory_id in memory_ids
+            and row.resulting_pending_capture_id is not None
+        }
+        doomed = {
+            row.id
+            for row in owned
+            if row.resulting_memory_id in memory_ids
+            or row.resulting_pending_capture_id in threads
+        }
+        self.rows = [row for row in self.rows if row.id not in doomed]
+        return len(doomed)
 
     async def list_turns_for_user(
         self, *, user_id: uuid.UUID, cursor: str | None, limit: int

@@ -47,3 +47,8 @@ export const pageTopbarStyles =
   "flex h-[60px] shrink-0 items-center justify-between border-b border-border bg-background px-7";
 export const pageTopbarTitleStyles = "text-[17px] font-semibold tracking-[-0.01em] text-foreground";
 export const pageTopbarActionsStyles = "flex items-center gap-1.5";
+
+// Memory category tag (004 design delta `.cat`, `.cat.none`)
+export const categoryTagStyles =
+  "inline-flex h-[23px] shrink-0 items-center rounded-full border border-border bg-sidebar px-2.5 text-[11.5px] font-medium text-foreground-secondary";
+export const categoryTagNoneStyles = "border-dashed border-border-strong bg-transparent text-foreground-tertiary";

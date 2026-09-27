@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domains.gateway.interfaces.dtos import UsageRecord
+from app.domains.gateway.interfaces.dtos import OperationValue, UsageRecord
 
 
 class UsageRepository(Protocol):
@@ -12,8 +12,10 @@ class UsageRepository(Protocol):
         """Persist one call. Committed on its own, per decision AD-8."""
         ...
 
-    async def count_since(self, *, user_id: UUID, since: datetime) -> int:
-        """How many calls this user has made in the window."""
+    async def count_since(
+        self, *, user_id: UUID, since: datetime, operation: OperationValue
+    ) -> int:
+        """How many calls of this operation this user has made in the window."""
         ...
 
     async def get_request_limit_for_user(self, *, user_id: UUID) -> int | None:

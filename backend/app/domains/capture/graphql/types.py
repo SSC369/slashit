@@ -12,6 +12,7 @@ from enum import Enum
 import strawberry
 
 from app.domains.capture.interfaces.dtos import CaptureTurnDTO
+from app.domains.memories.public import Memory, MemoryCategory, SecretKind
 from app.domains.records.public import Task
 from app.domains.reminders.public import Reminder
 
@@ -42,6 +43,51 @@ class RemindersListed:
     """`/reminders`, FR-25: active reminders, soonest first."""
 
     reminders: list[Reminder]
+
+
+@strawberry.type
+class MemorySaved:
+    """Epic 004, FR-7 and FR-8: the saved card, and its caution when the fact
+    looks like a secret. The caution names the kind, never the text."""
+
+    memory: Memory
+    secret_caution: SecretKind | None
+
+
+@strawberry.type
+class MemoriesListed:
+    """Epic 004, FR-19 and FR-20. `searchText` is set for `/memories <text>`,
+    so the card can say what matched, or that nothing did."""
+
+    memories: list[Memory]
+    search_text: str | None
+
+
+@strawberry.type
+class MemoryConflictAsked:
+    """Epic 004, FR-10: nothing was saved. The new fact waits beside every
+    memory it contradicts until the user answers "Which is correct?"."""
+
+    pending_capture_id: strawberry.ID
+    question: str
+    new_text: str
+    category: MemoryCategory | None
+    conflicting: list[Memory]
+
+
+@strawberry.type
+class MemoryDiscarded:
+    """FR-11, "Keep the old one": the new fact was dropped, nothing changed."""
+
+    message: str
+
+
+@strawberry.type
+class PendingCaptureNotFound:
+    """The conflict was already answered or discarded, from another tab or
+    device. This request changed nothing (FR-13)."""
+
+    message: str
 
 
 @strawberry.type
@@ -76,6 +122,10 @@ class CaptureTurnOutcome(Enum):
     DISCARDED = "discarded"
     REFUSED = "refused"
     REMINDER_CREATED = "reminder_created"
+    MEMORY_SAVED = "memory_saved"
+    MEMORY_LISTED = "memory_listed"
+    MEMORY_FORGOTTEN = "memory_forgotten"
+    MEMORY_CONFLICT_RESOLVED = "memory_conflict_resolved"
 
 
 @strawberry.type
@@ -86,6 +136,9 @@ class CaptureTurn:
     resulting_task_id: strawberry.ID | None
     resulting_pending_capture_id: strawberry.ID | None
     resulting_reminder_id: strawberry.ID | None
+    resulting_memory_id: strawberry.ID | None
+    forgotten: bool
+    affected_count: int | None
     question_text: str | None
     answer_text: str | None
     created_at: datetime
@@ -117,6 +170,13 @@ def capture_turn_dto_to_type(*, turn: CaptureTurnDTO) -> CaptureTurn:
             if turn.resulting_reminder_id
             else None
         ),
+        resulting_memory_id=(
+            strawberry.ID(str(turn.resulting_memory_id))
+            if turn.resulting_memory_id
+            else None
+        ),
+        forgotten=turn.forgotten,
+        affected_count=turn.affected_count,
         question_text=turn.question_text,
         answer_text=turn.answer_text,
         created_at=turn.created_at,

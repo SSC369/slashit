@@ -29,6 +29,7 @@ from app.domains.records.public import TaskDTO
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
+from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
 from tests.fakes.fake_reminder_port import FakeReminderPort, fake_reminder_capture
 from tests.fakes.fake_task_port import FakeTaskPort
@@ -49,6 +50,7 @@ def _interactor(
     analytics = FakeAnalyticsPort()
     resolved_extraction = extraction_port or FakeExtractionPort(result=extraction())
     interactor = SubmitCaptureInteractor(
+        memory_port=FakeMemoryPort(),
         pending_capture_repository=pending_capture_repository,
         capture_turn_repository=capture_turn_repository,
         task_port=task_port,
@@ -117,6 +119,17 @@ async def test_unknown_command_returns_unrecognised() -> None:
     assert isinstance(result, UnrecognisedCommandDTO)
     assert result.attempted_name == "/add-tsk"
     assert "/add-task" in result.closest_matches
+
+
+@pytest.mark.parametrize("raw_input", ["/forget visa", "/forget"])
+async def test_forget_is_no_longer_a_command(raw_input: str) -> None:
+    """004 sub-plan 4.5, C-5.1: forget is from a memory's detail page only."""
+    interactor, *_ = _interactor()
+
+    result = await interactor.submit_capture(user_id=uuid.uuid4(), raw_input=raw_input)
+
+    assert isinstance(result, UnrecognisedCommandDTO)
+    assert "/forget" not in result.closest_matches
 
 
 async def test_add_task_with_title_and_due_creates_a_task() -> None:

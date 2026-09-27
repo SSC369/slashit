@@ -172,4 +172,37 @@ describe("HistoryPanel", () => {
 
     expect(screen.getByText("Question asked")).toBeInTheDocument();
   });
+
+  it("F-2.3, F-4.1: a count-only /forget row and no placeholder", () => {
+    mockUseGetCaptureHistory.mockReturnValue({
+      triggerAPI: mockTriggerAPI,
+      data: {
+        captureHistory: {
+          items: [
+            {
+              id: "turn-6",
+              inputText: "/forget",
+              outcome: "MEMORY_FORGOTTEN",
+              resultingTaskId: null,
+              resultingPendingCaptureId: null,
+              questionText: null,
+              answerText: null,
+              forgotten: false,
+              affectedCount: 2,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          nextCursor: null,
+        },
+      },
+      apiStatus: API_SUCCESS,
+      apiError: null,
+    });
+
+    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+
+    expect(screen.queryByText("A memory was saved here and later forgotten")).not.toBeInTheDocument();
+    expect(screen.getByText("Forgot 2 memories")).toBeInTheDocument();
+    expect(screen.getByText("/forget")).toBeInTheDocument();
+  });
 });

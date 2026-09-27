@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     # --- Slice 3: the gateway ---
     gemini_api_key: str
     gemini_model: str = "gemini-3.6-flash"
+    # Epic 004 T-3.10. At the model's default effort a conflict judgement took
+    # a median 5.9 s and up to 10 s, past NFR-4's 8 s; "low" measured 3.8 s
+    # median, 6.1 s max, over the 40-case conflict set.
+    gemini_reasoning_effort: Literal["minimal", "low", "medium", "high"] = "low"
+    # Epic 004 AD-4. Confirmed against Google's model list at build (T-1.1);
+    # see the 004 dev log for whether that check has happened.
+    gemini_embedding_model: str = "gemini-embedding-001"
     # Kill switch. False refuses every extraction without calling out.
     gateway_enabled: bool = True
 
