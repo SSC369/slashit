@@ -48,4 +48,20 @@ describe("TurnCard", () => {
     expect(screen.getByPlaceholderText("Type an answer…")).not.toBeDisabled();
     expect(screen.queryByRole("status", { name: "Saving" })).not.toBeInTheDocument();
   });
+
+  it("004 P-4: a memory save loads with Memory and Category, not task fields", () => {
+    render(<TurnCard turn={{ id: "t-2", said: "/remember Blood group O+", status: "loading" }} {...baseProps} />);
+
+    expect(screen.getByText("Memory")).toBeInTheDocument();
+    expect(screen.getByText("Category")).toBeInTheDocument();
+    expect(screen.queryByText("Task")).not.toBeInTheDocument();
+  });
+
+  it.each(["/memories passport", "/forget visa"])("004 P-4: %s loads with no fields", (said) => {
+    render(<TurnCard turn={{ id: "t-3", said, status: "loading" }} {...baseProps} />);
+
+    expect(screen.getByText(/Reading your command/)).toBeInTheDocument();
+    expect(screen.queryByText("Task")).not.toBeInTheDocument();
+    expect(screen.queryByText("Memory")).not.toBeInTheDocument();
+  });
 });

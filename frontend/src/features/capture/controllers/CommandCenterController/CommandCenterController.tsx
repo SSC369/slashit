@@ -326,14 +326,16 @@ const CommandCenterController = (): ReactElement => {
       expectedCount,
       onMemoriesForgotten: (count) => {
         // Forget-all names no ids, so every memory the client holds goes.
-        store.memories.removeMany(isAll ? [...store.memories.memories.keys()] : memoryIds);
+        store.forgetMemories(isAll ? "ALL" : memoryIds);
         store.capture.resolveTurn(turnId, { status: "forgotten", count });
+        store.capture.redactForgetSaid(turnId);
       },
       onMemoryCountChanged: ({ count }) =>
         store.capture.resolveTurn(turnId, { status: "forgetAll", count, countChanged: true, error: null }),
       onForgetTargetGone: () => {
-        store.memories.removeMany(memoryIds);
+        store.forgetMemories(memoryIds);
         store.capture.resolveTurn(turnId, { status: "forgetGone" });
+        store.capture.redactForgetSaid(turnId);
       },
       onRequestFailed: (requestError) => store.capture.setForgetError(turnId, requestError.message),
     });
@@ -354,7 +356,7 @@ const CommandCenterController = (): ReactElement => {
       answer,
       onMemorySaved: ({ memory, secretCaution }) => {
         store.memories.upsert(memory);
-        if (answer === "KEEP_NEW") store.memories.removeMany(oldIds);
+        if (answer === "KEEP_NEW") store.forgetMemories(oldIds);
         store.capture.resolveTurn(turnId, {
           status: "memorySaved",
           memory,

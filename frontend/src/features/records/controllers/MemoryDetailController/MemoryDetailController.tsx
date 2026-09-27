@@ -122,7 +122,7 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
     setForgetError(null);
     const forgotten = (): void => {
       setIsForgetOpen(false);
-      store.memories.remove(id);
+      store.forgetMemories([id]);
       store.toast.show({
         message: "Memory forgotten. It is gone from your records and your capture history.",
         linkLabel: "",

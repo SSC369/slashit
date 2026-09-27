@@ -98,6 +98,34 @@ export type CaptureTurn =
     }
   | { id: string; said: string; status: "refused"; message: string };
 
+/** The turn with the forgotten memories taken out, or null when nothing of it remains. */
+const scrubTurn = (turn: CaptureTurn, isGone: (memoryId: string) => boolean): CaptureTurn | null => {
+  switch (turn.status) {
+    case "memorySaved":
+      return isGone(turn.memory.id) ? null : turn;
+    case "memoryList": {
+      const memories = turn.memories.filter((memory) => !isGone(memory.id));
+      return memories.length === turn.memories.length ? turn : { ...turn, memories };
+    }
+    case "forgetPick": {
+      const candidates = turn.candidates.filter((memory) => !isGone(memory.id));
+      if (candidates.length === turn.candidates.length) return turn;
+      const selectedId = turn.selectedId !== null && isGone(turn.selectedId) ? null : turn.selectedId;
+      return candidates.length === 0
+        ? { id: turn.id, said: "/forget", status: "forgetGone" }
+        : { ...turn, candidates, selectedId };
+    }
+    case "forgetConfirm":
+      return isGone(turn.memory.id) ? { id: turn.id, said: "/forget", status: "forgetGone" } : turn;
+    case "memoryConflict": {
+      const conflicting = turn.conflicting.filter((memory) => !isGone(memory.id));
+      return conflicting.length === turn.conflicting.length ? turn : { ...turn, conflicting };
+    }
+    default:
+      return turn;
+  }
+};
+
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 type CaptureTurnPatch = DistributiveOmit<CaptureTurn, "id" | "said">;
@@ -163,6 +191,29 @@ export class CaptureStoreModel {
   get waitingCount(): number {
     return this.getAll().filter((turn) => turn.status === "pending" || turn.status === "memoryConflict")
       .length;
+  }
+
+  /** A confirmed `/forget` keeps the command, never the words it searched for,
+   * matching the stored history (FR-28). */
+  redactForgetSaid(id: string): void {
+    const turn = this.turns.get(id);
+    if (!turn) return;
+    this.turns.set(id, { ...turn, said: turn.said.trim().startsWith("/forget all") ? "/forget all" : "/forget" });
+  }
+
+  /**
+   * FR-28 for the open feed: a turn that saved a forgotten memory leaves the
+   * feed entirely (user direction 2026-09-27: no placeholder in chat), and
+   * lists drop the forgotten rows. "ALL" is forget-all, which names no ids.
+   */
+  scrubForgottenMemories(memoryIds: string[] | "ALL"): void {
+    const gone = new Set(memoryIds === "ALL" ? [] : memoryIds);
+    const isGone = (memoryId: string): boolean => memoryIds === "ALL" || gone.has(memoryId);
+    for (const turn of this.getAll()) {
+      const scrubbed = scrubTurn(turn, isGone);
+      if (scrubbed === null) this.removeTurn(turn.id);
+      else if (scrubbed !== turn) this.turns.set(turn.id, scrubbed);
+    }
   }
 
   removeTurn(id: string): void {

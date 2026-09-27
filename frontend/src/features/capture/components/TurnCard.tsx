@@ -55,6 +55,14 @@ const REMIND_QUICK_ANSWERS = ["In 1 hour", "This evening, 7:00 PM", "Tomorrow, 9
 
 const isRemindCommand = (said: string): boolean => said.startsWith("/remind ") || said === "/remind";
 
+const commandName = (said: string): string => said.trim().split(/\s+/, 1)[0] ?? "";
+
+/** Commands that save a memory: the loading turn shows its two fields. */
+const MEMORY_SAVE_COMMANDS = new Set(["/remember", "/add-memory"]);
+
+/** Commands that read or forget memories: nothing to fill in, so no fields. */
+const MEMORY_READ_COMMANDS = new Set(["/memories", "/forget"]);
+
 /** Design §4 success copy for a save that answered a conflict. */
 const savedHeadline = (resolution: "KEEP_NEW" | "BOTH" | undefined, forgottenCount = 0): string => {
   if (resolution === "BOTH") return "Saved. Both memories kept";
@@ -110,6 +118,8 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
   switch (turn.status) {
     case "loading":
+      if (MEMORY_SAVE_COMMANDS.has(commandName(turn.said))) return <MemoryLoadingCard />;
+      if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
       return (
         <div className={Styles.cardStyles}>
           <div className={Styles.cardHeadStyles}>
@@ -446,3 +456,41 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 };
 
 export default TurnCard;
+
+/** 001's loading turn, with the fields a memory save fills (004 P-4). */
+const MemoryLoadingCard = (): ReactElement => (
+  <div className={Styles.cardStyles}>
+    <div className={Styles.cardHeadStyles}>
+      <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+        <Clock size={13} /> Reading your command
+      </span>
+    </div>
+    <div className={Styles.memoryFieldsGridStyles}>
+      <div className={Styles.fieldCellStyles}>
+        <span className={Styles.fieldLabelStyles}>Memory</span>
+        <div className="mt-1 h-[11px] w-[78%] animate-pulse rounded bg-border" />
+      </div>
+      <div className={Styles.fieldCellStyles}>
+        <span className={Styles.fieldLabelStyles}>Category</span>
+        <div className="mt-1 h-[11px] w-[56%] animate-pulse rounded bg-border" />
+      </div>
+    </div>
+    <div className={Styles.cardFootStyles}>
+      <span>Nothing is saved until every field is read</span>
+    </div>
+  </div>
+);
+
+/** 001's loading turn for a lookup or a forget, which has no fields to read. */
+const PlainLoadingCard = (): ReactElement => (
+  <div className={Styles.cardStyles}>
+    <div className={Styles.cardHeadStyles}>
+      <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+        <Clock size={13} /> Reading your command
+      </span>
+    </div>
+    <div className="px-4 pb-4">
+      <div className="h-[11px] w-[60%] animate-pulse rounded bg-border" />
+    </div>
+  </div>
+);
