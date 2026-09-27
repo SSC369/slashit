@@ -1,0 +1,822 @@
+{
+  "_about": "Epic 004, sub-plan 4.3 and NFR-7. Drafted by Claude on 2026-09-27 for the user to correct. Each case is a new fact and the ten memories the candidate search would offer, drawn from one user's bank. expected_conflicts lists the bank ids the fact contradicts. Scored live by tests/integration/test_memory_conflict_eval_live.py: over 80% of contradicting pairs caught, under 10% of non-contradicting pairs flagged.",
+  "status": "accepted by the user without changes, 2026-09-27",
+  "bank": {
+    "M01": "Preferred airline is Emirates",
+    "M02": "Mom's birthday is October 12",
+    "M03": "Dad's birthday is March 3",
+    "M04": "I live in London",
+    "M05": "I work at Acme Corp as a product designer",
+    "M06": "My passport expires in 2030",
+    "M07": "I'm vegetarian",
+    "M08": "I'm allergic to penicillin",
+    "M09": "My sister Priya lives in Toronto",
+    "M10": "My shoe size is 9 UK",
+    "M11": "I prefer window seats on long flights",
+    "M12": "My manager is Sarah Chen",
+    "M13": "My car is a 2019 Honda Civic",
+    "M14": "My Netflix subscription renews on the 5th",
+    "M15": "My dentist is Dr. Rao at Smile Clinic",
+    "M16": "I have a dog named Max",
+    "M17": "My wedding anniversary is June 21",
+    "M18": "My blood type is O positive",
+    "M19": "I don't drink coffee",
+    "M20": "My gym membership is at FitLife and renews in January",
+    "M21": "My favourite colour is blue",
+    "M22": "Priya's birthday is August 30",
+    "M23": "I speak English and Hindi",
+    "M24": "My home broadband provider is BT",
+    "M25": "I'm learning Spanish",
+    "M26": "My team standup is at 9:30 every weekday",
+    "M27": "My Emirates frequent flyer number is EK 204 551 902",
+    "M28": "I prefer aisle seats on short flights",
+    "M29": "My son Arjun is 7 years old",
+    "M30": "Arjun's school is Greenfield Primary",
+    "M31": "My landlord is Mr. Patel",
+    "M32": "My rent is due on the 1st of each month",
+    "M33": "I want to run a half marathon this year",
+    "M34": "My laptop is a 2021 MacBook Pro",
+    "M35": "I'm left-handed",
+    "M36": "My best friend is Tom",
+    "M37": "Tom's wife is Emma",
+    "M38": "I have a cat named Luna",
+    "M39": "I use a standing desk at work",
+    "M40": "My doctor told me to cut down on sugar"
+  },
+  "cases": [
+    {
+      "id": "C01",
+      "fact": "My preferred airline is Qatar Airways",
+      "candidates": [
+        "M01",
+        "M27",
+        "M11",
+        "M28",
+        "M06",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [
+        "M01"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C02",
+      "fact": "Mom's birthday is October 21",
+      "candidates": [
+        "M02",
+        "M03",
+        "M22",
+        "M17",
+        "M29",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [
+        "M02"
+      ],
+      "kind": "contradiction",
+      "note": "Two birthdays for one person"
+    },
+    {
+      "id": "C03",
+      "fact": "I live in Berlin now",
+      "candidates": [
+        "M04",
+        "M31",
+        "M32",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M05",
+        "M07",
+        "M16"
+      ],
+      "expected_conflicts": [
+        "M04"
+      ],
+      "kind": "contradiction",
+      "note": "A move: the old fact is out of date, not wrong when saved"
+    },
+    {
+      "id": "C04",
+      "fact": "I work at Globex as a product designer",
+      "candidates": [
+        "M05",
+        "M12",
+        "M26",
+        "M39",
+        "M34",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M07"
+      ],
+      "expected_conflicts": [
+        "M05"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C05",
+      "fact": "My passport expires in 2028",
+      "candidates": [
+        "M06",
+        "M01",
+        "M27",
+        "M11",
+        "M28",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [
+        "M06"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C06",
+      "fact": "I eat chicken and fish",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [
+        "M07"
+      ],
+      "kind": "contradiction",
+      "note": "Contradicts by implication; no shared words"
+    },
+    {
+      "id": "C07",
+      "fact": "My shoe size is 10 UK",
+      "candidates": [
+        "M10",
+        "M21",
+        "M23",
+        "M25",
+        "M33",
+        "M35",
+        "M36",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "expected_conflicts": [
+        "M10"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C08",
+      "fact": "My manager is David Kim",
+      "candidates": [
+        "M12",
+        "M05",
+        "M26",
+        "M39",
+        "M34",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M07"
+      ],
+      "expected_conflicts": [
+        "M12"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C09",
+      "fact": "My blood type is A negative",
+      "candidates": [
+        "M18",
+        "M07",
+        "M08",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [
+        "M18"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C10",
+      "fact": "I drink two coffees a day",
+      "candidates": [
+        "M19",
+        "M07",
+        "M08",
+        "M18",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [
+        "M19"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C11",
+      "fact": "Priya's birthday is September 30",
+      "candidates": [
+        "M22",
+        "M02",
+        "M03",
+        "M17",
+        "M29",
+        "M09",
+        "M30",
+        "M36",
+        "M37",
+        "M21"
+      ],
+      "expected_conflicts": [
+        "M22"
+      ],
+      "kind": "contradiction",
+      "note": "Two birthdays for one person"
+    },
+    {
+      "id": "C12",
+      "fact": "Arjun is 9 years old",
+      "candidates": [
+        "M29",
+        "M09",
+        "M22",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [
+        "M29"
+      ],
+      "kind": "contradiction",
+      "note": "Names the son without 'my son'"
+    },
+    {
+      "id": "C13",
+      "fact": "My rent is due on the 15th",
+      "candidates": [
+        "M32",
+        "M04",
+        "M31",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M05",
+        "M07",
+        "M16"
+      ],
+      "expected_conflicts": [
+        "M32"
+      ],
+      "kind": "contradiction"
+    },
+    {
+      "id": "C14",
+      "fact": "I'm right-handed",
+      "candidates": [
+        "M35",
+        "M10",
+        "M21",
+        "M23",
+        "M25",
+        "M33",
+        "M36",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "expected_conflicts": [
+        "M35"
+      ],
+      "kind": "contradiction",
+      "note": "Opposite word, no shared words"
+    },
+    {
+      "id": "C15",
+      "fact": "Tom's birthday is October 12",
+      "candidates": [
+        "M02",
+        "M03",
+        "M22",
+        "M17",
+        "M29",
+        "M09",
+        "M30",
+        "M36",
+        "M37",
+        "M21"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Same date as Mom's birthday, different person"
+    },
+    {
+      "id": "C16",
+      "fact": "I also like Qatar Airways for short trips",
+      "candidates": [
+        "M01",
+        "M27",
+        "M11",
+        "M28",
+        "M06",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "A second preference that sits beside Emirates"
+    },
+    {
+      "id": "C17",
+      "fact": "I prefer window seats on long flights and aisle seats on short ones",
+      "candidates": [
+        "M01",
+        "M27",
+        "M11",
+        "M28",
+        "M06",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Restates M11 and M28 together. A duplicate, not a contradiction"
+    },
+    {
+      "id": "C18",
+      "fact": "I adopted a second dog, Bella",
+      "candidates": [
+        "M16",
+        "M38",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05",
+        "M07",
+        "M10",
+        "M01"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Adds a pet; Max still exists"
+    },
+    {
+      "id": "C19",
+      "fact": "I'm learning French too",
+      "candidates": [
+        "M10",
+        "M21",
+        "M23",
+        "M25",
+        "M33",
+        "M35",
+        "M36",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "A second language alongside Spanish"
+    },
+    {
+      "id": "C20",
+      "fact": "I moved from Delhi to London in 2019",
+      "candidates": [
+        "M04",
+        "M31",
+        "M32",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M05",
+        "M07",
+        "M16"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Agrees with living in London"
+    },
+    {
+      "id": "C21",
+      "fact": "My passport number ends in 4471",
+      "candidates": [
+        "M01",
+        "M27",
+        "M11",
+        "M28",
+        "M06",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Same document, different attribute"
+    },
+    {
+      "id": "C22",
+      "fact": "I'm allergic to peanuts",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "A second allergy"
+    },
+    {
+      "id": "C23",
+      "fact": "I stopped eating eggs",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Fits being vegetarian"
+    },
+    {
+      "id": "C24",
+      "fact": "My favourite dish is paneer tikka",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Fits being vegetarian"
+    },
+    {
+      "id": "C25",
+      "fact": "I drink green tea every morning",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Tea is not coffee"
+    },
+    {
+      "id": "C26",
+      "fact": "My Spotify subscription renews on the 5th",
+      "candidates": [
+        "M14",
+        "M20",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05",
+        "M07",
+        "M16"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Same day as Netflix, different service"
+    },
+    {
+      "id": "C27",
+      "fact": "Sarah Chen prefers updates by email",
+      "candidates": [
+        "M05",
+        "M12",
+        "M26",
+        "M39",
+        "M34",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M07"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "About the manager, not a new manager"
+    },
+    {
+      "id": "C28",
+      "fact": "Emma is a nurse",
+      "candidates": [
+        "M09",
+        "M22",
+        "M29",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "About Tom's wife, adds a detail"
+    },
+    {
+      "id": "C29",
+      "fact": "Arjun's teacher is Ms. Lopez",
+      "candidates": [
+        "M09",
+        "M22",
+        "M29",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "About the school, adds a detail"
+    },
+    {
+      "id": "C30",
+      "fact": "My work laptop is a Dell XPS",
+      "candidates": [
+        "M05",
+        "M12",
+        "M26",
+        "M39",
+        "M34",
+        "M13",
+        "M36",
+        "M21",
+        "M23",
+        "M04"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Ambiguous: M34 may be a personal laptop. Labelled no conflict; please check"
+    },
+    {
+      "id": "C31",
+      "fact": "I ran a 10K last month",
+      "candidates": [
+        "M10",
+        "M21",
+        "M23",
+        "M25",
+        "M33",
+        "M35",
+        "M36",
+        "M04",
+        "M05",
+        "M07"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Progress toward the half marathon goal"
+    },
+    {
+      "id": "C32",
+      "fact": "My rent went up to £1,650 a month",
+      "candidates": [
+        "M04",
+        "M31",
+        "M32",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M05",
+        "M07",
+        "M16"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Amount changes, due date does not"
+    },
+    {
+      "id": "C33",
+      "fact": "I work from home on Fridays",
+      "candidates": [
+        "M05",
+        "M12",
+        "M26",
+        "M39",
+        "M34",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M07"
+      ],
+      "expected_conflicts": [],
+      "kind": "trap",
+      "note": "Standup and standing desk can both still hold"
+    },
+    {
+      "id": "C34",
+      "fact": "My mom lives in Pune",
+      "candidates": [
+        "M09",
+        "M22",
+        "M29",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C35",
+      "fact": "My wife's name is Anita",
+      "candidates": [
+        "M09",
+        "M22",
+        "M29",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M17",
+        "M21"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C36",
+      "fact": "My car insurance renews in May",
+      "candidates": [
+        "M13",
+        "M34",
+        "M14",
+        "M20",
+        "M24",
+        "M36",
+        "M21",
+        "M23",
+        "M04",
+        "M05"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C37",
+      "fact": "My dentist appointment is on November 3",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C38",
+      "fact": "The BT support number is 0800 800 150",
+      "candidates": [
+        "M04",
+        "M31",
+        "M32",
+        "M24",
+        "M14",
+        "M20",
+        "M36",
+        "M21",
+        "M23",
+        "M05"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C39",
+      "fact": "Priya's husband is Karan",
+      "candidates": [
+        "M09",
+        "M22",
+        "M29",
+        "M30",
+        "M02",
+        "M03",
+        "M36",
+        "M37",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated"
+    },
+    {
+      "id": "C40",
+      "fact": "My GP is Dr. Mehta",
+      "candidates": [
+        "M07",
+        "M08",
+        "M18",
+        "M19",
+        "M40",
+        "M15",
+        "M20",
+        "M36",
+        "M21",
+        "M23"
+      ],
+      "expected_conflicts": [],
+      "kind": "unrelated",
+      "note": "Dentist and doctor are different people"
+    }
+  ]
+}

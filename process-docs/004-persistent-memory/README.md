@@ -17,7 +17,7 @@
 | 4 Implementation plan (index) | [04-implementation-plan.md](./04-implementation-plan.md) | approved | 2026-09-25 |
 | 4.1 Save and browse | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | approved | 2026-09-25 |
 | 4.2 Forget | [04.2-forget.md](./04.2-forget.md) | approved | 2026-09-25 |
-| 4.3 Conflicts | `04.3-conflicts.md` | not started | |
+| 4.3 Conflicts | [04.3-conflicts.md](./04.3-conflicts.md) | approved | 2026-09-27 |
 | 5 Dev | [05-dev-log.md](./05-dev-log.md) | in progress | |
 
 ## One-line summary
