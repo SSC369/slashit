@@ -6,7 +6,7 @@ stage: 5
 status: draft
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-26
 approved_on: null
 supersedes: null
 ---
@@ -76,14 +76,14 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 
 | # | Planned | Actual | Why | Approved by |
 |---|---|---|---|---|
-| D-1 | Build plan §6: "A save is one transaction: memory insert and turn" | The memory commits first; the capture turn is written after it, and a turn failure is logged, never raised | Capture's standing rule since 001 (04.4 §9): the log never undoes the record. One transaction across two domains would need capture to own the memory's session | logged, pending user |
-| D-2 | Index: `0024` carries "the tombstone check constraint" | Also `ck_memories_live_has_text`: a live row must have text | Without it a live row with NULL text would pass the tombstone check and render as an empty memory | logged, pending user |
-| D-3 | Not stated | `vector` is created in the default schema, not Supabase's `extensions` schema | The type and the `<=>` operator then resolve unqualified on Supabase and locally alike. Supabase's advisor may flag it; moving it is one migration | logged, pending user |
-| D-4 | 4.1 §4: "a 600-character outer guard on the whole line" | 1,000 | 600 would turn a 612-character fact, the design's own example, into a client error instead of FR-4's drawn state | logged, pending user |
-| D-5 | 4.1 §4 | `EMBED_TIMEOUT_SECONDS = 3.0` in gateway constants | The plan named no embed budget. 3 s is `estimate`, inside NFR-4's 8 s | logged, pending user |
-| D-6 | 4.1 §4 names `test_memories_boundary.py` and four fake files | Boundary cases live in `test_memories_graphql.py`; fakes are `fake_memory_port.py` and `fake_memory_repository.py` | One fixture set serves both, as 003's D-9 did | logged, pending user |
-| D-7 | Design `MemoriesStates`, `MemoryDetail` | The detail has Edit only; Forget arrives with slice 3. Memory list states reuse 003's `ReminderListNotice` component | Forget is 4.3's scope. The notice component is generic apart from its name | logged, pending user |
-| D-8 | Records tabs | The "More types arrive with later epics" hint beside the tabs is removed | The design's `RecordsMemories` draws four tabs and no hint | logged, pending user |
+| D-1 | Build plan §6: "A save is one transaction: memory insert and turn" | The memory commits first; the capture turn is written after it, and a turn failure is logged, never raised | Capture's standing rule since 001 (04.4 §9): the log never undoes the record. One transaction across two domains would need capture to own the memory's session | user, 2026-09-26 |
+| D-2 | Index: `0024` carries "the tombstone check constraint" | Also `ck_memories_live_has_text`: a live row must have text | Without it a live row with NULL text would pass the tombstone check and render as an empty memory | user, 2026-09-26 |
+| D-3 | Not stated | `vector` is created in the default schema, not Supabase's `extensions` schema | The type and the `<=>` operator then resolve unqualified on Supabase and locally alike. Supabase's advisor may flag it; moving it is one migration | user, 2026-09-26 |
+| D-4 | 4.1 §4: "a 600-character outer guard on the whole line" | 1,000 | 600 would turn a 612-character fact, the design's own example, into a client error instead of FR-4's drawn state | user, 2026-09-26 |
+| D-5 | 4.1 §4 | `EMBED_TIMEOUT_SECONDS = 3.0` in gateway constants | The plan named no embed budget. 3 s is `estimate`, inside NFR-4's 8 s | user, 2026-09-26 |
+| D-6 | 4.1 §4 names `test_memories_boundary.py` and four fake files | Boundary cases live in `test_memories_graphql.py`; fakes are `fake_memory_port.py` and `fake_memory_repository.py` | One fixture set serves both, as 003's D-9 did | user, 2026-09-26 |
+| D-7 | Design `MemoriesStates`, `MemoryDetail` | The detail has Edit only; Forget arrives with slice 3. Memory list states reuse 003's `ReminderListNotice` component | Forget is 4.3's scope. The notice component is generic apart from its name | user, 2026-09-26 |
+| D-8 | Records tabs | The "More types arrive with later epics" hint beside the tabs is removed | The design's `RecordsMemories` draws four tabs and no hint | user, 2026-09-26 |
 
 ### Incidents and defects
 
@@ -130,12 +130,12 @@ tests. Forget never calls the model, so nothing here waits on a provider key.
 
 | # | Planned | Actual | Why | Approved by |
 |---|---|---|---|---|
-| D-9 | 4.2 §5: `forgetFromCapture` returns `... \| MemoryNotFound` | Returns `... \| ForgetTargetGone`, a capture-owned type | The card's case is "already forgotten elsewhere", not a lookup miss, and capture's union keeps its own members | logged, pending user |
-| D-10 | 4.2 §5: `ForgetCandidates` has no search text | It carries `searchText`; the frontend reads it as `forgetText` | The no-match card quotes the words. The alias is needed because `MemoriesListed.searchText` is nullable and codegen refuses one field name with two types in one selection | logged, pending user |
-| D-11 | 4.2 §6: the unconfirmed `/forget` step not stated | Offering candidates writes no capture turn | Only a confirmed forget is history. Writing the offer would store the words typed, which FR-28 forbids | logged, pending user |
-| D-12 | Design §4: "Memories with a 'Memory forgotten' note" | The note is the app's toast, with the design's copy. `Toast` now omits its link when `linkLabel` is empty | The toast is the app's one success note; a forget has nothing to open | logged, pending user |
-| D-13 | Not stated | On the detail page, `MemoryNotFound` from `forgetMemory` is treated as forgotten | The memory was already forgotten from another tab; the user gets the outcome they asked for | logged, pending user |
-| D-14 | 4.2 §4: `RecordsStore` drops forgotten rows | `RecordsStore` is unchanged | The All tab reads memories through `MemoriesStore`, so `removeMany` drops them there already | logged, pending user |
+| D-9 | 4.2 §5: `forgetFromCapture` returns `... \| MemoryNotFound` | Returns `... \| ForgetTargetGone`, a capture-owned type | The card's case is "already forgotten elsewhere", not a lookup miss, and capture's union keeps its own members | user, 2026-09-26 |
+| D-10 | 4.2 §5: `ForgetCandidates` has no search text | It carries `searchText`; the frontend reads it as `forgetText` | The no-match card quotes the words. The alias is needed because `MemoriesListed.searchText` is nullable and codegen refuses one field name with two types in one selection | user, 2026-09-26 |
+| D-11 | 4.2 §6: the unconfirmed `/forget` step not stated | Offering candidates writes no capture turn | Only a confirmed forget is history. Writing the offer would store the words typed, which FR-28 forbids | user, 2026-09-26 |
+| D-12 | Design §4: "Memories with a 'Memory forgotten' note" | The note is the app's toast, with the design's copy. `Toast` now omits its link when `linkLabel` is empty | The toast is the app's one success note; a forget has nothing to open | user, 2026-09-26 |
+| D-13 | Not stated | On the detail page, `MemoryNotFound` from `forgetMemory` is treated as forgotten | The memory was already forgotten from another tab; the user gets the outcome they asked for | user, 2026-09-26 |
+| D-14 | 4.2 §4: `RecordsStore` drops forgotten rows | `RecordsStore` is unchanged | The All tab reads memories through `MemoriesStore`, so `removeMany` drops them there already | user, 2026-09-26 |
 
 Slice 1's D-7 said Forget arrives with slice 3. It arrived with slice 2 after
 the reorder, and the detail page now has it.
@@ -165,3 +165,4 @@ the reorder, and the detail page now has it.
 |---|---|---|---|
 | 2026-09-25 | Created with slice 1's record | Slice 1 built | pending |
 | 2026-09-25 | Slice 2's record added; Deferred table corrected for the slice reorder | Slice 2 built | pending |
+| 2026-09-26 | Deviations D-1 to D-14 approved | User approved all | user |
