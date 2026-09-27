@@ -197,18 +197,18 @@ are built; the feature ships once the owed live checks pass.
 
 | # | Planned | Actual | Why | Approved by |
 |---|---|---|---|---|
-| D-15 | 4.3 §4: new `CONFLICT_CANDIDATE_LIMIT = 10` | Slice 1's `CANDIDATE_LIMIT = 10` is used | The same constant already existed for AD-5; a second would drift | logged, pending user |
-| D-16 | 4.3 §4: `MemoryPort.list_live` so the card reads old memories live | The card reads them from the client's `MemoriesStore`. An edit or forget in this tab shows at once; one in another tab shows only when answered, where the server forgets only live ids | Q2 made waiting questions session-only, so the store already holds every memory the card shows. The port method was written, found unused, and removed | logged, pending user |
-| D-17 | 0029: "a check that a conflict row carries all three" | The check ties `candidate_text` and a non-empty `conflicting_memory_ids` together. `candidate_category` may be NULL | An uncategorised fact is valid (FR-6), so a conflict row can have no category | logged, pending user |
-| D-18 | Not stated | `answerPendingCapture` refuses a conflict row as not found | A conflict is answered by choice through `resolveMemoryConflict`, never by typed text | logged, pending user |
-| D-19 | 4.3 §5: the scrub reaches the conflict thread | It reaches every thread, so a "What should Slashit remember?" question turn is blanked with the answer it led to. 4.2's C-2.3 test now expects three scrubbed turns, not two | One rule, keyed on the pending id, rather than a conflict-only special case. The extra turn held no fact | logged, pending user |
-| D-20 | Design §4: success copy "Memory saved" | After "Keep the new one" the card reads "Memory saved · forgot 1 old memory" | FR-12 makes the forget part of the answer; the count confirms it happened | logged, pending user |
+| D-15 | 4.3 §4: new `CONFLICT_CANDIDATE_LIMIT = 10` | Slice 1's `CANDIDATE_LIMIT = 10` is used | The same constant already existed for AD-5; a second would drift | user, 2026-09-27: "Approve all" |
+| D-16 | 4.3 §4: `MemoryPort.list_live` so the card reads old memories live | The card reads them from the client's `MemoriesStore`. An edit or forget in this tab shows at once; one in another tab shows only when answered, where the server forgets only live ids | Q2 made waiting questions session-only, so the store already holds every memory the card shows. The port method was written, found unused, and removed | user, 2026-09-27: "Approve all" |
+| D-17 | 0029: "a check that a conflict row carries all three" | The check ties `candidate_text` and a non-empty `conflicting_memory_ids` together. `candidate_category` may be NULL | An uncategorised fact is valid (FR-6), so a conflict row can have no category | user, 2026-09-27: "Approve all" |
+| D-18 | Not stated | `answerPendingCapture` refuses a conflict row as not found | A conflict is answered by choice through `resolveMemoryConflict`, never by typed text | user, 2026-09-27: "Approve all" |
+| D-19 | 4.3 §5: the scrub reaches the conflict thread | It reaches every thread, so a "What should Slashit remember?" question turn is blanked with the answer it led to. 4.2's C-2.3 test now expects three scrubbed turns, not two | One rule, keyed on the pending id, rather than a conflict-only special case. The extra turn held no fact | user, 2026-09-27: "Approve all" |
+| D-20 | Design §4: success copy "Memory saved" | After "Keep the new one" the card reads "Memory saved · forgot 1 old memory" | FR-12 makes the forget part of the answer; the count confirms it happened | user, 2026-09-27: "Approve all" |
 | D-22 | Tech stack: `gemini-3.6-flash` at its default reasoning effort | `GEMINI_REASONING_EFFORT`, default "low", passed to the chat model | At the default, conflict judgements took a median 5.9 s and up to 10 s, failing NFR-4's 8 s. "Low" measured 3.8 s median and kept NFR-6 and NFR-7 above target | user, 2026-09-27 |
-| D-23 | 4.1 C-15, 4.3 C-3.13 | Both live scorers use a new `eval_user` fixture with a 1,000-call daily allowance | The default allowance of 20 refused every case past the twentieth | logged, pending user |
-| D-24 | Design §4: loading uses "001's capture loading turn" and "001's existing copy" | 001's pill and footer copy kept, with memory fields in place of Task, Due and Status; lookup and forget show no fields and no footer | 001's fields named a task for a memory save (P-4). The footer "every field is read" has no meaning for a lookup | pending user |
+| D-23 | 4.1 C-15, 4.3 C-3.13 | Both live scorers use a new `eval_user` fixture with a 1,000-call daily allowance | The default allowance of 20 refused every case past the twentieth | user, 2026-09-27: "Approve all" |
+| D-24 | Design §4: loading uses "001's capture loading turn" and "001's existing copy" | 001's pill and footer copy kept, with memory fields in place of Task, Due and Status; lookup and forget show no fields and no footer | 001's fields named a task for a memory save (P-4). The footer "every field is read" has no meaning for a lookup | user, 2026-09-27: "Approve all" |
 | D-25 | 4.2: a forgotten memory's capture turn shows the history placeholder | In the open chat feed the turn is removed entirely; history keeps its placeholder | User direction 2026-09-27: "instead of showing this in chat when memory is forget or removed, just remove it" | user, 2026-09-27 |
-| D-26 | Not stated | A periodic job, `memories.backfill_embeddings`, and a cross-user read, `select_missing_embeddings`, on the service-role connection, as 003's `select_due` does | P-6: a memory saved while the queue was down would otherwise never get a vector, so never be a conflict candidate | pending user |
-| D-21 | Design `Main`: "Decide later" | It folds the card to one line with "Answer now"; the waiting pill still counts it | The design draws the button, not the state after it | logged, pending user |
+| D-26 | Not stated | A periodic job, `memories.backfill_embeddings`, and a cross-user read, `select_missing_embeddings`, on the service-role connection, as 003's `select_due` does | P-6: a memory saved while the queue was down would otherwise never get a vector, so never be a conflict candidate | user, 2026-09-27: "Approve all" |
+| D-21 | Design `Main`: "Decide later" | It folds the card to one line with "Answer now"; the waiting pill still counts it | The design draws the button, not the state after it | user, 2026-09-27: "Approve all" |
 
 ### Incidents and defects
 
@@ -291,62 +291,56 @@ target. It measured 472 ms on a local database; unrelated to this slice.
 
 ## Remaining work
 
-Everything below is owed before `index.md` can show 004 as shipped (index §7).
-Nothing here can run in this environment: there is no model provider key, no
-route to Google, and no Supabase project.
+Updated 2026-09-27 after the second live pass. Everything below is owed before
+`index.md` can show 004 as shipped (index §7).
 
-### Tasks owed
+### Owed
 
 | # | Task | Blocked on | Owner | Done when |
 |---|---|---|---|---|
-| T-1.11 | Correct the 60-case category set, then re-score it | The user's review | User, then Claude | `memory_categories.json` status "corrected"; accuracy over 85% (NFR-6) recorded here |
-| T-3.10 | Measure save latency; decide on the rare timeout | The user (D-22) | Claude | NFR-4 measured over 20 full saves at 1,000 memories |
-| T-1.14, T-2.11, T-3.11 | Finish the live browser pass: the "Not yet run" rows above | — | Claude, with the user | Every checklist row passed or raised as a change record |
-| Approvals | Deviations D-15 to D-21 | The user | User | Each row reads "user" |
-| Launch | The backup window in the forget line | The user, at launch (deferred 2026-09-25) | User | `BACKUP_LINE` in `memoryConstants.ts` names the real period |
+| T-1.11 | Correct the 60-case category set, then re-score | The user's review (chosen 2026-09-27 over accepting the draft) | User, then Claude | `memory_categories.json` status "corrected"; NFR-6 over 85% |
+| NFR-4 | Save latency under 8 s at p95 | A deployed API in the database's region (user, 2026-09-27: re-measure after deploy) | Claude, with epic 012 | Re-measured with `test_memory_latency_live.py` from the deployed environment |
+| NFR-5 | List and lookup under 1 s at p95 | Same decision | Claude, with epic 012 | Re-measured from the deployed environment |
+| Mobile | The 390 px artboards | Deferred by the user 2026-09-27: 004 ships desktop-only, as 003 did (D-31) | — | A future app-wide mobile task |
+| Launch | The backup window in the forget line | Deferred to launch, 2026-09-25 | User | `BACKUP_LINE` names the real period |
 
-### Live tests to run
+### Measured 2026-09-27
 
-Run from `backend/` with a real `GEMINI_API_KEY` in `.env` and the database
-migrated. Both spend a fraction of a cent per case and never run in CI.
-
-```
-pytest -m live tests/integration/test_memory_eval_live.py -s          # NFR-6, T-1.11
-pytest -m live tests/integration/test_memory_conflict_eval_live.py -s # NFR-7, T-3.10
-```
-
-| Measure | Target | Result so far |
+| Measure | Target | Result |
 |---|---|---|
-| NFR-1, isolation | Zero cross-user reads | **Met in tests**: boundary cases for read, edit, lookup, forget, conflict candidates and answers |
-| NFR-2, nothing left after forget | Zero matches | **Met in tests**: every text column of every table searched after a forget, and after a conflict thread is forgotten |
-| NFR-3, no memory text in logs or events | Zero occurrences | **Met in tests**: the redaction test covers `text`, `fact`, `input_text`, `original_input`, `candidate_text`, `prompt` |
-| NFR-4, save latency | Under 8 s at p95, 1,000 memories | **Not measured**: needs the real model. Time 20 saves against a user seeded with 1,000 memories |
-| NFR-5, list and lookup | Under 1 s at p95, 1,000 memories | **472 ms** locally, in process. Re-measure against the hosted database |
-| NFR-6, categories | Over 85% correct | **87%** on the draft set, at "low" |
-| NFR-7, conflicts | Catch over 80%; flag under 10% of other pairs; at most 1 of 19 traps | **Met**: 100%, 0.3%, 1 trap |
+| NFR-1, isolation | Zero cross-user reads | **Met in tests** |
+| NFR-2, nothing left after forget | Zero matches | **Met**: rows deleted (4.4); the browser's offline read cache now emptied on forget (P-8) |
+| NFR-3, no memory text in logs or events | Zero | **Met in tests** |
+| NFR-4, save latency | Under 8 s at p95 | **Fails from the dev machine**: median 7.5 s, p95 22.5 s over 20 saves at 1,000 memories. One save is 24 SQL statements taking 2.4 to 3.5 s at an 80 ms round trip, plus about 5 s of model time. The two 22 s outliers are unexplained |
+| NFR-5, list and lookup | Under 1 s at p95 | **Fails from the dev machine**: 1,724 ms against the hosted database, 472 ms locally. Network-bound, same cause |
+| NFR-6, categories | Over 85% | **87%** on the draft set |
+| NFR-7, conflicts | Catch over 80%; flag under 10%; at most 1 trap | **Met**: 100%, 0.3%, 1 |
 
-### Browser pass checklist
+### Browser pass, second round
 
-Each row is one artboard in `assets/canvas/`, compared screen by screen with the
-running app, in light and dark, desktop and 390 px where the canvas draws it.
+| Check | Result |
+|---|---|
+| Save over 500 characters | pass: "That is 582 characters", text kept |
+| `/remember` with no fact | pass: question card and waiting pill; discard clears it |
+| `/memories visa`, no match | pass |
+| Model switched off | pass: "could not save this right now", Try again saved it once back on |
+| Over-long edit | pass: error shown, Save disabled |
+| Forget with the API unreachable | pass: "could not be forgotten. Nothing was changed. Try again." |
+| Light theme | pass: Records and detail render with light tokens |
+| Records with the API unreachable | Shows the offline cached list, per 001's FR-40, with no notice. Led to P-8 |
+| 390 px | Not testable: see Mobile above |
 
-| Area | Artboards | What to do |
-|---|---|---|
-| Save | `MemorySaved`, `MemorySecretCaution`, `CaptureStates` | `/remember` a fact, one with a card number, one over 500 characters, one with no fact, and one with the model switched off |
-| Look up | `MemoriesLookup` | `/memories`, `/memories passport`, `/memories visa` with no match |
-| Conflict | `Main`, `MobileConflict`, `DarkMemoryConflict`, `DarkMobileConflict` | Save "Preferred airline is Emirates", then "My preferred airline is Qatar Airways"; try each answer, "Decide later" and the waiting pill; forget the old memory in Records while the question waits |
-| Forget by command | `ForgetPick`, `ForgetConfirm`, `ForgetAll` | `/forget airline` with one and with several matches, `/forget visa`, bare `/forget`, `/forget all` twice across two tabs |
-| History | `HistoryForgotten` | After a forget, the placeholder row and "Forgot 1 memory" |
-| Records | `RecordsMemories`, `RecordsAll`, `MemoriesStates`, `MobileMemories`, `DarkRecordsMemories` | Filters, empty, loading, error, signed out, filtered empty |
-| Detail | `MemoryDetail`, `MemoryEdit`, `ForgetDetailConfirm`, `MobileMemoryDetail`, `DarkMemoryDetail`, `DarkForgetDetailConfirm` | Edit, over-long edit, forget, forget with the network off |
+### Defect found
 
-### Tests not yet written
+| # | What broke | Cause | Fix |
+|---|---|---|---|
+| P-8 | The offline read cache kept memory text after a forget, and kept one user's records after sign-out for the next user on that browser | 001's FR-40 caches `GetRecords` and three other reads by operation, not by user, and nothing emptied it | `clearOfflineReadCache()` on sign-out (`RequireAuth`) and after a forget (detail, "Keep the new one"). Tests in `offlineReadCache.test.ts` and `RequireAuth.test.tsx` |
 
-| Gap | Why it matters | Where it would go |
-|---|---|---|
-| NFR-4 timing harness at 1,000 memories | The live scorers check accuracy, not latency | A `live` test beside the eval scorers |
-| A component test of the waiting pill after "Decide later" on a 001 question | The pill counts both kinds; only the conflict kind is tested | `CommandCenterController.test.tsx` |
-| An end-to-end browser test | Everything above is unit, component or API level | Needs the browser pass first |
+### Tests added
+
+`test_memory_latency_live.py` (NFR-4, `live`); the waiting-pill case for a 001
+question beside a deferred conflict in `CommandCenterController.test.tsx`. An
+end-to-end browser test is still not written.
 
 ## Deferred
 
