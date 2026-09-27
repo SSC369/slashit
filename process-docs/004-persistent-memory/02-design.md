@@ -3,10 +3,10 @@ doc: design
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 2
-status: in-review
+status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-27
+updated: 2026-09-25
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -14,9 +14,6 @@ supersedes: null
 # Design — Persistent Memory
 
 > **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
-
-> **Re-opened** 2026-09-27 by the PRD's soft-delete change record, pending
-> approval. The forget confirm copy is replaced by Q4.
 
 Context: [PRD](./01-prd.md)
 Canvas: https://claude.ai/artifact/Lg26vefNMHyJenHNEFxsZJ
@@ -175,12 +172,12 @@ No one-off styles outstanding.
 | Location | Text | Notes |
 |---|---|---|
 | Saved card | "Memory saved" | |
-| Secret caution | "This looks like a card number or PIN. It is saved, and only you can see it. Slashit sends saved text to its AI model when it checks for conflicts, so you may prefer to keep secrets elsewhere." | Names why. Never blocks, per FR-8. May gain a line on forget, per PRD Q10 |
+| Secret caution | "This looks like a card number or PIN. It is saved, and only you can see it. Slashit sends saved text to its AI model when it checks for conflicts, so you may prefer to keep secrets elsewhere." | Names why. Never blocks, per FR-8 |
 | Conflict head | "Which is correct?" · "Nothing saved yet · answer whenever you like" | |
 | Conflict answers | "Keep the new one" · "Keep the old one" · "Both are correct" | "Keep the new one" names the memory it forgets, per FR-12 |
-| Forget confirm | Per Q4. Must not say "removed for good" or "cannot be undone" (PRD FR-29, changed 2026-09-27) | Was: "Forget this memory? {text} will be removed for good, and its words removed from your capture history. This cannot be undone." |
-| Forget all | "Forget all {n} memories?" · body per Q4 · button "Forget {n} memories" | Count in the button too |
-| Backup line | Removed, per Q4 | Implied erasure; the live copy now outlives any backup |
+| Forget confirm | "Forget this memory? {text} will be removed for good, and its words removed from your capture history. This cannot be undone." | |
+| Forget all | "Forget all {n} memories?" · button "Forget {n} memories" | Count in the button too |
+| Backup line | "Copies in backups are erased within {backup window}." | Placeholder until PRD Q6 sets the window |
 | History placeholder | "A memory was saved here and later forgotten" | FR-23 |
 | Forget history row | "Forgot 1 memory" | FR-28 |
 | Too long | "That is {n} characters. A memory can be up to 500." | |
@@ -194,7 +191,6 @@ No one-off styles outstanding.
 | ~~Q1~~ | The Records tabs show Reminders, from epic 003, built on another branch and not yet merged. Keep it drawn? | user | **Answered 2026-09-25.** Keep it. The tabs show the real order. 004 ships after 003 merges, or the Reminders tab is dropped at build time |
 | ~~Q2~~ | Should the secret caution mention the AI model? | user | **Answered 2026-09-25.** Yes, as drawn |
 | ~~Q3~~ | The backup window in the copy is a placeholder until PRD Q6 is answered | tech-stack | **Answered 2026-09-25.** Keep the placeholder. The build plan fills it |
-| Q4 | Forget now hides and keeps. What do the confirms say? `{kept}` follows PRD Q7 | user | Open. **(Recommended)** A, honest: confirm "Forget this memory? {text} will be hidden from your records, lookups and capture history. Slashit keeps a copy{kept}."; forget-all "Every memory you have saved will be hidden from your records, lookups and capture history. Slashit keeps a copy{kept}." · B, silent: "{text} will be removed from your records and capture history." Shorter, but reads as erasure, the risk in PRD Q8. · C, time-bound, only if Q7 picks a period: "{text} will be hidden now and erased after {period}." · Other |
 
 ## Change log
 
@@ -203,4 +199,3 @@ No one-off styles outstanding.
 | 2026-09-25 | Created. 24 artboards across Capture, Records, Mobile and Dark theme pages, generated from 001's artboards | PRD approved, user asked for design | pending |
 | 2026-09-25 | Q1 to Q3 answered, each as drawn. No canvas change | User answered the open questions | user |
 | 2026-09-25 | Approved | User approved, proceed to build plan | user |
-| 2026-09-27 | Forget confirm, forget-all body and backup line replaced by Q4. Stale: artboards `ForgetConfirm`, `ForgetAll`, `ForgetDetailConfirm` and `DarkForgetDetailConfirm`, redrawn once Q4 is answered | PRD FR-29 changed: forget keeps the memory | pending |

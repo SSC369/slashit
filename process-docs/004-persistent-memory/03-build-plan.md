@@ -3,10 +3,10 @@ doc: build-plan
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 3
-status: in-review
+status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-27
+updated: 2026-09-25
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -14,9 +14,6 @@ supersedes: null
 # Build Plan (HLD) — Persistent Memory
 
 > **Approved** by @user on 2026-09-25. Locked — changes require a change record (§7).
-
-> **Re-opened** 2026-09-27 by the PRD's soft-delete change record, pending
-> approval. AD-12 replaces the tombstone; AD-2 and AD-3 are amended.
 
 Context: [PRD](./01-prd.md) · [Design](./02-design.md) ·
 [Tech stack](../tech-stack.md) ·
@@ -29,7 +26,6 @@ Tables touched:
 - `pending_captures`: changed, gains a conflict kind and three columns
 - `ai_usage`: changed, gains `operation`
 - `events`: changed, new event types
-- `memories`, `capture_turns`: changed 2026-09-27, both scrub constraints dropped (AD-12, pending)
 
 > Built on 003. Decided 2026-09-25: 004's dev starts once epic 003 is merged to
 > `main`. 003 changes the same capture, records and wiring files, and its
@@ -44,8 +40,9 @@ fact, picks the ten nearest of the user's memories by vector distance, and makes
 one structured model call that returns the category and which of those ten the
 fact contradicts. No contradiction saves the memory. A contradiction stores a
 pending conflict in capture's existing `pending_captures`, answered later by a
-new mutation. Forget is a soft delete: the row stays whole with `deleted_at`
-set, and capture history hides the words without erasing them (AD-12, pending).
+new mutation. Forget is a tombstone: the row stays with `deleted_at` set and
+every readable column wiped, and capture history loses the words in the same
+transaction.
 
 ## 2. Component map
 
@@ -78,14 +75,13 @@ timezone job (003 AD-6).
 
 | Entity | Key fields | Owns | Lifecycle | Tenancy scope |
 |---|---|---|---|---|
-| `memories` | `id`, `user_id`, `text` (nullable), `category` (personal, people, professional, life, nullable), `embedding vector(768)` (nullable), `search_vector tsvector` generated from `text`, `origin` (command, edit), `original_input` (nullable), `created_at`, `updated_at`, `deleted_at` | nothing | Soft-deleted on forget: `deleted_at` stamped, every other column kept (AD-12) | `user_id` |
-| `capture_turns` | adds `resulting_memory_id`, `forgotten_at`. Outcomes add `memory_saved`, `memory_listed`, `memory_forgotten`, `memory_conflict_resolved` | | Stays append-only except one permitted `UPDATE`: the hide sets `forgotten_at`. Words are kept and blanked on read (AD-12) | `user_id` |
+| `memories` | `id`, `user_id`, `text` (nullable), `category` (personal, people, professional, life, nullable), `embedding vector(768)` (nullable), `search_vector tsvector` generated from `text`, `origin` (command, edit), `original_input` (nullable), `created_at`, `updated_at`, `deleted_at` | nothing | Tombstoned on forget: `deleted_at` stamped, `text`, `original_input`, `category`, `embedding` set to NULL in one `UPDATE` | `user_id` |
+| `capture_turns` | adds `resulting_memory_id`, `forgotten_at`. Outcomes add `memory_saved`, `memory_listed`, `memory_forgotten`, `memory_conflict_resolved` | | Stays append-only except one permitted `UPDATE`: the scrub sets `forgotten_at` and blanks `input_text`, `question_text`, `answer_text` | `user_id` |
 | `pending_captures` | `missing_field` adds `fact` and `memory_conflict`; adds `candidate_text`, `candidate_category`, `conflicting_memory_ids uuid[]` | | Deleted on resolution, as today | `user_id` |
 | `ai_usage` | adds `operation` (generate, embed), default `generate` | | existing | `user_id` |
 | `events` | `event_type` adds `memory_saved`, `memory_lookup`, `memory_conflict_answered`, `memory_forgotten`, `memory_category_edited`, `memory_secret_caution` | | Insert-only, never holds text (T6) | `user_id` |
 
-Superseded by AD-12 on approval: `0030_soft_forget` drops both constraints
-below. Kept here as the record of what shipped in `0024` and `0028`.
+Two check constraints make forget a database guarantee rather than a code path:
 
 ```sql
 -- memories: a forgotten row holds nothing readable
@@ -152,13 +148,13 @@ code, so `/memories what do you remember about my career` searches "career".
 | Caching | None. MobX stores hold server state, per the tech stack |
 | Observability | A structlog processor drops the keys `text`, `fact`, `input_text`, `original_input`, `candidate_text` and `prompt` from every log line, with a test (NFR-3). Events carry ids and counts only. Save latency is logged per call, split by memory count, for NFR-4 |
 | Failure and retry | A save is one transaction: memory insert and turn. `KEEP_NEW` is one transaction: tombstone the old, insert the new, scrub the old turns, delete the pending row. `memories.reembed` retries three times, then leaves `embedding` NULL and logs; a NULL vector is simply not a candidate |
-| Data retention and privacy | Forget soft-deletes the memory and hides its turns (AD-12); retention is PRD Q7, privacy PRD Q8. Backups age out on the project's schedule. The window is deferred to launch by the user on 2026-09-25: it is read from the project's backup settings then, and fills the design's `{backup window}`. Until then the copy keeps the placeholder. Prompt content never reaches `ai_usage` or `events` (T6). If Langfuse is deployed later, memory calls are excluded from tracing |
+| Data retention and privacy | Forget tombstones the memory and scrubs its turns, enforced by the §3 constraints. Backups age out on the project's schedule. The window is deferred to launch by the user on 2026-09-25: it is read from the project's backup settings then, and fills the design's `{backup window}`. Until then the copy keeps the placeholder. Prompt content never reaches `ai_usage` or `events` (T6). If Langfuse is deployed later, memory calls are excluded from tracing |
 
 ## 7. Alternatives considered
 
 | Decision | Chosen | Alternatives | Why they lost | Reversibility |
 |---|---|---|---|---|
-| Forget storage | Soft delete keeping text, embedding and turn words. Proposed 2026-09-27 | Tombstone with wiped columns, as built; hard delete | The user asked that no user data be deleted, memories included. The tombstone erases content; hard delete erases the row. Tombstone chosen 2026-09-25, reversed pending approval | cheap now: a constraint drop. Costly to reverse later: text kept cannot be un-kept for past users without a purge |
+| Forget storage | Tombstone with wiped columns | Hard delete; soft delete keeping text | Hard delete breaks the standing soft-delete rule; keeping text breaks FR-22 and NFR-2. Chosen by the user 2026-09-25 | costly once data exists |
 | Conflict candidates | Embedding nearest ten, then one model call | Full-text prefilter; every memory in the prompt | Prefilter misses contradictions sharing no words; all memories costs about 15,000 tokens at 1,000 memories. Chosen by the user 2026-09-25 | cheap |
 | Where the conflict waits | `pending_captures` with a new kind | A `memory_conflicts` table in memories | A second pending store would split the "1 question waiting" count and 001's answer-later rules | cheap |
 | Category and conflict | One structured call | Two calls; a classifier without a model | Two calls double latency past NFR-4; rules cannot place free text into four categories | cheap |
@@ -171,8 +167,8 @@ code, so `/memories what do you remember about my career` searches "career".
 | # | Decision | Status | Graduates to tech-stack.md or product.md |
 |---|---|---|---|
 | AD-1 | New `memories` domain, per 003 AD-1 | locked | no, 003 already graduates it |
-| AD-2 | Forget is a tombstone, enforced by check constraints. Memories are the one record type whose content is erased, not only hidden. **Superseded by AD-12 on approval** | locked, superseded pending | yes, product.md §4. AD-12 removes the exception there |
-| AD-3 | `capture_turns` is append-only except for the scrub `UPDATE`, which is the only way its text changes. **Amended pending:** the one `UPDATE` sets `forgotten_at` only; text never changes | locked, amendment pending | no |
+| AD-2 | Forget is a tombstone, enforced by check constraints. Memories are the one record type whose content is erased, not only hidden | locked | yes, product.md: the soft-delete rule's one exception for content |
+| AD-3 | `capture_turns` is append-only except for the scrub `UPDATE`, which is the only way its text changes | locked | no |
 | AD-4 | pgvector is enabled, with `vector(768)` columns. The gateway gains `embed`, attributed in `ai_usage` with `operation = embed` | locked | yes, tech stack §1: embedding model named |
 | AD-5 | Candidate search takes the ten nearest non-forgotten memories; the model sees only those | locked | no |
 | AD-6 | A pending conflict lives in `pending_captures` as kind `memory_conflict`, resolved by `resolveMemoryConflict` | locked | no |
@@ -181,7 +177,6 @@ code, so `/memories what do you remember about my career` searches "career".
 | AD-9 | Memory text never reaches logs, events, usage rows or tracing. A structlog processor enforces the log half | locked | yes, tech stack §4 as an extension of T6 |
 | AD-10 | 004 builds on epic 003. Amended 2026-09-25: 003 is merged into this feature's branch rather than waited for on `main` | locked 2026-09-25, amended the same day | no |
 | AD-11 | Embedding calls are attributed per user but exempt from the per-user request cap | locked | yes, tech stack §4: how the cap counts |
-| AD-12 | Forget is a soft delete. It sets `memories.deleted_at` and `capture_turns.forgotten_at` and nothing else: text, input, category, embedding and turn words stay. Every memory read keeps its `deleted_at IS NULL` filter, including candidate search and the re-embed job. Capture history blanks a forgotten turn's words in the repository's row mapper, the one path every history read takes. `ck_memories_forgotten_holds_nothing` and `ck_capture_turns_forgotten_holds_no_words` are dropped in `0030_soft_forget`. `CaptureTurnScrubber` becomes `CaptureTurnHider`, `TurnScrubPort` becomes `TurnHidePort`. Plan: [4.4](./04.4-soft-delete.md) | proposed 2026-09-27 | yes, product.md §4: memories stop being the exception |
 
 ## 9. Risks
 
@@ -189,8 +184,7 @@ code, so `/memories what do you remember about my career` searches "career".
 |---|---|---|---|
 | Embed plus generate crosses 8 s at p95 | NFR-4 misses | Both calls logged separately; the embed call is small | p95 over 8 s in the first 100 saves |
 | The per-user cap of 20 a day is spent by memory saves | Tasks and reminders refused after heavy memory use | Embeds uncounted (Q5), so a save costs one request, as a task does | First user to hit the cap on a memory save |
-| A read path omits `deleted_at IS NULL` and shows a forgotten memory. The NULL text and vector no longer back the filter up | FR-22 broken | NFR-2's test, inverted in 4.4, calls every read the user can make | Any new query on `memories` or `capture_turns`, and epic 005's retrieval |
-| Staff or a leaked backup can read facts the user forgot | Privacy and legal exposure | PRD Q8 | Before launch |
+| A forgotten fact survives in a place the constraints do not cover | FR-22 broken | NFR-2's test searches every table for the text after a forget | Any new table holding user text |
 | G4's "similar text" cannot be measured, because a forgotten text is erased | The wrong-forget metric is weaker | G4 now measures a forget followed by any save within five minutes (Q8, PRD change record) | — |
 | The ten nearest miss a real contradiction | NFR-7 misses | Evaluation set before approval, per NFR-7 | Catch rate under 80% |
 | Secret patterns are India-shaped | Other locales get fewer cautions | Product Q6, locale, still open | A non-Indian user base |
@@ -219,4 +213,3 @@ All eight answered on 2026-09-25. Q1 to Q4 were asked before drafting.
 | 2026-09-25 | Q5 to Q8 answered, each as recommended. AD-11 added for the uncounted embeds. §6 and §9 updated | User answered the open questions | user |
 | 2026-09-25 | Approved. The backup window is deferred to launch rather than confirmed before approval, at the user's direction. Every AD moved to locked. AD-2 graduated to `product/product.md`; AD-4, AD-9 and AD-11 to `tech-stack.md` | User approved, proceed to the implementation plan | user |
 | 2026-09-25 | AD-10 amended: 003 is merged into `claude/feature-004-planning-aevb3m` instead of waiting for it on `main`. The pull request for 004 carries 003 unless 003 merges first. Stale downstream: the implementation plan index's opening line, corrected in the same change | User chose it when asking to start dev | user |
-| 2026-09-27 | AD-12 added: forget is a soft delete keeping text, embedding and turn words; both scrub constraints dropped; the scrubber becomes a hider and history blanks words on read. AD-2 superseded, AD-3 amended. §1, §3, §6, §7, §9 follow. Stale downstream: the implementation plan index, 4.2 C-2.1, C-2.3, C-2.9, 4.3 C-3.6, `product/product.md` §4 on approval | PRD change record of the same date | pending |
