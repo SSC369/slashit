@@ -80,6 +80,27 @@ async def two_users(engine: AsyncEngine) -> AsyncIterator[tuple[uuid.UUID, uuid.
 
 
 @pytest.fixture
+async def eval_user(
+    engine: AsyncEngine, two_users: tuple[uuid.UUID, uuid.UUID]
+) -> uuid.UUID:
+    """User A with a daily model allowance above any eval set's size.
+
+    The live scorers make one model call per case, and the default allowance
+    (20) would refuse every case past the twentieth. The row goes with the user.
+    """
+    user_id, _ = two_users
+    async with engine.begin() as conn:
+        await conn.execute(
+            text(
+                "INSERT INTO ai_user_limit (user_id, requests_per_day) "
+                "VALUES (:id, 1000)"
+            ),
+            {"id": user_id},
+        )
+    return user_id
+
+
+@pytest.fixture
 async def job_queue(
     engine: AsyncEngine, two_users: tuple[uuid.UUID, uuid.UUID]
 ) -> AsyncIterator[None]:

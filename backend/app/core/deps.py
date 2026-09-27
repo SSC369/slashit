@@ -243,6 +243,7 @@ def _build_model_provider(*, settings: Settings) -> LangChainGeminiProvider:
         api_key=settings.gemini_api_key,
         model=settings.gemini_model,
         embedding_model=settings.gemini_embedding_model,
+        reasoning_effort=settings.gemini_reasoning_effort,
     )
 
 

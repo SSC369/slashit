@@ -49,7 +49,7 @@ choice changes, it changes here, and the change log at the bottom records it.
 | Frontend hosting | Vercel |
 | Email | Resend |
 | Model framework | LangChain, `langchain-core` plus `langchain-google-genai` |
-| Model provider | Google Gemini Flash, paid tier. `gemini-3.6-flash` in V1 |
+| Model provider | Google Gemini Flash, paid tier. `gemini-3.6-flash` at reasoning effort "low" in V1; embeddings `gemini-embedding-001`, 768 dimensions |
 | LLM observability | Langfuse |
 
 ---
@@ -431,6 +431,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 | 2026-09-09 | Created, absorbing decision records 0004, 0005 and 0006 | User removed the decisions folder and asked for one technical document | user |
 | 2026-09-09 | Server state moved from TanStack Query to Apollo Client. The pillar P2 objection to a normalised cache is preserved by making MobX stores the source of truth and Apollo a transport | User direction while drafting the repository rulesets | user |
 | 2026-09-12 | V1 model changed from `gemini-2.5-flash` to `gemini-3.6-flash`. The former returns 404 to new accounts, and Google's error names the latter as its replacement | Discovered by calling the API during epic 000 slice 3 | user |
+| 2026-09-27 | Reasoning effort set to "low"; embedding model confirmed live | At the default effort, epic 004's conflict judgement missed its 8 s budget (004 dev log D-22) | user |
 | 2026-09-12 | Added LangChain as the model framework, below the gateway's provider Protocol. Recorded that the wider AI toolkit is installed locally and not deployed | User direction while planning epic 000 slice 3 | user |
 | 2026-09-12 | Corrected the T-Q2 answer. The claim alone leaks every row because `postgres` carries `rolbypassrls`; `SET LOCAL ROLE authenticated` is mandatory alongside it. Stale downstream: none, no code had been written against the earlier answer | Measured against the live database while planning epic 000 slice 2 | user |
 | 2026-09-12 | Added ORM, database driver, migrations and a Python version. Named `gemini-2.5-flash` as the V1 model. Recorded the `SET LOCAL` answer to T-Q2 and that there is no mirrored users table | Decisions AD-2 to AD-7 and AD-9 locked by epic 000's approved build plan, graduated here per rule 6 of the process | user |

@@ -25,9 +25,9 @@ TARGET_ACCURACY = 0.85
 async def test_category_accuracy_meets_nfr_6(
     settings: Settings,
     session_factory: async_sessionmaker[AsyncSession],
-    two_users: tuple[uuid.UUID, uuid.UUID],
+    eval_user: uuid.UUID,
 ) -> None:
-    user_id, _ = two_users
+    user_id = eval_user
     adapter = GatewayMemoryModelAdapter(
         embed_interactor=build_embed_interactor(
             session_factory=session_factory, settings=settings

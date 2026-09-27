@@ -59,10 +59,14 @@ logger = structlog.get_logger(__name__)
 class LangChainGeminiProvider:
     """Implements ModelProvider over LangChain's Gemini binding."""
 
-    def __init__(self, *, api_key: str, model: str, embedding_model: str) -> None:
+    def __init__(
+        self, *, api_key: str, model: str, embedding_model: str, reasoning_effort: str
+    ) -> None:
         self._model_name = model
         self._embedding_model_name = embedding_model
-        self._chat = ChatGoogleGenerativeAI(model=model, google_api_key=api_key)
+        self._chat = ChatGoogleGenerativeAI(
+            model=model, google_api_key=api_key, reasoning_effort=reasoning_effort
+        )
         self._embeddings = GoogleGenerativeAIEmbeddings(
             model=embedding_model, google_api_key=api_key
         )
