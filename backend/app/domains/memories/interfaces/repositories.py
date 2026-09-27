@@ -76,14 +76,6 @@ class MemoryRepository(Protocol):
         """The subset of ids that are this user's live memories."""
         ...
 
-    async def list_live_ids(self, *, user_id: UUID) -> list[UUID]:
-        """Every live memory id this user holds, for forget-all."""
-        ...
-
-    async def count_by_terms(self, *, user_id: UUID, terms: list[str]) -> int:
-        """How many live memories match any term, for "{n} more match"."""
-        ...
-
     async def delete_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
         """Delete the caller's live memories among these ids (AD-2, amended
         2026-09-27). Returns how many rows it deleted."""

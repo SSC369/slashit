@@ -121,6 +121,17 @@ async def test_unknown_command_returns_unrecognised() -> None:
     assert "/add-task" in result.closest_matches
 
 
+@pytest.mark.parametrize("raw_input", ["/forget visa", "/forget"])
+async def test_forget_is_no_longer_a_command(raw_input: str) -> None:
+    """004 sub-plan 4.5, C-5.1: forget is from a memory's detail page only."""
+    interactor, *_ = _interactor()
+
+    result = await interactor.submit_capture(user_id=uuid.uuid4(), raw_input=raw_input)
+
+    assert isinstance(result, UnrecognisedCommandDTO)
+    assert "/forget" not in result.closest_matches
+
+
 async def test_add_task_with_title_and_due_creates_a_task() -> None:
     """T-1.5: FR-6, FR-7."""
     extraction_port = FakeExtractionPort(

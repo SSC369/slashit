@@ -57,7 +57,7 @@ describe("TurnCard", () => {
     expect(screen.queryByText("Task")).not.toBeInTheDocument();
   });
 
-  it.each(["/memories passport", "/forget visa"])("004 P-4: %s loads with no fields", (said) => {
+  it.each(["/memories passport"])("004 P-4: %s loads with no fields", (said) => {
     render(<TurnCard turn={{ id: "t-3", said, status: "loading" }} {...baseProps} />);
 
     expect(screen.getByText(/Reading your command/)).toBeInTheDocument();

@@ -92,29 +92,9 @@ class ModelRefused:
 
 
 @dataclass(frozen=True)
-class ForgetCandidatesDTO:
-    """What `/forget <which>` offers (FR-24 to FR-27). Nothing is forgotten
-    until the user confirms, so this carries no side effect."""
-
-    search_text: str
-    candidates: list[MemoryDTO]
-    total_matches: int
-    forget_all: bool
-    all_count: int
-
-
-@dataclass(frozen=True)
 class MemoriesForgottenDTO:
     """How many memories a forget removed. Zero means none were the caller's
     live memories, which the resolvers answer as not found."""
-
-    count: int
-
-
-@dataclass(frozen=True)
-class MemoryCountChangedDTO:
-    """FR-27: the count confirmed is no longer the count held, so nothing was
-    forgotten and the user is asked again."""
 
     count: int
 
@@ -187,14 +167,6 @@ class MemoryTooLong:
 class MemoriesForgotten:
     """FR-22: the memories are gone. Shared by Records and capture."""
 
-    count: int
-
-
-@strawberry.type
-class MemoryCountChanged:
-    """FR-27: "You now have {count} memories", and the confirm asks again."""
-
-    message: str
     count: int
 
 

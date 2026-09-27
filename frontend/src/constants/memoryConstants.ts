@@ -34,18 +34,6 @@ export const SECRET_CAUTION_BODY =
  * 2026-09-25); until then the line states the schedule, not a number. */
 export const BACKUP_LINE = "Copies in backups are erased on the regular backup schedule.";
 
-/** Mirrors backend memories/constants.py's FORGET_PICK_LIMIT (sub-plan 4.2, Q2). */
-export const FORGET_PICK_LIMIT = 5;
-
-/** What `/forget <which>` offered (FR-24 to FR-27). */
-export interface ForgetCandidatesArgs {
-  searchText: string;
-  candidates: MemoryFieldsFragment[];
-  totalMatches: number;
-  forgetAll: boolean;
-  allCount: number;
-}
-
 /** "Which is correct?" (FR-10): the new fact, unsaved, and what it contradicts. */
 export interface MemoryConflictArgs {
   pendingCaptureId: string;

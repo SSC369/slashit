@@ -10,19 +10,15 @@ import structlog
 
 from app.domains.memories.constants import (
     CANDIDATE_LIMIT,
-    FORGET_ALL_PHRASES,
-    FORGET_PICK_LIMIT,
     LOOKUP_LIMIT,
     MAX_FACT_LENGTH,
 )
 from app.domains.memories.interfaces.dtos import (
     CandidateMemory,
     ConflictAnswer,
-    ForgetCandidatesDTO,
     MemoriesForgottenDTO,
     MemoryCategory,
     MemoryConflictDTO,
-    MemoryCountChangedDTO,
     MemoryDiscardedDTO,
     MemoryDTO,
     MemoryListDTO,
@@ -202,40 +198,6 @@ class MemoryService:
             user_id=user_id, category=None, search=search
         )
 
-    async def find_forget_candidates(
-        self, *, user_id: UUID, text: str
-    ) -> ForgetCandidatesDTO:
-        """What `/forget <which>` offers. Forgets nothing (FR-24 to FR-27).
-
-        One of the exact forget-all phrases offers every memory, by count;
-        anything else is a word match, capped at five (sub-plan 4.2, Q2, Q4).
-        Never calls the model, so forget works while the model is down.
-        """
-        search_text = text.strip()
-        if search_text.lower() in FORGET_ALL_PHRASES:
-            live_ids = await self.memory_repository.list_live_ids(user_id=user_id)
-            return ForgetCandidatesDTO(
-                search_text=search_text,
-                candidates=[],
-                total_matches=0,
-                forget_all=True,
-                all_count=len(live_ids),
-            )
-        terms = build_lookup_terms(text=search_text)
-        candidates = await self.memory_repository.find_by_terms(
-            user_id=user_id, terms=terms, limit=FORGET_PICK_LIMIT
-        )
-        total_matches = await self.memory_repository.count_by_terms(
-            user_id=user_id, terms=terms
-        )
-        return ForgetCandidatesDTO(
-            search_text=search_text,
-            candidates=candidates,
-            total_matches=total_matches,
-            forget_all=False,
-            all_count=0,
-        )
-
     async def forget_memories(
         self, *, user_id: UUID, memory_ids: list[UUID]
     ) -> MemoriesForgottenDTO:
@@ -258,17 +220,6 @@ class MemoryService:
         )
         await self._record_event(user_id=user_id, event_type="memory_forgotten")
         return MemoriesForgottenDTO(count=forgotten_count)
-
-    async def forget_all(
-        self, *, user_id: UUID, expected_count: int
-    ) -> MemoriesForgottenDTO | MemoryCountChangedDTO:
-        """FR-27: forget every memory, but only the number the user confirmed.
-        A memory saved in another tab since then changes the count, and
-        nothing is forgotten until the user confirms again."""
-        live_ids = await self.memory_repository.list_live_ids(user_id=user_id)
-        if len(live_ids) != expected_count:
-            return MemoryCountChangedDTO(count=len(live_ids))
-        return await self.forget_memories(user_id=user_id, memory_ids=live_ids)
 
     async def _record_event(
         self, *, user_id: UUID, event_type: MemoryEventType

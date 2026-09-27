@@ -1,12 +1,12 @@
 """Forget end to end against a real database, sub-plan 4.2 cases C-2.1 to
-C-2.3, C-2.6 to C-2.10 and C-2.12. NFR-2's search-every-table case is C-2.9.
+C-2.3, C-2.9, C-2.10 and C-2.12, and sub-plan 4.5's C-5.1 and C-5.2.
+NFR-2's search-every-table case is C-2.9.
 
 The model is faked at ``LangChainGeminiProvider``, as in
 ``test_memories_graphql.py``, whose fixtures and helpers this reuses.
 """
 
 import uuid
-from typing import Any
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -26,55 +26,11 @@ from tests.integration.test_memories_graphql import (
 
 __all__ = ["fake_model", "patched_jwks", "signing_key"]
 
-FORGET_OFFER = """
-mutation($rawInput: String!) {
-  submitCapture(rawInput: $rawInput) {
-    __typename
-    ... on ForgetCandidates {
-      searchText totalMatches forgetAll allCount candidates { id text }
-    }
-  }
-}
-"""
-
-CONFIRM = """
-mutation($ids: [ID!]!, $all: Boolean!, $expected: Int!) {
-  forgetFromCapture(memoryIds: $ids, forgetAll: $all, expectedCount: $expected) {
-    __typename
-    ... on MemoriesForgotten { count }
-    ... on MemoryCountChanged { count message }
-  }
-}
-"""
-
 HISTORY = """
 { captureHistory { items { inputText outcome forgotten affectedCount answerText } } }
 """
 
 FACT = "My passport number is P7788123"
-
-
-async def _offer(
-    client: AsyncClient, headers: dict[str, str], raw_input: str
-) -> dict[str, Any]:
-    data = await _graphql(client, headers, FORGET_OFFER, {"rawInput": raw_input})
-    result: dict[str, Any] = data["submitCapture"]
-    return result
-
-
-async def _confirm(
-    client: AsyncClient,
-    headers: dict[str, str],
-    *,
-    ids: list[str],
-    forget_all: bool = False,
-    expected: int = 0,
-) -> dict[str, Any]:
-    data = await _graphql(
-        client, headers, CONFIRM, {"ids": ids, "all": forget_all, "expected": expected}
-    )
-    result: dict[str, Any] = data["forgetFromCapture"]
-    return result
 
 
 async def _text_found_anywhere(
@@ -184,65 +140,6 @@ async def test_forget_from_records_leaves_no_trace(
 
 
 @pytest.mark.usefixtures("patched_jwks", "fake_model")
-async def test_forget_by_command_picks_confirms_and_logs_only_the_count(
-    client: AsyncClient,
-    settings: Settings,
-    signing_key: ec.EllipticCurvePrivateKey,
-    two_users: tuple[uuid.UUID, uuid.UUID],
-) -> None:
-    """C-2.4, C-2.5 and C-2.8 through GraphQL."""
-    user_a, _ = two_users
-    headers = _headers(signing_key, settings, user_id=user_a)
-    await _submit(client, headers, "/remember Preferred airline is Emirates")
-    await _submit(client, headers, "/remember Airline miles number is EK 204")
-    await _submit(client, headers, "/remember Mom's birthday is October 12")
-
-    offered = await _offer(client, headers, "/forget airline")
-    nothing = await _offer(client, headers, "/forget visa")
-    confirmed = await _confirm(client, headers, ids=[offered["candidates"][0]["id"]])
-    history = await _graphql(client, headers, HISTORY)
-
-    assert offered["totalMatches"] == 2
-    assert len(offered["candidates"]) == 2
-    assert nothing["candidates"] == []
-    assert confirmed == {"__typename": "MemoriesForgotten", "count": 1}
-    newest = history["captureHistory"]["items"][0]
-    assert newest["inputText"] == "/forget"
-    assert newest["outcome"] == "MEMORY_FORGOTTEN"
-    assert newest["affectedCount"] == 1
-    assert not any(
-        "airline" in item["inputText"] and item["inputText"].startswith("/forget")
-        for item in history["captureHistory"]["items"]
-    )
-
-
-@pytest.mark.usefixtures("patched_jwks", "fake_model")
-async def test_forget_all_confirms_the_count(
-    client: AsyncClient,
-    settings: Settings,
-    signing_key: ec.EllipticCurvePrivateKey,
-    two_users: tuple[uuid.UUID, uuid.UUID],
-) -> None:
-    """C-2.6 and C-2.7."""
-    user_a, _ = two_users
-    headers = _headers(signing_key, settings, user_id=user_a)
-    await _submit(client, headers, "/remember One fact")
-    await _submit(client, headers, "/remember Another fact")
-
-    offered = await _offer(client, headers, "/forget all my memories")
-    stale = await _confirm(client, headers, ids=[], forget_all=True, expected=1)
-    done = await _confirm(client, headers, ids=[], forget_all=True, expected=2)
-    left = await _graphql(client, headers, "{ memories { id } }")
-
-    assert offered["forgetAll"] is True
-    assert offered["allCount"] == 2
-    assert stale["__typename"] == "MemoryCountChanged"
-    assert stale["count"] == 2
-    assert done == {"__typename": "MemoriesForgotten", "count": 2}
-    assert left["memories"] == []
-
-
-@pytest.mark.usefixtures("patched_jwks", "fake_model")
 async def test_user_b_cannot_forget_user_a_memories(
     client: AsyncClient,
     settings: Settings,
@@ -262,11 +159,9 @@ async def test_user_b_cannot_forget_user_a_memories(
         "mutation($id: ID!) { forgetMemory(id: $id) { __typename } }",
         {"id": memory_id},
     )
-    from_capture = await _confirm(client, headers_b, ids=[memory_id])
     still_there = await _graphql(client, headers_a, "{ memories { id } }")
 
     assert from_records["forgetMemory"] == {"__typename": "MemoryNotFound"}
-    assert from_capture["__typename"] == "ForgetTargetGone"
     assert [memory["id"] for memory in still_there["memories"]] == [memory_id]
 
 
@@ -284,8 +179,52 @@ async def test_forget_works_with_the_gateway_switched_off(
     saved = await _submit(client, headers, "/remember Car insurance renews in March")
     monkeypatch.setattr(get_settings(), "gateway_enabled", False)
 
-    offered = await _offer(client, headers, "/forget insurance")
-    confirmed = await _confirm(client, headers, ids=[saved["memory"]["id"]])
+    confirmed = await _graphql(
+        client,
+        headers,
+        "mutation($id: ID!) { forgetMemory(id: $id) { __typename "
+        "... on MemoriesForgotten { count } } }",
+        {"id": saved["memory"]["id"]},
+    )
 
-    assert len(offered["candidates"]) == 1
-    assert confirmed == {"__typename": "MemoriesForgotten", "count": 1}
+    assert confirmed["forgetMemory"] == {"__typename": "MemoriesForgotten", "count": 1}
+
+
+@pytest.mark.usefixtures("patched_jwks", "fake_model")
+async def test_forget_command_is_gone_and_forgets_nothing(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    two_users: tuple[uuid.UUID, uuid.UUID],
+) -> None:
+    """Sub-plan 4.5, C-5.1 and C-5.2: `/forget` is an unrecognised command, the
+    schema has no forgetFromCapture, and the memory stays."""
+    user_a, _ = two_users
+    headers = _headers(signing_key, settings, user_id=user_a)
+    saved = await _submit(client, headers, "/remember Car insurance renews in March")
+
+    typed = (
+        await _graphql(
+            client,
+            headers,
+            "mutation($rawInput: String!) { submitCapture(rawInput: $rawInput) { "
+            "__typename ... on UnrecognisedCommand { closestMatches } } }",
+            {"rawInput": "/forget insurance"},
+        )
+    )["submitCapture"]
+    schema = await client.post(
+        "/graphql",
+        json={
+            "query": "mutation { forgetFromCapture(memoryIds: [], forgetAll: true, "
+            "expectedCount: 0) { __typename } }"
+        },
+        headers=headers,
+    )
+    still_there = await _graphql(client, headers, "{ memories { id } }")
+
+    assert typed["__typename"] == "UnrecognisedCommand"
+    assert "/forget" not in typed["closestMatches"]
+    assert "forgetFromCapture" in str(schema.json()["errors"])
+    assert [memory["id"] for memory in still_there["memories"]] == [
+        saved["memory"]["id"]
+    ]

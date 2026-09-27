@@ -140,31 +140,6 @@ class SqlMemoryRepository:
             )
             return list(live_ids)
 
-    async def list_live_ids(self, *, user_id: uuid.UUID) -> list[uuid.UUID]:
-        async with user_transaction(self.session, user_id) as scoped:
-            live_ids = await scoped.scalars(
-                select(Memory.id).where(
-                    Memory.user_id == user_id, Memory.deleted_at.is_(None)
-                )
-            )
-            return list(live_ids)
-
-    async def count_by_terms(self, *, user_id: uuid.UUID, terms: list[str]) -> int:
-        if not terms:
-            return 0
-        text_query = func.to_tsquery("english", " | ".join(terms))
-        async with user_transaction(self.session, user_id) as scoped:
-            matched_count = await scoped.scalar(
-                select(func.count())
-                .select_from(Memory)
-                .where(
-                    Memory.user_id == user_id,
-                    Memory.deleted_at.is_(None),
-                    Memory.search_vector.op("@@")(text_query),
-                )
-            )
-        return int(matched_count or 0)
-
     async def delete_memories(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
     ) -> int:

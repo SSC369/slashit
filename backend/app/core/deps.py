@@ -31,7 +31,6 @@ from app.domains.capture.adapters.reminders_adapter import RemindersAdapter
 from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
 )
-from app.domains.capture.interactors.confirm_forget import ConfirmForgetInteractor
 from app.domains.capture.interactors.discard_pending_capture import (
     DiscardPendingCaptureInteractor,
 )
@@ -707,13 +706,6 @@ def build_resolve_memory_conflict_interactor(
         pending_capture_repository=SqlPendingCaptureRepository(context.session),
         capture_turn_repository=SqlCaptureTurnRepository(context.session),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
-    )
-
-
-def build_confirm_forget_interactor(context: Context) -> ConfirmForgetInteractor:
-    return ConfirmForgetInteractor(
-        memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
-        capture_turn_repository=SqlCaptureTurnRepository(context.session),
     )
 
 

@@ -30,32 +30,6 @@ describe("SubmitCapture responseHandler, epic 004's members", () => {
     expect(onMemoriesListed).toHaveBeenCalledWith({ memories: [], searchText: "visa" });
   });
 
-  it("hands ForgetCandidates to onForgetCandidates, reading the aliased search text", () => {
-    const { handleResponse } = useResponseHandler();
-    const onForgetCandidates = vi.fn();
-    const memory = buildMemory();
-    const data: SubmitCaptureMutation = {
-      submitCapture: {
-        __typename: "ForgetCandidates",
-        forgetText: "airline",
-        candidates: [memory],
-        totalMatches: 7,
-        forgetAll: false,
-        allCount: 0,
-      },
-    };
-
-    handleResponse({ data, onForgetCandidates });
-
-    expect(onForgetCandidates).toHaveBeenCalledWith({
-      searchText: "airline",
-      candidates: [memory],
-      totalMatches: 7,
-      forgetAll: false,
-      allCount: 0,
-    });
-  });
-
   it("hands MemoryConflictAsked to onMemoryConflictAsked", () => {
     const { handleResponse } = useResponseHandler();
     const onMemoryConflictAsked = vi.fn();

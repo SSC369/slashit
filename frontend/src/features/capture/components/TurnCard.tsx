@@ -13,15 +13,6 @@ import {
   MemoryTooLongNote,
 } from "./MemoryCards";
 import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
-import {
-  ForgetAllCard,
-  ForgetCancelledNote,
-  ForgetConfirmCard,
-  ForgetGoneNote,
-  ForgetNoMatchNote,
-  ForgetPickCard,
-  ForgottenNote,
-} from "./ForgetCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import * as Styles from "./styles";
 
@@ -40,11 +31,6 @@ interface TurnCardProps {
   onEditMemory: (id: string) => void;
   onOpenMemory: (id: string) => void;
   onOpenMemories: () => void;
-  isForgetting?: boolean;
-  onForgetSelect: (id: string, memoryId: string) => void;
-  onForgetContinue: (id: string) => void;
-  onForgetConfirm: (id: string) => void;
-  onForgetCancel: (id: string) => void;
   isResolving?: boolean;
   onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
   onConflictDefer: (id: string, deferred: boolean) => void;
@@ -60,8 +46,8 @@ const commandName = (said: string): string => said.trim().split(/\s+/, 1)[0] ?? 
 /** Commands that save a memory: the loading turn shows its two fields. */
 const MEMORY_SAVE_COMMANDS = new Set(["/remember", "/add-memory"]);
 
-/** Commands that read or forget memories: nothing to fill in, so no fields. */
-const MEMORY_READ_COMMANDS = new Set(["/memories", "/forget"]);
+/** A memory lookup: nothing to fill in, so no fields. */
+const MEMORY_READ_COMMANDS = new Set(["/memories"]);
 
 /** Design §4 success copy for a save that answered a conflict. */
 const savedHeadline = (resolution: "KEEP_NEW" | "BOTH" | undefined, forgottenCount = 0): string => {
@@ -105,11 +91,6 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onEditMemory,
     onOpenMemory,
     onOpenMemories,
-    isForgetting = false,
-    onForgetSelect,
-    onForgetContinue,
-    onForgetConfirm,
-    onForgetCancel,
     isResolving = false,
     onConflictAnswer,
     onConflictDefer,
@@ -274,53 +255,6 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     case "conflictGone":
       return <ConflictOutcomeNote kind="gone" />;
 
-    case "forgetPick":
-      return (
-        <ForgetPickCard
-          candidates={turn.candidates}
-          totalMatches={turn.totalMatches}
-          selectedId={turn.selectedId}
-          onSelect={(memoryId) => onForgetSelect(turn.id, memoryId)}
-          onContinue={() => onForgetContinue(turn.id)}
-          onCancel={() => onForgetCancel(turn.id)}
-        />
-      );
-
-    case "forgetConfirm":
-      return (
-        <ForgetConfirmCard
-          memory={turn.memory}
-          error={turn.error}
-          isBusy={isForgetting}
-          onConfirm={() => onForgetConfirm(turn.id)}
-          onCancel={() => onForgetCancel(turn.id)}
-        />
-      );
-
-    case "forgetAll":
-      return (
-        <ForgetAllCard
-          count={turn.count}
-          countChanged={turn.countChanged}
-          error={turn.error}
-          isBusy={isForgetting}
-          onConfirm={() => onForgetConfirm(turn.id)}
-          onCancel={() => onForgetCancel(turn.id)}
-        />
-      );
-
-    case "forgetNoMatch":
-      return <ForgetNoMatchNote searchText={turn.searchText} />;
-
-    case "forgotten":
-      return <ForgottenNote count={turn.count} />;
-
-    case "forgetGone":
-      return <ForgetGoneNote />;
-
-    case "forgetCancelled":
-      return <ForgetCancelledNote />;
-
     case "modelDown":
       return (
         <div className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
@@ -481,7 +415,7 @@ const MemoryLoadingCard = (): ReactElement => (
   </div>
 );
 
-/** 001's loading turn for a lookup or a forget, which has no fields to read. */
+/** 001's loading turn for a lookup, which has no fields to read. */
 const PlainLoadingCard = (): ReactElement => (
   <div className={Styles.cardStyles}>
     <div className={Styles.cardHeadStyles}>

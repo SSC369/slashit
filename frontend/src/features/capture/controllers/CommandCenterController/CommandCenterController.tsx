@@ -7,7 +7,6 @@ import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCap
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
 import useResolveMemoryConflict from "../../../../api/mutations/ResolveMemoryConflict/useResolveMemoryConflict";
-import useForgetFromCapture from "../../../../api/mutations/ForgetFromCapture/useForgetFromCapture";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
 import PageTopbar from "../../../../components/PageTopbar";
 import { API_FETCHING } from "../../../../constants/apiConstants";
@@ -92,33 +91,6 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "memoryTooLong", length, limit });
       restoreInput(said);
     },
-    onForgetCandidates: ({ searchText, candidates, totalMatches, forgetAll, allCount }) => {
-      // FR-24 to FR-27: nothing is forgotten until the user confirms.
-      if (forgetAll) {
-        captureStore.resolveTurn(turnId, {
-          status: "forgetAll",
-          count: allCount,
-          countChanged: false,
-          error: null,
-        });
-        return;
-      }
-      if (candidates.length === 0) {
-        captureStore.resolveTurn(turnId, { status: "forgetNoMatch", searchText });
-        return;
-      }
-      if (candidates.length === 1) {
-        captureStore.resolveTurn(turnId, { status: "forgetConfirm", memory: candidates[0], error: null });
-        return;
-      }
-      captureStore.resolveTurn(turnId, {
-        status: "forgetPick",
-        searchText,
-        candidates,
-        totalMatches,
-        selectedId: null,
-      });
-    },
     onMemoryConflictAsked: ({ pendingCaptureId, newText, category, conflicting }) => {
       // The card reads these back from the store, so an edit or forget made
       // in Records before the answer shows here too (sub-plan 4.3 §6).
@@ -167,8 +139,6 @@ const CommandCenterController = (): ReactElement => {
     apiStatus: answerApiStatus,
   } = useAnswerPendingCapture();
   const { triggerAPI: triggerDiscardPendingCapture } = useDiscardPendingCapture();
-  const { triggerAPI: triggerForgetFromCapture, apiStatus: forgetApiStatus } = useForgetFromCapture();
-  const [forgettingTurnId, setForgettingTurnId] = useState<string | null>(null);
   const { triggerAPI: triggerResolveMemoryConflict, apiStatus: resolveApiStatus } =
     useResolveMemoryConflict();
   const [resolvingTurnId, setResolvingTurnId] = useState<string | null>(null);
@@ -291,54 +261,6 @@ const CommandCenterController = (): ReactElement => {
     // The refusal put the command back in the bar; running it again empties it.
     setInput((current) => (current === said ? "" : current));
     submit(said);
-  };
-
-  const handleForgetSelect = (turnId: string, memoryId: string): void => {
-    store.capture.selectForgetCandidate(turnId, memoryId);
-  };
-
-  const handleForgetContinue = (turnId: string): void => {
-    const turn = store.capture.turns.get(turnId);
-    if (!turn || turn.status !== "forgetPick") return;
-    const memory = turn.candidates.find((candidate) => candidate.id === turn.selectedId);
-    if (!memory) return;
-    store.capture.resolveTurn(turnId, { status: "forgetConfirm", memory, error: null });
-  };
-
-  const handleForgetCancel = (turnId: string): void => {
-    store.capture.resolveTurn(turnId, { status: "forgetCancelled" });
-  };
-
-  const handleForgetConfirm = (turnId: string): void => {
-    const turn = store.capture.turns.get(turnId);
-    if (!turn || !isOnline) return;
-    if (turn.status !== "forgetConfirm" && turn.status !== "forgetAll") return;
-
-    const isAll = turn.status === "forgetAll";
-    const memoryIds = isAll ? [] : [turn.memory.id];
-    const expectedCount = isAll ? turn.count : memoryIds.length;
-
-    store.capture.setForgetError(turnId, null);
-    setForgettingTurnId(turnId);
-    triggerForgetFromCapture({
-      memoryIds,
-      forgetAll: isAll,
-      expectedCount,
-      onMemoriesForgotten: (count) => {
-        // Forget-all names no ids, so every memory the client holds goes.
-        store.forgetMemories(isAll ? "ALL" : memoryIds);
-        store.capture.resolveTurn(turnId, { status: "forgotten", count });
-        store.capture.redactForgetSaid(turnId);
-      },
-      onMemoryCountChanged: ({ count }) =>
-        store.capture.resolveTurn(turnId, { status: "forgetAll", count, countChanged: true, error: null }),
-      onForgetTargetGone: () => {
-        store.forgetMemories(memoryIds);
-        store.capture.resolveTurn(turnId, { status: "forgetGone" });
-        store.capture.redactForgetSaid(turnId);
-      },
-      onRequestFailed: (requestError) => store.capture.setForgetError(turnId, requestError.message),
-    });
   };
 
   const handleConflictAnswer = (turnId: string, answer: ConflictAnswer): void => {
@@ -470,11 +392,6 @@ const CommandCenterController = (): ReactElement => {
                 onEditMemory={handleEditMemory}
                 onOpenMemory={handleOpenMemory}
                 onOpenMemories={handleOpenMemories}
-                isForgetting={forgettingTurnId === turn.id && forgetApiStatus === API_FETCHING}
-                onForgetSelect={handleForgetSelect}
-                onForgetContinue={handleForgetContinue}
-                onForgetConfirm={handleForgetConfirm}
-                onForgetCancel={handleForgetCancel}
                 isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
                 onConflictAnswer={handleConflictAnswer}
                 onConflictDefer={handleConflictDefer}

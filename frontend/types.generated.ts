@@ -35,7 +35,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = ForgetCandidates | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -71,23 +71,7 @@ export type ConflictAnswer =
 
 export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
 
-export type ForgetCandidates = {
-  __typename?: 'ForgetCandidates';
-  allCount: Scalars['Int']['output'];
-  candidates: Array<Memory>;
-  forgetAll: Scalars['Boolean']['output'];
-  searchText: Scalars['String']['output'];
-  totalMatches: Scalars['Int']['output'];
-};
-
-export type ForgetFromCaptureResult = ForgetTargetGone | MemoriesForgotten | MemoryCountChanged;
-
 export type ForgetMemoryResult = MemoriesForgotten | MemoryNotFound;
-
-export type ForgetTargetGone = {
-  __typename?: 'ForgetTargetGone';
-  message: Scalars['String']['output'];
-};
 
 export type InvalidCredentials = {
   __typename?: 'InvalidCredentials';
@@ -180,12 +164,6 @@ export type MemoryConflictAsked = {
   question: Scalars['String']['output'];
 };
 
-export type MemoryCountChanged = {
-  __typename?: 'MemoryCountChanged';
-  count: Scalars['Int']['output'];
-  message: Scalars['String']['output'];
-};
-
 export type MemoryDiscarded = {
   __typename?: 'MemoryDiscarded';
   message: Scalars['String']['output'];
@@ -218,7 +196,6 @@ export type Mutation = {
   deleteReminder: DeleteReminderResult;
   deleteTask: Scalars['Int']['output'];
   discardPendingCapture: Scalars['Boolean']['output'];
-  forgetFromCapture: ForgetFromCaptureResult;
   forgetMemory: ForgetMemoryResult;
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded;
   markNotificationRead: MarkNotificationReadResult;
@@ -259,13 +236,6 @@ export type MutationDeleteTaskArgs = {
 
 export type MutationDiscardPendingCaptureArgs = {
   pendingCaptureId: Scalars['ID']['input'];
-};
-
-
-export type MutationForgetFromCaptureArgs = {
-  expectedCount: Scalars['Int']['input'];
-  forgetAll: Scalars['Boolean']['input'];
-  memoryIds: Array<Scalars['ID']['input']>;
 };
 
 

@@ -46,15 +46,6 @@ mutation SubmitCapture($rawInput: String!) {
       length
       limit
     }
-    ... on ForgetCandidates {
-      forgetText: searchText
-      totalMatches
-      forgetAll
-      allCount
-      candidates {
-        ...MemoryFields
-      }
-    }
     ... on MemoryConflictAsked {
       pendingCaptureId
       question

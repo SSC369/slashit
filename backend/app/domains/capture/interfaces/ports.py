@@ -19,11 +19,8 @@ from app.domains.gateway.public import (
 )
 from app.domains.memories.public import (
     ConflictAnswer,
-    ForgetCandidatesDTO,
-    MemoriesForgottenDTO,
     MemoryCategory,
     MemoryConflictDTO,
-    MemoryCountChangedDTO,
     MemoryDiscardedDTO,
     MemoryListDTO,
     MemorySavedDTO,
@@ -115,18 +112,6 @@ class MemoryPort(Protocol):
     async def list_memories(self, *, user_id: UUID) -> MemoryListDTO: ...
 
     async def look_up_memories(self, *, user_id: UUID, text: str) -> MemoryListDTO: ...
-
-    async def find_forget_candidates(
-        self, *, user_id: UUID, text: str
-    ) -> ForgetCandidatesDTO: ...
-
-    async def forget_memories(
-        self, *, user_id: UUID, memory_ids: list[UUID]
-    ) -> MemoriesForgottenDTO: ...
-
-    async def forget_all(
-        self, *, user_id: UUID, expected_count: int
-    ) -> MemoriesForgottenDTO | MemoryCountChangedDTO: ...
 
     async def resolve_conflict(
         self,

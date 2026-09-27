@@ -48,38 +48,6 @@ export type CaptureTurn =
     }
   | { id: string; said: string; status: "memoryTooLong"; length: number; limit: number }
   | { id: string; said: string; status: "memoryModelDown" }
-  /** `ForgetPick`: several matches, none forgotten until one is picked and confirmed. */
-  | {
-      id: string;
-      said: string;
-      status: "forgetPick";
-      searchText: string;
-      candidates: MemoryFieldsFragment[];
-      totalMatches: number;
-      selectedId: string | null;
-    }
-  /** `ForgetConfirm`: names the full text; `error` holds a failed request's message. */
-  | {
-      id: string;
-      said: string;
-      status: "forgetConfirm";
-      memory: MemoryFieldsFragment;
-      error: string | null;
-    }
-  /** `ForgetAll`: `countChanged` when the server refused a stale count (FR-27). */
-  | {
-      id: string;
-      said: string;
-      status: "forgetAll";
-      count: number;
-      countChanged: boolean;
-      error: string | null;
-    }
-  /** FR-26. An empty `searchText` is a bare `/forget`, which explains itself. */
-  | { id: string; said: string; status: "forgetNoMatch"; searchText: string }
-  | { id: string; said: string; status: "forgotten"; count: number }
-  | { id: string; said: string; status: "forgetGone" }
-  | { id: string; said: string; status: "forgetCancelled" }
   | {
       id: string;
       said: string;
@@ -107,16 +75,6 @@ const scrubTurn = (turn: CaptureTurn, isGone: (memoryId: string) => boolean): Ca
       const memories = turn.memories.filter((memory) => !isGone(memory.id));
       return memories.length === turn.memories.length ? turn : { ...turn, memories };
     }
-    case "forgetPick": {
-      const candidates = turn.candidates.filter((memory) => !isGone(memory.id));
-      if (candidates.length === turn.candidates.length) return turn;
-      const selectedId = turn.selectedId !== null && isGone(turn.selectedId) ? null : turn.selectedId;
-      return candidates.length === 0
-        ? { id: turn.id, said: "/forget", status: "forgetGone" }
-        : { ...turn, candidates, selectedId };
-    }
-    case "forgetConfirm":
-      return isGone(turn.memory.id) ? { id: turn.id, said: "/forget", status: "forgetGone" } : turn;
     case "memoryConflict": {
       const conflicting = turn.conflicting.filter((memory) => !isGone(memory.id));
       return conflicting.length === turn.conflicting.length ? turn : { ...turn, conflicting };
@@ -163,18 +121,6 @@ export class CaptureStoreModel {
     this.turns.set(id, { ...turn, answerDraft });
   }
 
-  selectForgetCandidate(id: string, memoryId: string): void {
-    const turn = this.turns.get(id);
-    if (!turn || turn.status !== "forgetPick") return;
-    this.turns.set(id, { ...turn, selectedId: memoryId });
-  }
-
-  setForgetError(id: string, error: string | null): void {
-    const turn = this.turns.get(id);
-    if (!turn || (turn.status !== "forgetConfirm" && turn.status !== "forgetAll")) return;
-    this.turns.set(id, { ...turn, error });
-  }
-
   setConflictDeferred(id: string, deferred: boolean): void {
     const turn = this.turns.get(id);
     if (!turn || turn.status !== "memoryConflict") return;
@@ -193,22 +139,14 @@ export class CaptureStoreModel {
       .length;
   }
 
-  /** A confirmed `/forget` keeps the command, never the words it searched for,
-   * matching the stored history (FR-28). */
-  redactForgetSaid(id: string): void {
-    const turn = this.turns.get(id);
-    if (!turn) return;
-    this.turns.set(id, { ...turn, said: turn.said.trim().startsWith("/forget all") ? "/forget all" : "/forget" });
-  }
-
   /**
-   * FR-28 for the open feed: a turn that saved a forgotten memory leaves the
+   * FR-23 for the open feed: a turn that saved a forgotten memory leaves the
    * feed entirely (user direction 2026-09-27: no placeholder in chat), and
-   * lists drop the forgotten rows. "ALL" is forget-all, which names no ids.
+   * lists drop the forgotten rows.
    */
-  scrubForgottenMemories(memoryIds: string[] | "ALL"): void {
-    const gone = new Set(memoryIds === "ALL" ? [] : memoryIds);
-    const isGone = (memoryId: string): boolean => memoryIds === "ALL" || gone.has(memoryId);
+  scrubForgottenMemories(memoryIds: string[]): void {
+    const gone = new Set(memoryIds);
+    const isGone = (memoryId: string): boolean => gone.has(memoryId);
     for (const turn of this.getAll()) {
       const scrubbed = scrubTurn(turn, isGone);
       if (scrubbed === null) this.removeTurn(turn.id);

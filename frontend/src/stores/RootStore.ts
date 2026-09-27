@@ -17,10 +17,10 @@ export class RootStore {
   settings = SettingsStoreModel.create();
   toast = ToastStoreModel.create();
 
-  /** Forget (FR-22, FR-28): the memories leave every list, and the open
-   * capture feed drops their words. "ALL" is forget-all. */
-  forgetMemories(memoryIds: string[] | "ALL"): void {
-    this.memories.removeMany(memoryIds === "ALL" ? [...this.memories.memories.keys()] : memoryIds);
+  /** Forget (FR-22, FR-23): the memories leave every list, and the open
+   * capture feed drops their turns. */
+  forgetMemories(memoryIds: string[]): void {
+    this.memories.removeMany(memoryIds);
     this.capture.scrubForgottenMemories(memoryIds);
   }
 

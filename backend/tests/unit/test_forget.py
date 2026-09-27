@@ -7,7 +7,6 @@ import pytest
 from app.domains.memories.interfaces.dtos import (
     MemoriesForgottenDTO,
     MemoryCategory,
-    MemoryCountChangedDTO,
     MemoryDTO,
 )
 from app.domains.memories.interfaces.repositories import MemoryWrite
@@ -98,72 +97,6 @@ async def test_another_users_ids_forget_nothing() -> None:
     assert forgotten.count == 0
     assert harness.scrub.scrubbed == []
     assert theirs.id in harness.repository.rows
-
-
-async def test_candidates_are_capped_at_five_with_the_true_total() -> None:
-    """C-2.4, Q2."""
-    harness = Harness()
-    for number in range(7):
-        await harness.seed(f"Airline note {number}")
-    await harness.seed("Mom's birthday is October 12")
-
-    offered = await harness.service.find_forget_candidates(user_id=USER, text="airline")
-
-    assert len(offered.candidates) == 5
-    assert offered.total_matches == 7
-    assert offered.forget_all is False
-
-
-async def test_no_match_offers_nothing() -> None:
-    """C-2.5."""
-    harness = Harness()
-    await harness.seed("Mom's birthday is October 12")
-
-    offered = await harness.service.find_forget_candidates(user_id=USER, text="visa")
-
-    assert offered.candidates == []
-    assert offered.total_matches == 0
-    assert harness.scrub.scrubbed == []
-
-
-@pytest.mark.parametrize("phrase", ["all", "everything", "all my memories", " ALL "])
-async def test_exact_phrases_offer_forget_all_with_the_count(phrase: str) -> None:
-    """C-2.6, Q4."""
-    harness = Harness()
-    await harness.seed("One")
-    await harness.seed("Two")
-
-    offered = await harness.service.find_forget_candidates(user_id=USER, text=phrase)
-
-    assert offered.forget_all is True
-    assert offered.all_count == 2
-
-
-async def test_all_inside_other_words_is_a_word_match() -> None:
-    """C-2.6: `/forget all receipts` never starts a forget-all."""
-    harness = Harness()
-    await harness.seed("Keep all receipts for the car")
-
-    offered = await harness.service.find_forget_candidates(
-        user_id=USER, text="all receipts"
-    )
-
-    assert offered.forget_all is False
-    assert len(offered.candidates) == 1
-
-
-async def test_forget_all_refuses_a_stale_count() -> None:
-    """C-2.7."""
-    harness = Harness()
-    await harness.seed("One")
-    await harness.seed("Two")
-
-    stale = await harness.service.forget_all(user_id=USER, expected_count=1)
-    confirmed = await harness.service.forget_all(user_id=USER, expected_count=2)
-
-    assert stale == MemoryCountChangedDTO(count=2)
-    assert confirmed == MemoriesForgottenDTO(count=2)
-    assert harness.repository.rows == {}
 
 
 async def test_forget_never_calls_the_model_and_records_one_textless_event() -> None:

@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | ForgetCandidates | MemoryConflictAsked | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -59,21 +59,7 @@ scalar DateTime
 
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
 
-type ForgetCandidates {
-  searchText: String!
-  candidates: [Memory!]!
-  totalMatches: Int!
-  forgetAll: Boolean!
-  allCount: Int!
-}
-
-union ForgetFromCaptureResult = MemoriesForgotten | MemoryCountChanged | ForgetTargetGone
-
 union ForgetMemoryResult = MemoriesForgotten | MemoryNotFound
-
-type ForgetTargetGone {
-  message: String!
-}
 
 type InvalidCredentials {
   message: String!
@@ -155,11 +141,6 @@ type MemoryConflictAsked {
   conflicting: [Memory!]!
 }
 
-type MemoryCountChanged {
-  message: String!
-  count: Int!
-}
-
 type MemoryDiscarded {
   message: String!
 }
@@ -185,7 +166,6 @@ type Mutation {
   submitCapture(rawInput: String!): CaptureResult!
   answerPendingCapture(pendingCaptureId: ID!, answer: String!): CaptureResult!
   discardPendingCapture(pendingCaptureId: ID!): Boolean!
-  forgetFromCapture(memoryIds: [ID!]!, forgetAll: Boolean!, expectedCount: Int!): ForgetFromCaptureResult!
   resolveMemoryConflict(pendingCaptureId: ID!, answer: ConflictAnswer!): ResolveMemoryConflictResult!
   updateTask(id: ID!, input: UpdateTaskInput!): UpdateTaskResult!
   completeTask(id: ID!): UpdateTaskResult!

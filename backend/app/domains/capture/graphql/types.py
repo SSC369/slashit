@@ -64,27 +64,6 @@ class MemoriesListed:
 
 
 @strawberry.type
-class ForgetCandidates:
-    """Epic 004, FR-24 to FR-27: what `/forget <which>` offers. Nothing is
-    forgotten yet. An empty `searchText` means `/forget` came with no words,
-    and the card explains how to use it."""
-
-    search_text: str
-    candidates: list[Memory]
-    total_matches: int
-    forget_all: bool
-    all_count: int
-
-
-@strawberry.type
-class ForgetTargetGone:
-    """The memories picked were already forgotten, from another tab or device,
-    before the confirm arrived. Nothing was forgotten by this request."""
-
-    message: str
-
-
-@strawberry.type
 class MemoryConflictAsked:
     """Epic 004, FR-10: nothing was saved. The new fact waits beside every
     memory it contradicts until the user answers "Which is correct?"."""

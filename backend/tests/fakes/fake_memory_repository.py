@@ -110,12 +110,6 @@ class FakeMemoryRepository:
             if await self.get_by_id(user_id=user_id, memory_id=memory_id)
         ]
 
-    async def list_live_ids(self, *, user_id: UUID) -> list[UUID]:
-        return [row.id for row in self.rows.values() if row.user_id == user_id]
-
-    async def count_by_terms(self, *, user_id: UUID, terms: list[str]) -> int:
-        return len(await self.find_by_terms(user_id=user_id, terms=terms, limit=10_000))
-
     async def delete_memories(self, *, user_id: UUID, memory_ids: list[UUID]) -> int:
         if self.tombstone_should_fail:
             raise RuntimeError("simulated tombstone failure")
