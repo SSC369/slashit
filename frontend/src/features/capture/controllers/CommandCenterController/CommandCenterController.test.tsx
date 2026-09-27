@@ -260,6 +260,27 @@ describe("CommandCenterController conflicts, F-3.2 of sub-plan 4.3", () => {
     expect(screen.getByRole("button", { name: "Answer now" })).toBeInTheDocument();
   });
 
+  it("counts a 001 question and a deferred conflict together in the pill", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture
+      .mockImplementationOnce((args) =>
+        args.onPendingQuestionCreated({
+          pendingCaptureId: "q1",
+          question: "When should Slashit remind you?",
+        }),
+      )
+      .mockImplementationOnce(askConflict);
+    renderWithProviders();
+
+    runCommand("/remind call mom");
+    expect(screen.getByText("1 question waiting")).toBeInTheDocument();
+    runCommand("/remember My preferred airline is Qatar Airways");
+    fireEvent.click(screen.getByRole("button", { name: "Decide later" }));
+
+    expect(screen.getByText("2 questions waiting")).toBeInTheDocument();
+    mockTriggerSubmitCapture.mockReset();
+  });
+
   it("reads the old memories live: one forgotten in Records drops out of the card", () => {
     mockUseOnlineStatus.mockReturnValue(true);
     mockTriggerSubmitCapture.mockImplementation(askConflict);
