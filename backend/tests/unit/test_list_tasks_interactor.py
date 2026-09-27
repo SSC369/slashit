@@ -6,6 +6,7 @@ FR-15, FR-16, FR-17, FR-25, FR-43.
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interfaces.dtos import TaskDTO
@@ -141,3 +142,38 @@ async def test_overdue_pending_task_reports_overdue_and_done_does_not() -> None:
     )
     assert done is not None
     assert done.is_overdue is False
+
+
+async def test_the_all_tab_filter_includes_memories() -> None:
+    """004 C-16 as the All tab sends it: kind "ALL", not an omitted filter.
+    Found in 004's live browser pass, where the All tab showed no memories."""
+    user_id = uuid.uuid4()
+    now = datetime.now(UTC)
+    memory = MemoryDTO(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        text="Preferred airline is Qatar Airways",
+        category=MemoryCategory.PERSONAL,
+        origin="command",
+        original_input=None,
+        created_at=now,
+        updated_at=now,
+    )
+    interactor = ListTasksInteractor(
+        memory_records=FakeMemoryRecordsPort(memories=[memory]),
+        task_repository=await _seeded_repository(user_id=user_id),
+        reminder_records=FakeReminderRecordsPort(),
+    )
+
+    for kind_filter in (None, "ALL"):
+        records = await interactor.list_tasks(
+            dto=ListTasksInputDTO(
+                user_id=user_id,
+                kind_filter=kind_filter,
+                search=None,
+                sort_by="CREATED_AT",
+                sort_desc=False,
+            )
+        )
+
+        assert memory in records, kind_filter

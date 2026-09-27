@@ -83,6 +83,14 @@ const RecordsController = (): ReactElement => {
     return () => window.clearTimeout(timeoutId);
   }, [kindFilter, searchText, sortField]);
 
+  // A refetch whose result equals the last one keeps the same `data` object,
+  // so the effect below never fires and the table would stay on its skeleton
+  // (Reminders or Memories tab, then back to All). The request's own
+  // LOADING-to-SUCCESS change ends the pending state instead.
+  useEffect(() => {
+    if (apiStatus === API_SUCCESS) setIsFilterPending(false);
+  }, [apiStatus]);
+
   useEffect(() => {
     if (!data) return;
     handleResponse({

@@ -17,6 +17,7 @@ from app.domains.reminders.public import ReminderDTO
 
 RecordItemDTO = TaskDTO | ReminderDTO | MemoryDTO
 
+_ALL_KINDS = (None, "ALL")
 _TASKS_ONLY = "TASKS"
 _REMINDERS_ONLY = "REMINDERS"
 _DUE_AT = "DUE_AT"
@@ -53,7 +54,8 @@ class ListTasksInteractor:
                 user_id=dto.user_id, search=dto.search
             )
         memories: list[MemoryDTO] = []
-        if dto.kind_filter is None:
+        # The All tab sends "ALL"; an omitted filter means the same.
+        if dto.kind_filter in _ALL_KINDS:
             memories = await self.memory_records.list_memories(
                 user_id=dto.user_id, search=dto.search
             )
