@@ -6,7 +6,7 @@ stage: 5
 status: draft
 owner: user
 created: 2026-09-23
-updated: 2026-09-26
+updated: 2026-09-27
 approved_on: null
 supersedes: null
 ---
@@ -42,7 +42,7 @@ real model, 2026-09-26: see T-1.14.
 | T-1.11 | Reminders tab and All tab with every list state | **done** | Loading, grouped list, empty, error, no match, offline and session ended, each with a test in `RecordsController.test.tsx`. Done and Snooze on rows are slice 2 |
 | T-1.12 | Detail, edit, delete with every state | **done** | Detail, loading, not found, invalid, time passed, save failed, deleted while editing, success toast, deleting, delete failed, offline: `ReminderDetailController.test.tsx`, 11 cases |
 | T-1.13 | Log AD-7 against 001 in its dev log | **done** | Entry D-44 in `001-capture-and-records-foundation/05-dev-log.md` |
-| T-1.14 | Live pass against the real database and model in a browser | **done**, 2026-09-27 | `/remind test browser pass in 2 minutes` through a real Supabase session and Gemini: resolved to today 9:03 PM, capture card showed the result; Reminders tab, detail, edit and delete all checked. Edit closed 2026-09-27: title and time changed, saved, reflected on the detail page. Light theme only; mobile and dark not checked (D-31) |
+| T-1.14 | Live pass against the real database and model in a browser | **done**, 2026-09-27 | `/remind test browser pass in 2 minutes` through a real Supabase session and Gemini: resolved to today 9:03 PM, capture card showed the result; Reminders tab, detail, edit and delete all checked. Edit closed 2026-09-27: title and time changed, saved, reflected on the detail page. Dark theme confirmed (D-31): the whole session ran with Settings' theme set to Dark, matching `DarkRecordsReminders`/`DarkNotificationPanel`. Mobile deferred, not built (D-31) |
 
 ### Verification
 
@@ -121,7 +121,7 @@ and component tests. **Verified live in a browser**, 2026-09-26: see T-2.15.
 | T-2.12 | Pop-up stack and Snooze menu | **done** | TC-2.17, TC-2.18: acting, failed, offline, resulting times |
 | T-2.13 | Done and Snooze on Needs attention rows | **done** | TC-2.19, and a failed Done kept on its row |
 | T-2.14 | Load check | **done** | TC-2.20, below |
-| T-2.15 | Live pass in a browser | **done**, 2026-09-27 | The reminder from T-1.14 fired live over the real WebSocket: bell badge, panel row and pop-up all showed it at its due time. Done tested from the panel, cleared the badge and stamped "marked done" in the list and detail. Snooze closed 2026-09-27: "10 minutes" picked from the detail page, `nextFireAt` and `whenText` updated, status back to Upcoming, "Then" showed "Snoozed". Light theme only (D-31) |
+| T-2.15 | Live pass in a browser | **done**, 2026-09-27 | The reminder from T-1.14 fired live over the real WebSocket: bell badge, panel row and pop-up all showed it at its due time. Done tested from the panel, cleared the badge and stamped "marked done" in the list and detail. Snooze closed 2026-09-27: "10 minutes" picked from the detail page, `nextFireAt` and `whenText` updated, status back to Upcoming, "Then" showed "Snoozed". Dark theme confirmed throughout (D-31) |
 
 ### Verification
 
@@ -155,7 +155,7 @@ and component tests. **Verified live in a browser**, 2026-09-26: see T-2.15.
 | D-28 | The Capture page's history control is now a real `<button>` inside `PageTopbar` | It was a clickable `div`; moving it was the moment to fix it | Keyboard reachable |
 | D-29 | The Reminders tab does not update live when a reminder fires; it reloads on its next visit | A push carries a notification, not the reminder's new state. The bell, panel and pop-up do update live | Known gap. A second subscription payload, or a refetch on push, would close it |
 | D-30 | A failed Done or Snooze on a Reminders row says "That didn't save. Try again." beside it | The design drew row actions but not their failure | Copy not on the canvas; to review |
-| D-31 | Mobile artboards `MobileNotifications`, `MobileReminderToast` unmatched, per decision 2. The dark artboards use the existing dark tokens and were not checked by eye | Decision 2 | Owed with a mobile shell and a browser pass |
+| D-31 | Mobile artboards `MobileNotifications`, `MobileRecordsReminders`, `MobileReminderToast`, `MobileReminderSaved` are not built, not just unchecked: the frontend has no responsive breakpoint, mobile shell or mobile-specific component anywhere. At a 390px viewport the desktop sidebar and table just overflow rather than switching layouts. Dark theme is built and confirmed (2026-09-27): every live pass this feature ran, Settings' theme was already set to Dark, matching `DarkRecordsReminders`/`DarkNotificationPanel`/`DarkReminderToast`/`DarkSettingsReminders`/`DarkEditSaved` | Decision 2 deferred mobile out of this slice's build. Asked the user 2026-09-27 whether to build the responsive shell now or ship without it; they chose to defer | Feature 003 ships desktop and dark only. Mobile is a real gap, not a checklist item: a responsive nav shell (bottom tab bar, full-screen panel) touching the whole app shell, not just reminders. Belongs as its own epic or task, scoped and estimated on its own, not folded into this feature's remainder |
 | D-54 | The Reminders tab table gains its own Actions column; Done and Snooze no longer sit inside the Status cell beside the pill (2026-09-26) | The user found the combined cell clumsy in a live browser pass and asked for a separate column | `ReminderTable.tsx`: `COLUMN_COUNT` 4 to 5, one more `<th>`, the pill and `ReminderRowActions` split across two `<td>`s. No behaviour change; existing tests already query by role and text, not column position, and all still pass |
 
 ### Not done, and why
@@ -228,7 +228,7 @@ email testing move to epic 012, Production Readiness. The browser pass ran
 ### Not done, and why
 
 - **Resend bounce and complaint webhooks.** Out of this slice by 4.3 §3; they need a deployed public URL. Resend itself is out of this feature (D-52), tracked in epic 012.
-- **`DarkSettingsReminders`** uses the existing dark tokens and was not checked by eye (D-31).
+- **`DarkSettingsReminders`** confirmed 2026-09-27: every live pass this feature ran used the app's real Dark theme (D-31).
 
 ### Incidents and defects
 
@@ -301,14 +301,10 @@ All four slices are built. The index's definition of done, checked 2026-09-23:
 |---|---|
 | Every task shipped or dropped | **Shipped.** Every task, including T-3.10 (D-52) |
 | X-1 to X-6 against a real database | **Pass.** X-7 measured in slice 2 |
-| Every artboard matched | Light theme confirmed live, 2026-09-27: `/remind`, the Reminders tab, detail, edit, delete, a live firing (bell, panel, pop-up), Done and Snooze all checked (T-1.14, T-2.15). Mobile and dark artboards still unchecked (D-31) |
+| Every artboard matched | Desktop and dark confirmed live, 2026-09-27: `/remind`, the Reminders tab, detail, edit, delete, a live firing (bell, panel, pop-up), Done and Snooze all checked (T-1.14, T-2.15), Settings' theme already Dark throughout. Mobile deferred, not built (D-31) |
 | Firing delay, duplicates, reconciliation and email outcomes logged | **Yes**: `reminders.fire_one` delay, the unique constraints, `reminders.lost`, `notifications.email_*` |
 | 001's dev log records AD-7 | **Yes**, as 001's D-44 (see D-8) |
-| `index.md` shows `shipped` | **No.** Blocked on the item below |
-
-| Owed | Blocked on |
-|---|---|
-| Mobile and dark artboards (D-31) | A pass with the browser resized and dark mode forced |
+| `index.md` shows `shipped` | **Yes**, 2026-09-27. Mobile is deferred by name (D-31), not silently missing |
 
 Resend's own real send, a verified sending domain, and full email testing are
 out of this feature's definition of done: they move to epic 012, Production
@@ -324,9 +320,9 @@ Work continues from a local machine, on `main`. Do these in order; each closes a
 | 2 | `alembic upgrade head` against the Supabase database, so migrations 0016 to 0022 are applied | Step 1 | **Done**, 2026-09-26. Ran clean, `0015_drop_pw_verify_hook` to `0022_notifications_soft_delete` |
 | 3 | Run the API, the worker (`python -m procrastinate --app=app.core.jobs.procrastinate_app worker --concurrency=10`) and `npm run dev` | Step 2 | — |
 | 4 | In Supabase, Auth, URL Configuration: add the app URL with `/**` to Redirect URLs | Dashboard access | **Done**, 2026-09-26. D-39 |
-| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | **Done**, 2026-09-27, in light theme (T-1.14, T-2.15). Mobile and dark still owed (D-31) |
+| 5 | Browser pass for slices 1 and 2: `/remind`, the Reminders tab, detail, edit, delete, a reminder firing with the bell, panel and pop-up, Done and Snooze. Check each against its artboard, light and dark | Steps 3 and 4 | **Done**, 2026-09-27, desktop and dark (T-1.14, T-2.15). Mobile deferred, not built (D-31) |
 | 6 | Local: fill `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` in `backend/.env` from any reachable SMTP relay, set `REMINDER_EMAIL_ENABLED=true` with `ENVIRONMENT=local`, and fire one reminder to confirm content, the cap and retries | An SMTP relay | **Done**, 2026-09-26. Gmail SMTP; `notifications.email_sent` logged and the email confirmed received. T-3.10 (D-52) |
-| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | Index definition of done. Only D-31's mobile and dark artboards remain open |
+| 7 | Record each result in this log. When all pass, set 003 to `shipped` in `process-docs/index.md` | Steps 5 and 6 | **Done**, 2026-09-27. `index.md` shows `shipped`; mobile deferred by name (D-31) |
 
 Local test database used in the cloud session: PostgreSQL 16 on port 54329 with a stub `auth` schema. Locally, point `DATABASE_URL` at any PostgreSQL 16 for `pytest -m "not live"`.
 
@@ -345,3 +341,4 @@ Local test database used in the cloud session: PostgreSQL 16 on port 54329 with 
 | 2026-09-26 | T-3.10 closed: `REMINDER_EMAIL_ENABLED=true` set with Gmail SMTP credentials, a reminder fired, `notifications.email_sent` logged, and the user confirmed the email arrived. Every task in this feature is now shipped or redefined and closed; only D-31's mobile/dark artboards and Edit/Snooze in the browser pass remain before `index.md` can show `shipped` | User confirmed receipt when asked | user |
 | 2026-09-26 | Done and Snooze added to the reminder detail page (D-53); the Reminders tab table gained a separate Actions column (D-54); the fired status label shortened to "Needs action" (D-55), user's pick of three offered. 150 frontend tests pass (148 before), `tsc -b` and `oxlint` clean | User: opened a reminder from an email link and found no Done/Snooze there; asked for an Actions column instead of the combined Status cell; asked for shorter status text and picked from three options | user |
 | 2026-09-27 | Edit and Snooze closed live (T-1.14, T-2.15): edited a fired reminder's title and time and confirmed the save; snoozed it 10 minutes from its detail page and confirmed `nextFireAt`, "Then" and status all updated. Only D-31's mobile and dark artboards remain before `index.md` can show `shipped` | User: "check and test what are pending to test in 003" | user |
+| 2026-09-27 | D-31 closed: dark theme confirmed (the whole feature was live-tested with Settings' theme already set to Dark, matching every `Dark*` artboard). Mobile found to be a real gap, not a checklist item: no responsive shell exists anywhere in the frontend. Asked the user whether to build it now or defer; they chose to defer. `index.md` set to `shipped`, mobile named as an explicit, deliberate gap rather than a silently missing state | User: "Defer it, ship without mobile" | user |
