@@ -54,7 +54,7 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 
 | # | Sub-plan | Task | Status | Note |
 |---|---|---|---|---|
-| T-1.1 | 4.1 | Confirm the embedding model name and 768 dimensions | **owed** | No provider key and no route to Google from this environment. `gemini-embedding-001` is set as the default in `core/settings.py`, overridable by `GEMINI_EMBEDDING_MODEL`. The provider refuses any vector that is not 768 long, so a wrong model fails loudly as `ProviderUnavailable`, never silently |
+| T-1.1 | 4.1 | Confirm the embedding model name and 768 dimensions | **done** | 2026-09-27, live: `gemini-embedding-001` returned a 768-long vector in 2.5 s and wrote one `embed` usage row |
 | T-1.2 | 4.1 | Migrations `0023` to `0027` | **done** | Upgrade, downgrade to `0022` and upgrade again all clean. `\d memories` shows the forced RLS policy, both check constraints, the GIN index on `search_vector` |
 | T-1.3 | 4.1 | Gateway `embed`, usage `operation`, allowance counting | **done** | C-11 in `test_embed_interactor.py`; the integration test sees one `generate` and one `embed` row per save |
 | T-1.4 | 4.1 | Memories domain: model, repository, secret check, keyword query | **done** | C-7 (14 cases), C-8 unit and against PostgreSQL |
@@ -64,7 +64,7 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 | T-1.8 | 4.1 | All tab through records' port | **done** | C-16 |
 | T-1.9 | 4.1 | Log redaction by key | **done** | C-13, including the configured pipeline |
 | T-1.10 | 4.1 | Boundary and load tests | **done** | C-12 (T7) through GraphQL. C-14: see Measurements |
-| T-1.11 | 4.1 | Category evaluation set | **drafted, owed** | 60 cases in `backend/tests/eval/memory_categories.json`, status "draft, awaiting user correction". The live scorer `test_memory_eval_live.py` is written and type-checked but not run: no provider key here |
+| T-1.11 | 4.1 | Category evaluation set | **scored, correction owed** | 2026-09-27, live, on the uncorrected draft: 87% at reasoning effort "low" (90% at the model default). Target over 85%. Re-score once the user corrects the set |
 | T-1.12 | 4.1 | Frontend capture cards and commands | **done** | F-1, 7 cases in `MemoryCards.test.tsx`; SubmitCapture handler cases |
 | T-1.13 | 4.1 | Frontend Memories tab, All rows, detail, edit | **done** | F-2 (6 cases), F-3 (4 cases), GetMemory and UpdateMemory handler cases |
 | T-1.14 | 4.1 | Live browser pass against a real project | **owed** | No Supabase project credentials reachable from this environment, the same constraint 003's T-1.14 recorded. The canvas was not compared screen by screen against the running app |
@@ -86,7 +86,7 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 | What | Result | Source |
 |---|---|---|
 | NFR-5, `memories` query plus a `/memories` lookup, 1,000 memories, 20 runs | **p95 472 ms per call**, target 1 s | `test_lists_and_lookup_stay_fast_at_a_thousand_memories`, local, in-process. A hosted database adds network time this cannot see |
-| NFR-4, save latency | not measured | Needs the real model; owed with T-1.1 |
+| NFR-4, save latency | Under 8 s at p95, 1,000 memories | **At risk**: the judgement call alone took a median 5.9 s, max 10 s, at the model default; 3.8 s median, 6.1 s max at "low". A rare call still overruns 8 s. Full saves not yet timed |
 | NFR-6, category accuracy | not measured | Owed with T-1.11 |
 
 ### Deviations from the plan
@@ -178,7 +178,7 @@ are built; the feature ships once the owed live checks pass.
 | T-3.7 | 4.3 | GraphQL and boundary tests | **done** | C-3.9, C-3.10 in `test_conflicts_graphql.py` |
 | T-3.8 | 4.3 | Frontend operation, store, conflict card, pill | **done** | F-3.1 to F-3.4: `ConflictCard.test.tsx` (5), controller (4), handlers (3 files) |
 | T-3.9 | 4.3 | Live eval scorer | **done** | `test_memory_conflict_eval_live.py`, type-checked, marked `live` |
-| T-3.10 | 4.3 | NFR-4 and NFR-7 on the real model | **owed** | No provider key here, the same constraint as T-1.1 and T-1.11 |
+| T-3.10 | 4.3 | NFR-4 and NFR-7 on the real model | **NFR-7 met; NFR-4 at risk** | 2026-09-27, live. NFR-7 at "low": caught 100% of 14, flagged 0.3% of 386 other pairs, 1 trap case (C30). A second run aborted on one 8 s provider timeout. See D-22 |
 | T-3.11 | 4.3 | Live browser pass | **owed** | With T-1.14 and T-2.11. F-3.4's 390 px layout is checked by class names only until then |
 
 ### Checks
@@ -203,13 +203,53 @@ are built; the feature ships once the owed live checks pass.
 | D-18 | Not stated | `answerPendingCapture` refuses a conflict row as not found | A conflict is answered by choice through `resolveMemoryConflict`, never by typed text | logged, pending user |
 | D-19 | 4.3 §5: the scrub reaches the conflict thread | It reaches every thread, so a "What should Slashit remember?" question turn is blanked with the answer it led to. 4.2's C-2.3 test now expects three scrubbed turns, not two | One rule, keyed on the pending id, rather than a conflict-only special case. The extra turn held no fact | logged, pending user |
 | D-20 | Design §4: success copy "Memory saved" | After "Keep the new one" the card reads "Memory saved · forgot 1 old memory" | FR-12 makes the forget part of the answer; the count confirms it happened | logged, pending user |
+| D-22 | Tech stack: `gemini-3.6-flash` at its default reasoning effort | `GEMINI_REASONING_EFFORT`, default "low", passed to the chat model | At the default, conflict judgements took a median 5.9 s and up to 10 s, failing NFR-4's 8 s. "Low" measured 3.8 s median and kept NFR-6 and NFR-7 above target | user, 2026-09-27 |
+| D-23 | 4.1 C-15, 4.3 C-3.13 | Both live scorers use a new `eval_user` fixture with a 1,000-call daily allowance | The default allowance of 20 refused every case past the twentieth | logged, pending user |
+| D-24 | Design §4: loading uses "001's capture loading turn" and "001's existing copy" | 001's pill and footer copy kept, with memory fields in place of Task, Due and Status; lookup and forget show no fields and no footer | 001's fields named a task for a memory save (P-4). The footer "every field is read" has no meaning for a lookup | pending user |
+| D-25 | 4.2: a forgotten memory's capture turn shows the history placeholder | In the open chat feed the turn is removed entirely; history keeps its placeholder | User direction 2026-09-27: "instead of showing this in chat when memory is forget or removed, just remove it" | user, 2026-09-27 |
+| D-26 | Not stated | A periodic job, `memories.backfill_embeddings`, and a cross-user read, `select_missing_embeddings`, on the service-role connection, as 003's `select_due` does | P-6: a memory saved while the queue was down would otherwise never get a vector, so never be a conflict candidate | pending user |
 | D-21 | Design `Main`: "Decide later" | It folds the card to one line with "Answer now"; the waiting pill still counts it | The design draws the button, not the state after it | logged, pending user |
 
 ### Incidents and defects
 
 | Date | What broke | Cause | Fix |
 |---|---|---|---|
+| 2026-09-27 | The live scorers failed on the first run | The branch predated `main`'s SMTP settings, so `Settings` refused `.env`; then the daily allowance of 20 | `main` merged into the branch (uncommitted); D-23 |
 | 2026-09-27 | `test_tab_detail_edit_and_all_records` failed after candidates were added | The test's fake model chose a category from the whole prompt, which now includes candidate text | The fake reads only the prompt's first line, the fact |
+
+## Live browser pass — 2026-09-27
+
+Run against the Supabase project with the real model, desktop, dark theme, in
+Chrome, signed in with Google. Mobile (390 px), light theme, and the edge cases
+listed under "Not yet run" were not covered.
+
+| Area | Result | Note |
+|---|---|---|
+| Save | pass | `/remember` saved with a category. A save took roughly 10 to 14 s end to end, over NFR-4's 8 s |
+| Secret caution | pass | A card number saved with the caution |
+| Conflict | pass | "Which is correct?", "Decide later" folds to one line, "Answer now" reopens it, "Keep the new one" saves and forgets the old one |
+| Look up | pass | `/memories airline` found the one live match |
+| Forget by command | pass, one defect | See P-3 |
+| History | pass | Forgotten saves show the placeholder; "Forgot 1 memory" row present |
+| Records, Memories tab | pass | Filters and empty state drawn |
+| Records, All tab | fixed | See P-1, P-2 |
+| Detail, edit, forget | pass | Edit changed text and category; forget returned to an empty Memories tab |
+
+### Defects found
+
+| # | What broke | Cause | Fix |
+|---|---|---|---|
+| P-1 | The All tab showed no memories | `ListTasksInteractor` added memories only when `kind_filter` was `None`; the All tab sends `"ALL"`. C-16 tested only `None` | `list_tasks.py` treats `None` and `"ALL"` alike. New unit case `test_the_all_tab_filter_includes_memories`. Verified live |
+| P-2 | Memories or Reminders tab, then All: the table stayed on its skeleton | A refetch equal to the last result keeps the same `data` object, so the effect that ends the pending state never ran. Present on `main` too, from 003's filter-pending change | `RecordsController` also ends the pending state on the request's LOADING-to-SUCCESS change. Verified live |
+| P-3 | After a forget, the card above it in the open feed still shows the forgotten text, next to "Gone from your records and your capture history" | The feed keeps its in-session turns; only the stored history is scrubbed. A reload shows the placeholder | Fixed 2026-09-27. `RootStore.forgetMemories()` is now the one forget path (command, detail, conflict answer, forget-all). It also runs `CaptureStore.scrubForgottenMemories()`: a saved turn leaves the feed (D-25), a lookup or pick drops the row, an open confirm becomes "already forgotten". A confirmed `/forget` keeps the command, not its search words. 3 cases in `RootStore.test.ts`. Verified live: after `/forget locker` no trace of the PIN was on the page |
+| P-4 | A memory save first draws the task loading card (Task, Due, Status columns) | The pending card does not know the command yet | Fixed 2026-09-27. `/remember` and `/add-memory` load with Memory and Category fields; `/memories` and `/forget` with the pill and one skeleton line. 3 cases in `TurnCard.test.tsx`. See D-24. Verified live |
+| P-5 | The earlier "Memory saved" card keeps Edit and Open for a memory a later conflict answer forgot | Same cause as P-3 | Fixed with P-3. Verified live: after "Keep the new one" the old card left the feed |
+| P-6 | A conflict answer that showed "Database error. Nothing changed." had saved the memory; retrying saved it again (two "Gold's Gym" rows) | `save_resolved` commits the memory, then queues a job; the queue failing raises after the commit (the D-1 ordering) | Fixed 2026-09-27. `ProcrastinateReembedQueue` logs `memories.reembed_enqueue_failed` instead of raising, so a committed save or edit is reported as saved. A new periodic job, `memories.backfill_embeddings` (every 10 minutes), queues a vector for live memories with none, updated in the last 24 hours (`QueueMissingEmbeddingsInteractor`, `select_missing_embeddings`). Tests: `test_embedding_backfill.py` (2 unit), `test_embedding_backfill_db.py` (1 against the database). Not fixed: 003's email, firing and timezone queues have the same after-commit shape. See D-26 |
+| P-7 | After a brief network drop on the dev machine, every call that queues a job failed with `PoolTimeout` until the API was restarted | The job queue's connection pool did not recover its dead connections | **Open, not reproduced.** Procrastinate already checks each connection before use. A local reproduction (a proxy cut for longer than the pool's 5-minute reconnect timeout) recovered on its own. The likelier cause is Supabase's session pooler refusing new clients while dead sessions still count against its limit; the pool's own warnings were lost when the log was overwritten on restart. Next occurrence: keep the API log. Relevant to epic 012 |
+
+### Not yet run
+
+390 px and light theme; `/forget all` across two tabs; over-500-character save; model switched off; network off on forget.
 
 ## Remaining work
 
@@ -221,10 +261,9 @@ route to Google, and no Supabase project.
 
 | # | Task | Blocked on | Owner | Done when |
 |---|---|---|---|---|
-| T-1.1 | Confirm the embedding model name and 768 dimensions | A Gemini key | Claude, with the key | One real save stores a 768-long vector; `GEMINI_EMBEDDING_MODEL` set or the default confirmed in `tech-stack.md` |
-| T-1.11 | Correct the 60-case category set, then score it | The user's review; then a key | User, then Claude | `memory_categories.json` status "corrected"; accuracy over 85% (NFR-6) recorded here |
-| T-3.10 | Score the conflict set; measure save latency | A key | Claude | NFR-7 and NFR-4 results recorded here |
-| T-1.14, T-2.11, T-3.11 | Live browser pass of every state, against the canvas | A Supabase project and a key | Claude, with the user | The checklist below is complete, each row passed or raised as a change record |
+| T-1.11 | Correct the 60-case category set, then re-score it | The user's review | User, then Claude | `memory_categories.json` status "corrected"; accuracy over 85% (NFR-6) recorded here |
+| T-3.10 | Measure save latency; decide on the rare timeout | The user (D-22) | Claude | NFR-4 measured over 20 full saves at 1,000 memories |
+| T-1.14, T-2.11, T-3.11 | Finish the live browser pass: the "Not yet run" rows above | — | Claude, with the user | Every checklist row passed or raised as a change record |
 | Approvals | Deviations D-15 to D-21 | The user | User | Each row reads "user" |
 | Launch | The backup window in the forget line | The user, at launch (deferred 2026-09-25) | User | `BACKUP_LINE` in `memoryConstants.ts` names the real period |
 
@@ -245,8 +284,8 @@ pytest -m live tests/integration/test_memory_conflict_eval_live.py -s # NFR-7, T
 | NFR-3, no memory text in logs or events | Zero occurrences | **Met in tests**: the redaction test covers `text`, `fact`, `input_text`, `original_input`, `candidate_text`, `prompt` |
 | NFR-4, save latency | Under 8 s at p95, 1,000 memories | **Not measured**: needs the real model. Time 20 saves against a user seeded with 1,000 memories |
 | NFR-5, list and lookup | Under 1 s at p95, 1,000 memories | **472 ms** locally, in process. Re-measure against the hosted database |
-| NFR-6, categories | Over 85% correct | **Not measured**: T-1.11 |
-| NFR-7, conflicts | Catch over 80%; flag under 10% of other pairs; at most 1 of 19 traps | **Not measured**: T-3.10 |
+| NFR-6, categories | Over 85% correct | **87%** on the draft set, at "low" |
+| NFR-7, conflicts | Catch over 80%; flag under 10% of other pairs; at most 1 of 19 traps | **Met**: 100%, 0.3%, 1 trap |
 
 ### Browser pass checklist
 
@@ -297,4 +336,5 @@ running app, in light and dark, desktop and 390 px where the canvas draws it.
 | 2026-09-25 | Slice 2's record added; Deferred table corrected for the slice reorder | Slice 2 built | pending |
 | 2026-09-26 | Deviations D-1 to D-14 approved | User approved all | user |
 | 2026-09-27 | Slice 3's record added | Slice 3 built | pending |
+| 2026-09-27 | Migrations `0023` to `0029` applied to the Supabase project; T-1.1 done, T-1.11 and T-3.10 scored live; D-22, D-23 | User supplied the key and approved the migration | pending |
 | 2026-09-27 | Summary and Remaining work added: owed tasks, live test commands, NFR status, browser checklist, test gaps | User asked for everything done and everything pending in one place | pending |
