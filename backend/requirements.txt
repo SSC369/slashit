@@ -33,6 +33,8 @@ alembic==1.20.0
 
 # Supabase JWT verification against the JWKS endpoint.
 pyjwt[crypto]==2.14.0
+# The CA bundle the JWKS fetch trusts, independent of the Python install.
+certifi==2026.7.22
 
 # --- Added by slice 3 (the gateway), 2026-09-12 ---
 

@@ -9,10 +9,12 @@ public keys at a JWKS endpoint. No shared secret is held, so there is no signing
 key in this process to leak.
 """
 
+import ssl
 import threading
 import time
 from uuid import UUID
 
+import certifi
 import jwt
 import structlog
 from jwt import PyJWKClient
@@ -29,6 +31,12 @@ _jwks_client: PyJWKClient | None = None
 _jwks_fetched_at: float = 0.0
 _jwks_lock = threading.Lock()
 
+# PyJWKClient fetches over urllib, which trusts only the interpreter's own CA
+# file. A python.org build ships without one until "Install Certificates" runs,
+# and every token was then rejected as unverifiable. certifi's bundle removes
+# that dependency on how Python was installed.
+_JWKS_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
 
 def _get_jwks_client(settings: Settings) -> PyJWKClient:
     """Return a JWKS client, rebuilt when the cache window expires.
@@ -42,7 +50,9 @@ def _get_jwks_client(settings: Settings) -> PyJWKClient:
     with _jwks_lock:
         expired = time.monotonic() - _jwks_fetched_at > settings.jwks_cache_seconds
         if _jwks_client is None or expired:
-            _jwks_client = PyJWKClient(settings.supabase_jwks_url)
+            _jwks_client = PyJWKClient(
+                settings.supabase_jwks_url, ssl_context=_JWKS_SSL_CONTEXT
+            )
             _jwks_fetched_at = time.monotonic()
         return _jwks_client
 
