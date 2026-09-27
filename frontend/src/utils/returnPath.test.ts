@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildSignInPath, readReturnPath } from "./returnPath";
+import { buildSignInPath, readIsSessionExpired, readReturnPath } from "./returnPath";
 
 describe("returnPath", () => {
   it("carries a deep link through sign-in and reads it back", () => {
@@ -23,4 +23,12 @@ describe("returnPath", () => {
       expect(readReturnPath(`?next=${encodeURIComponent(unsafePath)}`)).toBe("/");
     },
   );
+
+  it("002 FR-23: an expired session adds reason=expired beside the return path", () => {
+    expect(buildSignInPath("/records", "EXPIRED")).toBe("/sign-in?next=%2Frecords&reason=expired");
+    expect(buildSignInPath("/", "EXPIRED")).toBe("/sign-in?reason=expired");
+    expect(buildSignInPath("/records", "USER")).toBe("/sign-in?next=%2Frecords");
+    expect(readIsSessionExpired("?next=%2Frecords&reason=expired")).toBe(true);
+    expect(readIsSessionExpired("?reason=other")).toBe(false);
+  });
 });

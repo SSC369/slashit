@@ -6,7 +6,7 @@ stage: 2
 status: approved
 owner: user
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-27
 approved_on: 2026-09-14
 supersedes: null
 ---
@@ -126,6 +126,7 @@ flowchart LR
 | Success | Form replaced by a confirmation card | "Signed in" |
 | No permission (blocked) | Form replaced by an amber card, then routes to Verify email | "Verify your email first. Taking you to the verification step." |
 | Rate limited (FR-17) | Form replaced by a separate amber card, distinct from the unverified one | "Too many attempts. This account is locked for 15 minutes after too many failed sign-ins." |
+| Session expired (FR-23) | Empty form with a neutral info note above it, not the red error banner. Gone once the user submits | "Your session expired. Sign in again to continue." |
 
 ### Forgot password (`ForgotPassword`)
 
@@ -199,6 +200,7 @@ tweak from `state`.
 | Sign up / Sign in, Google button | "Continue with Google" | Not "Sign in with Google"; same label whether the account is new or existing, since FR-15 does not distinguish them |
 | Sign up, rate limited | "Too many attempts. Too many accounts have been created from this address recently. Try again in a few minutes." | |
 | Sign in, rate limited | "Too many attempts. This account is locked for 15 minutes after too many failed sign-ins." | Distinct card from the unverified-account one, same visual treatment |
+| Sign in, session expired | "Your session expired. Sign in again to continue." | One copy for expired, revoked and rejected sessions. A sign-out the user chose shows nothing |
 | Verify email / Reset password, rate limited | "Too many attempts. This code is now blocked. Request a new one in 15 minutes." | Same copy in both places, one component |
 | Forgot password, rate limited | "Too many requests. Too many reset requests for this address. Try again in a few minutes." | |
 
@@ -223,3 +225,4 @@ Q2 (`aria-label`/`aria-live` wording) remains open.
 | 2026-09-14 | Q3 answered: Google sign-in merges into a matching manual account (FR-20), no new screen needed. Q4 answered: the rate-limit numbers stand. Screen inventory and Google-flow row updated to cite FR-20 | User answered both build-plan-blocking questions | user |
 | 2026-09-14 | Eight dark-theme artboards added, reusing 001's dark tokens exactly. §2 and §6 updated; no PRD change, same as 001's own decision not to formalize a theme-toggle FR | User asked for dark theme designs | user |
 | 2026-09-14 | Approved | User approved, proceed to build plan | user |
+| 2026-09-27 | "Session expired" state added to Sign in (§4) with its copy (§8), FR-23. No new artboard: an info note in the existing form. Q1 answered the copy | PRD FR-23 added | user, 2026-09-27: "approved" |

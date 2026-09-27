@@ -6,7 +6,7 @@ stage: 4
 status: approved
 owner: user
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-27
 approved_on: 2026-09-14
 supersedes: null
 split: true
@@ -53,6 +53,7 @@ account existing at all. Google sign-in and password reset follow.
 | 1 | [04.1-manual-signup-and-signin.md](./04.1-manual-signup-and-signin.md) | A person creates an account, verifies it, signs in, sees their username, and 001's console workaround is gone | — | approved |
 | 2 | [04.2-password-reset.md](./04.2-password-reset.md) | A person who forgot their password gets back in | 1 | draft |
 | 3 | [04.3-google-sign-in.md](./04.3-google-sign-in.md) | A person signs up or in with Google instead | 1 | draft |
+| 4 | [04.4-session-expiry.md](./04.4-session-expiry.md) | An expired or rejected session signs the user out with a notice, and nothing of it stays in the app | 1 | approved |
 
 Slice 1 is approved; dev on it may start. 2 and 3 are drafted below it, per
 §4's process rule allowing a later sub-plan to be written while an earlier one
@@ -156,3 +157,4 @@ The feature is done when every sub-plan is done and:
 |---|---|---|---|---|
 | 2026-09-14 | Created, split into 3 slices. Slice 1 drafted alongside this index; slices 2 and 3 queued | Build plan approved, all §10 questions answered | pending | — |
 | 2026-09-14 | Index and slice 1 approved. Slices 2 and 3 drafted | User approved, asked for slices 2 and 3 | user | — |
+| 2026-09-27 | Slice 4 added, `04.4-session-expiry.md`, for FR-23 and FR-24 (AD-8). No shared contract changed | PRD FR-23, FR-24 added | user, 2026-09-27: "approved" | — |

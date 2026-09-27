@@ -1,11 +1,11 @@
-import { CheckIcon, CircleAlertIcon } from "lucide-react";
+import { CheckIcon, CircleAlertIcon, InfoIcon } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import useSignIn from "../../../../api/mutations/SignIn/useSignIn";
 import { supabaseClient } from "../../../../api/lib/supabaseClient";
 import Button from "../../../../design-system/components/Button";
-import { readReturnPath } from "../../../../utils/returnPath";
+import { readIsSessionExpired, readReturnPath } from "../../../../utils/returnPath";
 import AuthCard from "../../components/AuthCard";
 import * as Styles from "./styles";
 
@@ -50,6 +50,7 @@ const SignInController = (): ReactElement => {
   const navigate = useNavigate();
   const location = useLocation();
   const returnPath = readReturnPath(location.search);
+  const isSessionExpired = readIsSessionExpired(location.search);
   const { triggerAPI: triggerSignIn } = useSignIn();
   const [viewState, setViewState] = useState<ViewStateType>("FORM");
   const [email, setEmail] = useState("");
@@ -192,6 +193,11 @@ const SignInController = (): ReactElement => {
         <div className={Styles.errorBannerStyles}>
           <CircleAlertIcon size={16} className="mt-0.5 shrink-0" />
           <div>That email or password is not right.</div>
+        </div>
+      ) : isSessionExpired && viewState === "FORM" ? (
+        <div className={Styles.infoNoteStyles} role="status">
+          <InfoIcon size={16} className="mt-0.5 shrink-0" />
+          <div>Your session expired. Sign in again to continue.</div>
         </div>
       ) : null}
 

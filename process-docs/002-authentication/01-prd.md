@@ -6,7 +6,7 @@ stage: 1
 status: approved
 owner: user
 created: 2026-09-14
-updated: 2026-09-14
+updated: 2026-09-27
 approved_on: 2026-09-14
 supersedes: null
 ---
@@ -75,6 +75,9 @@ account can be created and returned to without help.
   my account and the signup path cannot be brute-forced or abused.
 - **US-8.** As a signed-in user, I end my session from wherever the app shows
   my account, so a shared or public device does not stay signed in as me.
+- **US-9.** As a signed-in user whose session has expired or been revoked, I
+  am signed out and told why, so I never act on a screen that silently
+  fails and no one else sees my data after me.
 
 ## 6. Functional requirements
 
@@ -102,6 +105,8 @@ account can be created and returned to without help.
 | FR-20 | A Google sign-in whose email matches an existing manually-created account signs into that account, rather than creating a second one | must | US-6 |
 | FR-21 | A Google sign-in's avatar, when Google provides one, is stored and shown wherever the app already shows the account | should | US-6 |
 | FR-22 | A signed-in user can end their session from wherever the app shows their account | must | US-8 |
+| FR-23 | When the app's server rejects the session, or the session can no longer be renewed, the user is signed out, lands on sign-in with a notice saying the session expired, and returns to the page they were on after signing in | must | US-9 |
+| FR-24 | After any sign-out, nothing from the ended session remains held or shown in the app | must | US-8, US-9 |
 
 > Confirmed 2026-09-14 (Q7, Q8): FR-20's merge behavior and the 5-attempt /
 > 15-minute / 5-per-hour numbers in FR-17 to FR-19 and NFR-6 to NFR-8, all
@@ -183,3 +188,4 @@ Thirty days after launch.
 | 2026-09-15 | FR-21 added: a Google-provided avatar is stored and displayed | User asked for it once told Google sign-in was live but not capturing one | user |
 | 2026-09-14 | Q3 answered: Resend was already the locked email vendor in `tech-stack.md`, not Supabase's built-in sender. Dependency and risk rows updated | Found while reading `tech-stack.md` ahead of the build plan | user |
 | 2026-09-15 | US-8, FR-22 added: ending a session. Built ahead of this amendment (`AppShell`'s account popover, `05-dev-log.md` T-4.1/T-4.2) since sign-out was a real product gap no approved doc had named, not a new direction to argue | User asked for a sign-out option | user |
+| 2026-09-27 | US-9, FR-23, FR-24 added: automatic sign-out on an expired or rejected session, with a notice. Re-opens design (§4 Sign in, §8), build plan (AD-8) and a new sub-plan `04.4-session-expiry.md` | User asked for it after the app kept showing screens that failed with "Not authenticated" | user, 2026-09-27: "approved" |

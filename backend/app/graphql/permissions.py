@@ -15,11 +15,15 @@ from strawberry.types import Info
 
 from app.core.context import Context
 
+UNAUTHENTICATED_CODE = "UNAUTHENTICATED"
+
 
 class IsAuthenticated(BasePermission):
     """Require a verified identity on the request."""
 
     message = "Not authenticated"
+    # 002 FR-23, AD-8: the client signs out on this code, never on the message.
+    error_extensions = {"code": UNAUTHENTICATED_CODE}  # noqa: RUF012 (Strawberry reads it per class)
 
     def has_permission(self, source: Any, info: Info, **kwargs: Any) -> bool:
         context: Context = info.context

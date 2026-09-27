@@ -3,6 +3,12 @@ import { Navigate, Outlet, useLocation } from "react-router";
 
 import useGetMe from "../api/queries/GetMe/useGetMe";
 import { useResponseHandler } from "../api/queries/GetMe/responseHandler";
+import { apolloClient } from "../api/lib/apolloClient";
+import {
+  resetSessionExpiry,
+  takeSignOutReason,
+  type SignOutReason,
+} from "../api/lib/sessionExpiry";
 import { supabaseClient } from "../api/lib/supabaseClient";
 import { useStore } from "../stores/StoreProvider";
 import { buildSignInPath } from "../utils/returnPath";
@@ -18,6 +24,7 @@ const RequireAuth = (): ReactElement | null => {
   const store = useStore();
   const location = useLocation();
   const [sessionStatus, setSessionStatus] = useState<SessionStatusType>("CHECKING");
+  const [signOutReason, setSignOutReason] = useState<SignOutReason | undefined>(undefined);
 
   const { triggerAPI: triggerGetMe, data } = useGetMe();
   const { handleResponse } = useResponseHandler();
@@ -30,12 +37,18 @@ const RequireAuth = (): ReactElement | null => {
       setSessionStatus(sessionData.session !== null ? "AUTHENTICATED" : "UNAUTHENTICATED");
     });
 
-    const { data: subscription } = supabaseClient.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabaseClient.auth.onAuthStateChange((event, session) => {
       if (session === null) {
-        store.auth.clear();
+        // 002 FR-24: nothing from the ended session stays, for either reason.
+        store.clear();
+        void apolloClient.clearStore();
+        // Only a SIGNED_OUT the user did not ask for shows the notice (FR-23).
+        // A page opened with no session at all is not an expired one.
+        setSignOutReason(event === "SIGNED_OUT" ? takeSignOutReason() : undefined);
         setSessionStatus("UNAUTHENTICATED");
         return;
       }
+      if (event === "SIGNED_IN") resetSessionExpiry();
       setSessionStatus("AUTHENTICATED");
     });
 
@@ -63,7 +76,9 @@ const RequireAuth = (): ReactElement | null => {
 
   if (sessionStatus === "CHECKING") return null;
   if (sessionStatus === "UNAUTHENTICATED") {
-    return <Navigate to={buildSignInPath(location.pathname + location.search)} replace />;
+    return (
+      <Navigate to={buildSignInPath(location.pathname + location.search, signOutReason)} replace />
+    );
   }
 
   return <Outlet />;
