@@ -26,6 +26,23 @@ code: local PostgreSQL 16 with pgvector 0.6.0 and a stub Supabase `auth` schema,
 all migrations to `0022` applied, **276 backend tests passing**, `mypy app` and
 `ruff` clean. That is the baseline every number below compares against.
 
+## Summary
+
+All three slices are built and committed on `claude/feature-004-planning-aevb3m`.
+The feature is **not shipped**: the checks that need the real model or a real
+project are owed, listed in [Remaining work](#remaining-work).
+
+| Slice | What a user can do | Code commit | Tests at the end of the slice |
+|---|---|---|---|
+| Base | Epic 003 merged in (AD-10, amended) | `aa092b0` | 276 backend |
+| 1 Save and browse | `/remember` and `/add-memory` save a fact with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit; the secret caution | `14942ce` | 336 backend, 176 frontend |
+| 2 Forget | Forget from the detail page, `/forget <words>` with pick and confirm, `/forget all` with a count guard; history keeps a placeholder and never the words | `2a21fad` | 358 backend, 192 frontend |
+| 3 Conflicts | A contradicting save asks "Which is correct?": keep the new, keep the old, both, or decide later; the history scrub reaches the whole thread | `3ab8b2c` | 376 backend, 206 frontend |
+
+Migrations `0023` to `0029` are applied locally and each has been downgraded
+and upgraded again. Docs commits: `5d4623a`, `f633886`, `3e48f0f`, `7f58e04`,
+`701b802`, `20a8e28`, `5f0b148`.
+
 ## Slice 1 — Save and browse
 
 Backend and frontend built 2026-09-25. Verified against a real local
@@ -194,6 +211,66 @@ are built; the feature ships once the owed live checks pass.
 |---|---|---|---|
 | 2026-09-27 | `test_tab_detail_edit_and_all_records` failed after candidates were added | The test's fake model chose a category from the whole prompt, which now includes candidate text | The fake reads only the prompt's first line, the fact |
 
+## Remaining work
+
+Everything below is owed before `index.md` can show 004 as shipped (index §7).
+Nothing here can run in this environment: there is no model provider key, no
+route to Google, and no Supabase project.
+
+### Tasks owed
+
+| # | Task | Blocked on | Owner | Done when |
+|---|---|---|---|---|
+| T-1.1 | Confirm the embedding model name and 768 dimensions | A Gemini key | Claude, with the key | One real save stores a 768-long vector; `GEMINI_EMBEDDING_MODEL` set or the default confirmed in `tech-stack.md` |
+| T-1.11 | Correct the 60-case category set, then score it | The user's review; then a key | User, then Claude | `memory_categories.json` status "corrected"; accuracy over 85% (NFR-6) recorded here |
+| T-3.10 | Score the conflict set; measure save latency | A key | Claude | NFR-7 and NFR-4 results recorded here |
+| T-1.14, T-2.11, T-3.11 | Live browser pass of every state, against the canvas | A Supabase project and a key | Claude, with the user | The checklist below is complete, each row passed or raised as a change record |
+| Approvals | Deviations D-15 to D-21 | The user | User | Each row reads "user" |
+| Launch | The backup window in the forget line | The user, at launch (deferred 2026-09-25) | User | `BACKUP_LINE` in `memoryConstants.ts` names the real period |
+
+### Live tests to run
+
+Run from `backend/` with a real `GEMINI_API_KEY` in `.env` and the database
+migrated. Both spend a fraction of a cent per case and never run in CI.
+
+```
+pytest -m live tests/integration/test_memory_eval_live.py -s          # NFR-6, T-1.11
+pytest -m live tests/integration/test_memory_conflict_eval_live.py -s # NFR-7, T-3.10
+```
+
+| Measure | Target | Result so far |
+|---|---|---|
+| NFR-1, isolation | Zero cross-user reads | **Met in tests**: boundary cases for read, edit, lookup, forget, conflict candidates and answers |
+| NFR-2, nothing left after forget | Zero matches | **Met in tests**: every text column of every table searched after a forget, and after a conflict thread is forgotten |
+| NFR-3, no memory text in logs or events | Zero occurrences | **Met in tests**: the redaction test covers `text`, `fact`, `input_text`, `original_input`, `candidate_text`, `prompt` |
+| NFR-4, save latency | Under 8 s at p95, 1,000 memories | **Not measured**: needs the real model. Time 20 saves against a user seeded with 1,000 memories |
+| NFR-5, list and lookup | Under 1 s at p95, 1,000 memories | **472 ms** locally, in process. Re-measure against the hosted database |
+| NFR-6, categories | Over 85% correct | **Not measured**: T-1.11 |
+| NFR-7, conflicts | Catch over 80%; flag under 10% of other pairs; at most 1 of 19 traps | **Not measured**: T-3.10 |
+
+### Browser pass checklist
+
+Each row is one artboard in `assets/canvas/`, compared screen by screen with the
+running app, in light and dark, desktop and 390 px where the canvas draws it.
+
+| Area | Artboards | What to do |
+|---|---|---|
+| Save | `MemorySaved`, `MemorySecretCaution`, `CaptureStates` | `/remember` a fact, one with a card number, one over 500 characters, one with no fact, and one with the model switched off |
+| Look up | `MemoriesLookup` | `/memories`, `/memories passport`, `/memories visa` with no match |
+| Conflict | `Main`, `MobileConflict`, `DarkMemoryConflict`, `DarkMobileConflict` | Save "Preferred airline is Emirates", then "My preferred airline is Qatar Airways"; try each answer, "Decide later" and the waiting pill; forget the old memory in Records while the question waits |
+| Forget by command | `ForgetPick`, `ForgetConfirm`, `ForgetAll` | `/forget airline` with one and with several matches, `/forget visa`, bare `/forget`, `/forget all` twice across two tabs |
+| History | `HistoryForgotten` | After a forget, the placeholder row and "Forgot 1 memory" |
+| Records | `RecordsMemories`, `RecordsAll`, `MemoriesStates`, `MobileMemories`, `DarkRecordsMemories` | Filters, empty, loading, error, signed out, filtered empty |
+| Detail | `MemoryDetail`, `MemoryEdit`, `ForgetDetailConfirm`, `MobileMemoryDetail`, `DarkMemoryDetail`, `DarkForgetDetailConfirm` | Edit, over-long edit, forget, forget with the network off |
+
+### Tests not yet written
+
+| Gap | Why it matters | Where it would go |
+|---|---|---|
+| NFR-4 timing harness at 1,000 memories | The live scorers check accuracy, not latency | A `live` test beside the eval scorers |
+| A component test of the waiting pill after "Decide later" on a 001 question | The pill counts both kinds; only the conflict kind is tested | `CommandCenterController.test.tsx` |
+| An end-to-end browser test | Everything above is unit, component or API level | Needs the browser pass first |
+
 ## Deferred
 
 | Item | Why deferred | Where it goes next |
@@ -220,3 +297,4 @@ are built; the feature ships once the owed live checks pass.
 | 2026-09-25 | Slice 2's record added; Deferred table corrected for the slice reorder | Slice 2 built | pending |
 | 2026-09-26 | Deviations D-1 to D-14 approved | User approved all | user |
 | 2026-09-27 | Slice 3's record added | Slice 3 built | pending |
+| 2026-09-27 | Summary and Remaining work added: owed tasks, live test commands, NFR status, browser checklist, test gaps | User asked for everything done and everything pending in one place | pending |
