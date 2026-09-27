@@ -108,7 +108,7 @@ export const reminderStatusTone = (reminder: ReminderFieldsFragment): ReminderSt
 
 export const REMINDER_STATUS_LABEL: Record<ReminderStatusToneType, string> = {
   UPCOMING: "Upcoming",
-  FIRED: "Fired, not done",
+  FIRED: "Needs action",
   MISSED: "Missed",
   DONE: "Done",
 };

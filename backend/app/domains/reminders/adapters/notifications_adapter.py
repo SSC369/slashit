@@ -37,3 +37,8 @@ class NotificationsAdapter:
         await self.notification_service.record_action(
             user_id=user_id, source_id=firing_id, action=action, acted_at=acted_at
         )
+
+    async def hide_for_reminder(self, *, user_id: UUID, reminder_id: UUID) -> None:
+        await self.notification_service.hide_for_target(
+            user_id=user_id, target_id=reminder_id
+        )

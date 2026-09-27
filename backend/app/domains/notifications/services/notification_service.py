@@ -87,6 +87,14 @@ class NotificationService:
             user_id=user_id, source_id=source_id, action=action, acted_at=acted_at
         )
 
+    async def hide_for_target(self, *, user_id: UUID, target_id: UUID) -> None:
+        """A target (a deleted reminder, say) is gone: every notification
+        pointed at it stops showing, the same way the daily purge hides old
+        ones. Idempotent: nothing left live is a no-op."""
+        await self.notification_repository.soft_delete_for_target(
+            user_id=user_id, target_id=target_id, now=self.now_provider()
+        )
+
     async def _decide_email(
         self, *, publish: PublishNotification, settings: DeliverySettings, now: datetime
     ) -> DeliveryStatusValue:

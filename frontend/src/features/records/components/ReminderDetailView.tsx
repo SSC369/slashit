@@ -5,14 +5,19 @@ import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Skeleton from "../../../components/Skeleton";
 import Button from "../../../design-system/components/Button";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
+import type { NotificationActionState } from "../../../stores/NotificationsStore";
 import { cn } from "../../../utils/cn";
 import {
   REMINDER_ACTION_LABEL,
+  REMINDER_STATUS_LABEL,
   describeRepeatDetail,
   formatReminderDate,
   formatReminderDateTime,
+  reminderStatusTone,
 } from "../../../utils/formatReminder";
+import type { SnoozeOptionType } from "../../../utils/formatNotification";
 import { describeRepeatCadence } from "../../../utils/reminderDraft";
+import ReminderRowActions from "./ReminderRowActions";
 import * as Styles from "./styles";
 
 interface DetailRowProps {
@@ -37,13 +42,26 @@ const DetailRow = (props: DetailRowProps): ReactElement => {
 interface ReminderDetailViewProps {
   reminder: ReminderFieldsFragment;
   isOffline: boolean;
+  actionState: NotificationActionState | null;
+  defaultReminderTime: string | null;
   onEdit: () => void;
   onDelete: () => void;
+  onDone: (reminder: ReminderFieldsFragment) => void;
+  onSnooze: (reminder: ReminderFieldsFragment, option: SnoozeOptionType) => void;
 }
 
 /** `ReminderDetail` (FR-27): every field, and what happened last time. */
 const ReminderDetailView = (props: ReminderDetailViewProps): ReactElement => {
-  const { reminder, isOffline, onEdit, onDelete } = props;
+  const {
+    reminder,
+    isOffline,
+    actionState,
+    defaultReminderTime,
+    onEdit,
+    onDelete,
+    onDone,
+    onSnooze,
+  } = props;
   const zone = reminder.scheduleTimezone;
   const isRepeating = reminder.repeatKind !== "NONE";
 
@@ -71,6 +89,19 @@ const ReminderDetailView = (props: ReminderDetailViewProps): ReactElement => {
         </div>
       </div>
 
+      {reminder.state === "FIRED" && (
+        <div className={Styles.detailActionsRowStyles}>
+          <ReminderRowActions
+            reminder={reminder}
+            actionState={actionState}
+            isOffline={isOffline}
+            defaultReminderTime={defaultReminderTime}
+            onDone={onDone}
+            onSnooze={onSnooze}
+          />
+        </div>
+      )}
+
       <div className={Styles.detailFieldsStyles}>
         <DetailRow
           label={reminder.state === "DONE" ? "Finished" : "Next fires"}
@@ -95,7 +126,7 @@ const ReminderDetailView = (props: ReminderDetailViewProps): ReactElement => {
           value={reminder.lastAction !== null ? REMINDER_ACTION_LABEL[reminder.lastAction] : "Not yet"}
           sub={null}
         />
-        <DetailRow label="Status" value={reminder.state === "DONE" ? "Done" : "Active"} sub={null} />
+        <DetailRow label="Status" value={REMINDER_STATUS_LABEL[reminderStatusTone(reminder)]} sub={null} />
       </div>
 
       <div className={Styles.detailMetaStyles}>

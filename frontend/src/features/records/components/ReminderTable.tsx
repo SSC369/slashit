@@ -1,21 +1,18 @@
 import { Fragment, useState, type ReactElement } from "react";
 
-import { Check } from "lucide-react";
-
-import BusyButton from "../../../components/BusyButton";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Skeleton from "../../../components/Skeleton";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
 import type { NotificationActionState } from "../../../stores/NotificationsStore";
 import { cn } from "../../../utils/cn";
 import type { SnoozeOptionType } from "../../../utils/formatNotification";
-import SnoozeMenu from "../../notifications/components/SnoozeMenu";
+import ReminderRowActions from "./ReminderRowActions";
 import * as Styles from "./styles";
 
 /** Done rows shown before "Show N more done", as `Main` draws it. */
 const DONE_PREVIEW_COUNT = 1;
 const SKELETON_ROWS_PER_GROUP = 2;
-const COLUMN_COUNT = 4;
+const COLUMN_COUNT = 5;
 
 interface ReminderGroupView {
   label: string;
@@ -75,8 +72,11 @@ const ReminderTable = (props: ReminderTableProps): ReactElement => {
             <th className={Styles.thStyles} style={{ width: 200 }}>
               Repeat
             </th>
-            <th className={Styles.thStyles} style={{ width: 300 }}>
+            <th className={Styles.thStyles} style={{ width: 170 }}>
               Status
+            </th>
+            <th className={Styles.thStyles} style={{ width: 170 }}>
+              Actions
             </th>
           </tr>
         </thead>
@@ -99,6 +99,7 @@ const ReminderTable = (props: ReminderTableProps): ReactElement => {
                       <td className={Styles.tdStyles}>
                         <Skeleton width="50%" />
                       </td>
+                      <td className={Styles.tdStyles} />
                     </tr>
                   ))}
                 </Fragment>
@@ -135,8 +136,10 @@ const ReminderTable = (props: ReminderTableProps): ReactElement => {
                         </td>
                         <td className={Styles.tdStyles}>
                           <ReminderStatusPill reminder={reminder} />
+                        </td>
+                        <td className={Styles.tdStyles}>
                           {reminder.state === "FIRED" && (
-                            <RowActions
+                            <ReminderRowActions
                               reminder={reminder}
                               actionState={rowActions.get(reminder.id) ?? null}
                               isOffline={isOffline}
@@ -172,48 +175,6 @@ const ReminderTable = (props: ReminderTableProps): ReactElement => {
         </div>
       )}
     </div>
-  );
-};
-
-interface RowActionsProps {
-  reminder: ReminderFieldsFragment;
-  actionState: NotificationActionState | null;
-  isOffline: boolean;
-  defaultReminderTime: string | null;
-  onDone: (reminder: ReminderFieldsFragment) => void;
-  onSnooze: (reminder: ReminderFieldsFragment, option: SnoozeOptionType) => void;
-}
-
-/** `Main`: Done and Snooze beside a reminder that needs attention. The cell
- * is clickable, so the buttons keep their clicks to themselves. */
-const RowActions = (props: RowActionsProps): ReactElement => {
-  const { reminder, actionState, isOffline, defaultReminderTime, onDone, onSnooze } = props;
-  const isActing = actionState?.status === "ACTING";
-
-  return (
-    <span className={Styles.rowActionsStyles} onClick={(event) => event.stopPropagation()}>
-      <BusyButton
-        size="sm"
-        isBusy={isActing && actionState?.kind === "DONE"}
-        busyLabel="Marking done"
-        disabled={isOffline || isActing}
-        onClick={() => onDone(reminder)}
-      >
-        <Check size={13} /> Done
-      </BusyButton>
-      <SnoozeMenu
-        placement="bottom-start"
-        defaultReminderTime={defaultReminderTime}
-        isBusy={isActing && actionState?.kind === "SNOOZE"}
-        isDisabled={isOffline || isActing}
-        onPick={(option) => onSnooze(reminder, option)}
-      />
-      {actionState?.status === "FAILED" && (
-        <span className={Styles.rowActionErrorStyles} role="alert">
-          That didn't save. Try again.
-        </span>
-      )}
-    </span>
   );
 };
 

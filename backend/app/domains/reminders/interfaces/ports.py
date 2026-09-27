@@ -37,6 +37,10 @@ class NotificationPort(Protocol):
         acted_at: datetime,
     ) -> None: ...
 
+    async def hide_for_reminder(self, *, user_id: UUID, reminder_id: UUID) -> None:
+        """The reminder is gone: every notification about it stops showing."""
+        ...
+
 
 class FiringQueuePort(Protocol):
     """Queueing one firing job per due occurrence (AD-2)."""
