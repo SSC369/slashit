@@ -4,7 +4,7 @@ title: Slashit Product
 status: in-review
 owner: user
 created: 2026-09-08
-updated: 2026-09-13
+updated: 2026-09-27
 ---
 
 # Slashit — Product
@@ -89,11 +89,9 @@ Standing rules for every feature, so each PRD does not restate them.
 
 **Deleting records.** Records are soft-deleted: a deleted row stays, marked
 with when it was deleted, and every view skips it. This is the user's standing
-rule from 2026-09-19. **Memories are the one exception for content**, decided in
-epic 004 on 2026-09-25: a forgotten memory's row stays, but its words, category
-and meaning vector are erased, so forget means the fact is gone. Hard delete
-lost because it breaks the standing rule; keeping the text lost because it
-breaks the promise of forget.
+rule from 2026-09-19. **Memories are the one exception**: a forgotten memory is
+deleted outright, with its capture history, so forget means the fact is gone
+(epic 004, amended 2026-09-27 from an erased row that stayed).
 
 Principle 7 has a mechanism, not just an intention. See rule T2 in
 [the tech stack](../tech-stack.md#4-standing-technical-rules).
@@ -328,3 +326,4 @@ the first time a doc needs it. Keep definitions to one or two sentences.
 | 2026-09-09 | Stack revised, and the model tier moved from free to paid, so marginal cost per user is no longer zero | User asked for a stack fit for real users | user |
 | 2026-09-09 | Superseded `product-brief.md`. Absorbed the glossary and the name decision. V1 scope moved to [v1-features.md](./v1-features.md). Every technical row moved to [tech-stack.md](../tech-stack.md). | User asked for one product document, with technology kept out of it | user |
 | 2026-09-15 | Theme baseline reversed again: a user-facing light/dark toggle is back in scope, overriding the device setting when set. This reopens 001's design decision at Q13 (`001-capture-and-records-foundation/02-design.md`), settled 2026-09-13 the other way, and the 2026-09-13 entry above that recorded no toggle | User asked for a theme toggle while epic 002 was in dev, after first confirming they meant to leave the no-toggle decision alone, then changed their mind | user |
+| 2026-09-27 | §4: forgotten memories are deleted outright with their history, no longer kept as an empty row. Stale: epic 004 build plan AD-2, sub-plans 4.2 and 4.3 | User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |

@@ -6,7 +6,7 @@ stage: 3
 status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -167,7 +167,7 @@ code, so `/memories what do you remember about my career` searches "career".
 | # | Decision | Status | Graduates to tech-stack.md or product.md |
 |---|---|---|---|
 | AD-1 | New `memories` domain, per 003 AD-1 | locked | no, 003 already graduates it |
-| AD-2 | Forget is a tombstone, enforced by check constraints. Memories are the one record type whose content is erased, not only hidden | locked | yes, product.md: the soft-delete rule's one exception for content |
+| AD-2 | Forget is a tombstone, enforced by check constraints. Memories are the one record type whose content is erased, not only hidden. **Amended 2026-09-27:** forget deletes the memory row and its thread's capture turns; migration `0030_forget_deletes` removes earlier tombstones (sub-plan 4.4) | amended | yes, product.md: the soft-delete rule's one exception for content |
 | AD-3 | `capture_turns` is append-only except for the scrub `UPDATE`, which is the only way its text changes | locked | no |
 | AD-4 | pgvector is enabled, with `vector(768)` columns. The gateway gains `embed`, attributed in `ai_usage` with `operation = embed` | locked | yes, tech stack §1: embedding model named |
 | AD-5 | Candidate search takes the ten nearest non-forgotten memories; the model sees only those | locked | no |
@@ -213,3 +213,5 @@ All eight answered on 2026-09-25. Q1 to Q4 were asked before drafting.
 | 2026-09-25 | Q5 to Q8 answered, each as recommended. AD-11 added for the uncounted embeds. §6 and §9 updated | User answered the open questions | user |
 | 2026-09-25 | Approved. The backup window is deferred to launch rather than confirmed before approval, at the user's direction. Every AD moved to locked. AD-2 graduated to `product/product.md`; AD-4, AD-9 and AD-11 to `tech-stack.md` | User approved, proceed to the implementation plan | user |
 | 2026-09-25 | AD-10 amended: 003 is merged into `claude/feature-004-planning-aevb3m` instead of waiting for it on `main`. The pull request for 004 carries 003 unless 003 merges first. Stale downstream: the implementation plan index's opening line, corrected in the same change | User chose it when asking to start dev | user |
+| 2026-09-27 | AD-2 amended: hard delete of the memory and its turns replaces the tombstone. Stale: plan index (slice 4), 4.2, 4.3 | PRD FR-22, FR-23 amended. User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |
+| 2026-09-27 | Capture's `/forget` branch, `forgetFromCapture` and forget-all removed; `memories.forget_memories` stays for detail and conflict. Migration `0031` deletes past `/forget` turns. Stale: plan index, 4.2 | PRD FR-24 to FR-28 struck. User: "from chat commands remove forget ... no need to do forgot from chat" | user, 2026-09-27: "approved, build it" |

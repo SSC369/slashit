@@ -6,7 +6,7 @@ stage: 2
 status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -43,7 +43,7 @@ and states that the words also leave capture history.
 | Forget, pick one | `/forget` with several matches: a pick list | FR-25 | `ForgetPick` |
 | Forget, confirm | Inline confirm naming the full text, with the backup line | FR-24, FR-29 | `ForgetConfirm` |
 | Forget all | Count-stating confirm | FR-27, FR-29 | `ForgetAll` |
-| History after forget | Placeholder turn, and "Forgot 1 memory" with no words | FR-23, FR-28 | `HistoryForgotten` |
+| History after forget | The forgotten turns are gone; "Forgot 1 memory" with no words remains | FR-23, FR-28 | `HistoryForgotten`, placeholder row struck |
 | Capture states | No fact, over 500 characters, model unavailable, lookup no match, forget no match | FR-3, FR-4, FR-9, FR-20, FR-26 | `CaptureStates` |
 | Memories in Records | Memories tab, category chips, table of text, category, saved date | FR-15, FR-16 | `RecordsMemories` |
 | All records | A memory row among tasks, blue dot, category in the status column | FR-15 | `RecordsAll` |
@@ -178,7 +178,6 @@ No one-off styles outstanding.
 | Forget confirm | "Forget this memory? {text} will be removed for good, and its words removed from your capture history. This cannot be undone." | |
 | Forget all | "Forget all {n} memories?" · button "Forget {n} memories" | Count in the button too |
 | Backup line | "Copies in backups are erased within {backup window}." | Placeholder until PRD Q6 sets the window |
-| History placeholder | "A memory was saved here and later forgotten" | FR-23 |
 | Forget history row | "Forgot 1 memory" | FR-28 |
 | Too long | "That is {n} characters. A memory can be up to 500." | |
 | Model down | "Slashit could not save this right now. Its AI model is unavailable, so it cannot check this against your other memories. This is temporary." | FR-9 |
@@ -199,3 +198,5 @@ No one-off styles outstanding.
 | 2026-09-25 | Created. 24 artboards across Capture, Records, Mobile and Dark theme pages, generated from 001's artboards | PRD approved, user asked for design | pending |
 | 2026-09-25 | Q1 to Q3 answered, each as drawn. No canvas change | User answered the open questions | user |
 | 2026-09-25 | Approved | User approved, proceed to build plan | user |
+| 2026-09-27 | History keeps no placeholder for a forgotten memory; the `HistoryForgotten` placeholder row is struck. The open chat feed already removes it (dev log D-25) | PRD FR-23 amended. User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |
+| 2026-09-27 | Forget by command struck: the `/forget` flow and the `ForgetPick`, `ForgetConfirm`, `ForgetAll` artboards no longer apply. Detail forget (`ForgetDetailConfirm`) is the one path. `/forget` typed gets 001's unrecognised-command reply | PRD FR-24 to FR-28 struck. User: "from chat commands remove forget ... no need to do forgot from chat" | user, 2026-09-27: "approved, build it" |

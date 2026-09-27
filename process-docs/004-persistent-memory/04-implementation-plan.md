@@ -6,7 +6,7 @@ stage: 4
 status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 split: true
@@ -72,6 +72,8 @@ slice before each lands, as 003 did.
 | 1 | [04.1-save-and-browse.md](./04.1-save-and-browse.md) | `/remember` and `/add-memory` save with a category and a vector; `/memories` lists and looks up by word; Memories tab, All tab, detail and edit work, with every drawn state; the secret caution shows | 003 merged | approved 2026-09-25; built 2026-09-25, T-1.1, T-1.11, T-1.14 owed |
 | 2 | [04.2-forget.md](./04.2-forget.md) | Forget from detail, by `/forget` with pick and confirm, and forget-all; history shows the placeholder; NFR-2's search-every-table test passes | 1 | approved 2026-09-25; built 2026-09-25, T-2.11 owed |
 | 3 | [04.3-conflicts.md](./04.3-conflicts.md) | A contradicting save asks which is correct; the three answers and "Decide later" work; "Keep the new one" forgets through slice 2; mobile conflict card | 1, 2 | approved 2026-09-27; built 2026-09-27, T-3.10, T-3.11 owed |
+| 4 | [04.4-full-erase.md](./04.4-full-erase.md) | Forget deletes the memory row and its history turns; no placeholder anywhere | 2, 3 | approved |
+| 5 | [04.5-remove-forget-command.md](./04.5-remove-forget-command.md) | Chat has no `/forget`; forget is from the detail page only; past `/forget` rows gone | 4 | approved |
 
 Slice 3 depends on slice 2: its "Keep the new one" answer forgets the old
 memory, and forget is slice 2's.
@@ -223,3 +225,5 @@ Both live in `backend/tests/eval/` as JSON and run as a live test, marked like
 | 2026-09-25 | Created as the index, with sub-plan 4.1 drafted | Build plan approved; user asked to proceed | pending |
 | 2026-09-25 | Approved. Two amendments at approval: 003 is merged into this branch (AD-10 amended), and the category set is drafted as slice 1's first task and corrected in parallel instead of before approval | User approved and asked to proceed with dev | user |
 | 2026-09-25 | Slices 2 and 3 swapped: 4.2 is now Forget, 4.3 Conflicts. Migrations renumbered to `0028_forget` and `0029_memory_conflicts`; `0028` also gains `capture_turns.affected_count` for "Forgot 2 memories". Rollout: all three slices ship together. The scrub port and forget contracts move from slice 3 to slice 2. Re-opened: none; neither sub-plan had been drafted | "Keep the new one" forgets the old memory, so conflicts cannot finish before forget exists. User chose the swap | user |
+| 2026-09-27 | Slice 4 added, `04.4-full-erase.md`. Re-opens 4.2's tombstone and scrub contract | PRD FR-22, FR-23 amended. User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |
+| 2026-09-27 | Slice 5 added, `04.5-remove-forget-command.md`. Re-opens 4.2's command half | PRD FR-24 to FR-28 struck. User: "from chat commands remove forget ... no need to do forgot from chat" | user, 2026-09-27: "approved, build it" |

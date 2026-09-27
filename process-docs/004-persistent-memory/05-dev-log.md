@@ -251,6 +251,44 @@ listed under "Not yet run" were not covered.
 
 390 px and light theme; `/forget all` across two tabs; over-500-character save; model switched off; network off on forget.
 
+## Slice 4 — Full erase
+
+Built 2026-09-27 on the user's approval of [4.4](./04.4-full-erase.md). Forget
+deletes the memory row and every capture turn of its thread.
+
+| # | Task | Status | Note |
+|---|---|---|---|
+| T-4.1 | Memory delete in place of tombstone | done | `delete_memories`; C-2.10's cross-user case still passes, covering C-4.4 |
+| T-4.2 | Turn delete in place of scrub | done | `delete_turns_for_memories`, same thread rule |
+| T-4.3 | Migration `0030_forget_deletes` | done | Applied to the Supabase project: 0 tombstones and 0 blanked turns left |
+| T-4.4 | History placeholder removed | done | `HistoryPanel`, F-4.1 |
+| T-4.5 | C-2.1, C-2.3, C-2.9, C-3.6 updated | done | 10 forget and conflict integration tests pass against the Supabase project; 231 frontend tests |
+
+Live check: `/remember My test bike is a Duke 390`, then `/forget bike`. No row
+or turn holds the text, history shows only "Forgot 1 memory".
+
+One trace found: a conflict question turn and its pending row still hold "My
+test gym is Gold's Gym". Its answer hit P-6 before the fix: the memory saved but
+the resolution turn never did, so no turn in the thread carried the memory id
+that forget follows. New answers can no longer end that way. Both rows deleted on the
+user's instruction, 2026-09-27.
+
+## Slice 5 — Remove the forget command
+
+Built 2026-09-27 on the user's approval of [4.5](./04.5-remove-forget-command.md).
+
+| # | Task | Status | Note |
+|---|---|---|---|
+| T-5.1 | Backend removal | done | `/forget` branch, `confirm_forget.py`, `forgetFromCapture`, `ForgetCandidates`, `ForgetTargetGone`, `MemoryCountChanged`, `find_forget_candidates`, `forget_all`, `list_live_ids`, `count_by_terms` and the two constants removed. C-5.1 unit (2 cases) and integration |
+| T-5.2 | Migration `0031_drop_forget_turns` | done | Applied to the Supabase project: 0 `memory_forgotten` turns left |
+| T-5.3 | Frontend removal | done | `/forget` chip and palette entry, `ForgetCards.tsx`, `ForgetFromCapture/`, seven turn statuses, forget-all support in `forgetMemories`. Schema regenerated from the backend. F-5.1 added; 220 frontend tests pass |
+| T-5.4 | Live check | done | `/forget bike` shows "is not a command Slashit knows"; a detail-page forget left no row, no turn and no history entry |
+
+Unit and memory integration suites pass, except
+`test_lists_and_lookup_stay_fast_at_a_thousand_memories`: NFR-5 measured
+1,724 ms p95 against the hosted database from the dev machine, over the 1 s
+target. It measured 472 ms on a local database; unrelated to this slice.
+
 ## Remaining work
 
 Everything below is owed before `index.md` can show 004 as shipped (index §7).

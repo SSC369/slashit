@@ -6,7 +6,7 @@ stage: 1
 status: approved
 owner: user
 created: 2026-09-25
-updated: 2026-09-25
+updated: 2026-09-27
 approved_on: 2026-09-25
 supersedes: null
 ---
@@ -117,13 +117,13 @@ one and remove any of them for good.
 | id | Requirement | Priority | Story |
 |---|---|---|---|
 | FR-21 | Forget from the memory detail asks for confirmation, naming the memory's full text | must | US-4 |
-| FR-22 | A forgotten memory is removed permanently. It no longer appears in the records view, in `/memories`, in any count, or in any conflict check, and it cannot be restored | must | US-6 |
-| FR-23 | Forgetting a memory replaces its words in capture history with "A memory was saved here and later forgotten". This covers the turn that saved it and any conflict question that showed it | must | US-6 |
-| FR-24 | `/forget <which>` with exactly one matching memory asks for confirmation, naming its full text | must | US-4 |
-| FR-25 | `/forget <which>` with several matching memories lists them, lets the user pick one, then confirms it by name | must | US-4 |
-| FR-26 | `/forget <which>` with no match says so and forgets nothing | must | US-4 |
-| FR-27 | An instruction to forget every memory states the count and requires explicit confirmation, following 001's FR-21 | must | US-4 |
-| FR-28 | A confirmed `/forget` turn keeps only "Forgot 1 memory" or the count in capture history, not the words used to find it | must | US-6 |
+| FR-22 | A forgotten memory is deleted, row and all. It no longer appears in the records view, in `/memories`, in any count, or in any conflict check, and it cannot be restored | must | US-6 |
+| FR-23 | Forgetting a memory deletes its turns from capture history, with no placeholder. This covers the turn that saved it and any conflict question that showed it | must | US-6 |
+| ~~FR-24~~ | ~~`/forget <which>` with exactly one matching memory asks for confirmation, naming its full text~~ Struck 2026-09-27: no forget command | — | US-4 |
+| ~~FR-25~~ | ~~`/forget <which>` with several matching memories lists them, lets the user pick one, then confirms it by name~~ Struck 2026-09-27: no forget command | — | US-4 |
+| ~~FR-26~~ | ~~`/forget <which>` with no match says so and forgets nothing~~ Struck 2026-09-27: no forget command | — | US-4 |
+| ~~FR-27~~ | ~~An instruction to forget every memory states the count and requires explicit confirmation, following 001's FR-21~~ Struck 2026-09-27: no forget command | — | US-4 |
+| ~~FR-28~~ | ~~A confirmed `/forget` turn keeps only "Forgot 1 memory" or the count in capture history, not the words used to find it~~ Struck 2026-09-27: no forget command | — | US-6 |
 | FR-29 | Every forget confirmation says that backup copies are removed within the backup retention window, and states that window | must | US-6 |
 
 > Assumption: FR-28 extends FR-23's promise to the `/forget` line itself,
@@ -154,7 +154,7 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | Memories saved per active user per week | Save events | Whether memory earns a habit (G1, H1) |
 | Memory lookups per active user per week | `/memories` and filter events | Whether facts come back out (G2, H3) |
 | Conflict answers by type | Conflict question events | A high "both are correct" share means the check over-flags (G3) |
-| Forgets followed by any memory save within five minutes | Forget and save events | Whether `/forget` picks the wrong memory (G4). An upper bound: some re-saves are unrelated |
+| Forgets followed by any memory save within five minutes | Forget and save events | Whether a forget from the detail page takes the wrong memory (G4). An upper bound: some re-saves are unrelated |
 | Share of memories whose category is edited | Edit events | Whether categories are trusted |
 | Saves carrying the secret caution | FR-8 events | How much sensitive data users put in |
 
@@ -172,7 +172,7 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Forget leaves the fact recoverable somewhere | high, as built today | high | FR-22, FR-23, FR-28 and NFR-2, with FR-29 disclosing backups honestly |
-| `/forget` picks the wrong memory and the user confirms without reading | medium | high | FR-24 and FR-25 name the full text before anything goes |
+| The user forgets the wrong memory from its detail page without reading | low | high | FR-21 names the full text before anything goes |
 | The conflict check over-flags and users click through | medium | medium | FR-11's "both are correct", NFR-7, and the conflict-answer metric |
 | The conflict check misses a contradiction | medium | medium | NFR-7. Edit or forget remains available |
 | Saves grow slow or costly as memories accumulate | medium over time | medium | NFR-4 at 1,000 memories. The build plan states cost per save |
@@ -207,3 +207,5 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | 2026-09-25 | Approved | User approved, proceed to design | user |
 | 2026-09-25 | NFR-4 revised from 2 s to 8 s at p95, and Q5 updated. Found while drafting the build plan: every save needs a model call, measured at 5.3 to 8.5 s in 001. Stale downstream: none. The approved design already shows 001's loading turn during a save, and no screen promises a time | User chose to match 001's 8 s budget | user |
 | 2026-09-25 | G4 and its metric now count any memory save within five minutes of a forget, not a similar one. Q5 closed: NFR-5 to NFR-7 stand. Stale downstream: none; the design draws no metric | Build plan Q8: the tombstone erases the text a similarity check would need. User accepted | user |
+| 2026-09-27 | FR-22 and FR-23: forget deletes the memory row and its history turns instead of leaving an empty row and a placeholder. Stale: design `HistoryForgotten`, build plan AD-2, product.md §4, sub-plan 4.2 C-2.1 and C-2.3, 4.3 C-3.6. New sub-plan 4.4 | User: "no need to keep memories when use forget or deletes them, remove all its associated too" | user, 2026-09-27: "approved, build it" |
+| 2026-09-27 | FR-24 to FR-28 struck: chat has no `/forget` and no forget-all; a memory is forgotten from its detail page (FR-21). G4's metric and the wrong-pick risk now refer to detail forget only. Stale: design forget-by-command flow and `ForgetPick`, `ForgetConfirm`, `ForgetAll`; build plan; plan index; 4.2. New sub-plan 4.5 | User: "from chat commands remove forget ... no need to do forgot from chat" | user, 2026-09-27: "approved, build it" |
