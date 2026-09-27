@@ -3,7 +3,7 @@ doc: dev-log
 feature: 004-persistent-memory
 title: Persistent Memory
 stage: 5
-status: draft
+status: shipped
 owner: user
 created: 2026-09-25
 updated: 2026-09-27
@@ -64,7 +64,7 @@ the real model or live in a browser**: see T-1.1, T-1.11 and T-1.14.
 | T-1.8 | 4.1 | All tab through records' port | **done** | C-16 |
 | T-1.9 | 4.1 | Log redaction by key | **done** | C-13, including the configured pipeline |
 | T-1.10 | 4.1 | Boundary and load tests | **done** | C-12 (T7) through GraphQL. C-14: see Measurements |
-| T-1.11 | 4.1 | Category evaluation set | **scored, correction owed** | 2026-09-27, live, on the uncorrected draft: 87% at reasoning effort "low" (90% at the model default). Target over 85%. Re-score once the user corrects the set |
+| T-1.11 | 4.1 | Category evaluation set | **done** | 2026-09-27: the user reviewed the 60 cases and accepted them as drafted. Scored live at reasoning effort "low": 87%, target over 85% (NFR-6) |
 | T-1.12 | 4.1 | Frontend capture cards and commands | **done** | F-1, 7 cases in `MemoryCards.test.tsx`; SubmitCapture handler cases |
 | T-1.13 | 4.1 | Frontend Memories tab, All rows, detail, edit | **done** | F-2 (6 cases), F-3 (4 cases), GetMemory and UpdateMemory handler cases |
 | T-1.14 | 4.1 | Live browser pass against a real project | **owed** | No Supabase project credentials reachable from this environment, the same constraint 003's T-1.14 recorded. The canvas was not compared screen by screen against the running app |
@@ -298,7 +298,6 @@ Updated 2026-09-27 after the second live pass. Everything below is owed before
 
 | # | Task | Blocked on | Owner | Done when |
 |---|---|---|---|---|
-| T-1.11 | Correct the 60-case category set, then re-score | The user's review (chosen 2026-09-27 over accepting the draft) | User, then Claude | `memory_categories.json` status "corrected"; NFR-6 over 85% |
 | NFR-4 | Save latency under 8 s at p95 | A deployed API in the database's region (user, 2026-09-27: re-measure after deploy) | Claude, with epic 012 | Re-measured with `test_memory_latency_live.py` from the deployed environment |
 | NFR-5 | List and lookup under 1 s at p95 | Same decision | Claude, with epic 012 | Re-measured from the deployed environment |
 | Mobile | The 390 px artboards | Deferred by the user 2026-09-27: 004 ships desktop-only, as 003 did (D-31) | — | A future app-wide mobile task |
@@ -313,7 +312,7 @@ Updated 2026-09-27 after the second live pass. Everything below is owed before
 | NFR-3, no memory text in logs or events | Zero | **Met in tests** |
 | NFR-4, save latency | Under 8 s at p95 | **Fails from the dev machine**: median 7.5 s, p95 22.5 s over 20 saves at 1,000 memories. One save is 24 SQL statements taking 2.4 to 3.5 s at an 80 ms round trip, plus about 5 s of model time. The two 22 s outliers are unexplained |
 | NFR-5, list and lookup | Under 1 s at p95 | **Fails from the dev machine**: 1,724 ms against the hosted database, 472 ms locally. Network-bound, same cause |
-| NFR-6, categories | Over 85% | **87%** on the draft set |
+| NFR-6, categories | Over 85% | **87%**, set reviewed by the user |
 | NFR-7, conflicts | Catch over 80%; flag under 10%; at most 1 trap | **Met**: 100%, 0.3%, 1 |
 
 ### Browser pass, second round
@@ -370,3 +369,4 @@ end-to-end browser test is still not written.
 | 2026-09-27 | Slice 3's record added | Slice 3 built | pending |
 | 2026-09-27 | Migrations `0023` to `0029` applied to the Supabase project; T-1.1 done, T-1.11 and T-3.10 scored live; D-22, D-23 | User supplied the key and approved the migration | pending |
 | 2026-09-27 | Summary and Remaining work added: owed tasks, live test commands, NFR status, browser checklist, test gaps | User asked for everything done and everything pending in one place | pending |
+| 2026-09-27 | Shipped, desktop only. Owed after ship: NFR-4 and NFR-5 re-measured from a deployed API in the database's region (epic 012); mobile with 003's D-31; the backup window at launch | User accepted the category set; every task is done or explicitly deferred | user |

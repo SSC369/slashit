@@ -1,6 +1,6 @@
 {
   "_about": "Epic 004, sub-plan 4.1, T-1.11 and NFR-6. Drafted by Claude on 2026-09-25 for the user to correct. expected is one of personal, people, professional, life, or null for uncategorisable. Scored live by tests/integration/test_memory_eval_live.py; target over 85%.",
-  "status": "draft, awaiting user correction",
+  "status": "corrected: reviewed and accepted by the user as drafted, 2026-09-27",
   "cases": [
     {
       "fact": "My preferred airline is Emirates",
