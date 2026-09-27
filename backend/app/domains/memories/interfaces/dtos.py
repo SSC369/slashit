@@ -219,3 +219,11 @@ def memory_too_long_to_type(*, too_long: MemoryTooLongDTO) -> MemoryTooLong:
         length=too_long.length,
         limit=too_long.limit,
     )
+
+
+@dataclass(frozen=True)
+class MissingEmbeddingDTO:
+    """A live memory whose vector was never stored (004 P-6)."""
+
+    user_id: UUID
+    memory_id: UUID

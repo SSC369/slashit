@@ -1,6 +1,7 @@
 """Repository contracts. Protocols, so a fake needs no inheritance."""
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal, Protocol
 from uuid import UUID
 
@@ -8,6 +9,7 @@ from app.domains.memories.interfaces.dtos import (
     MemoryCategory,
     MemoryDTO,
     MemoryOriginValue,
+    MissingEmbeddingDTO,
 )
 
 # FR-16: a category, the uncategorised memories, or every memory (None).
@@ -91,4 +93,11 @@ class MemoryRepository(Protocol):
         self, *, user_id: UUID, memory_id: UUID, embedding: tuple[float, ...]
     ) -> None:
         """Store a vector on a live memory. Does nothing on a forgotten one."""
+        ...
+
+    async def select_missing_embeddings(
+        self, *, updated_since: datetime, limit: int
+    ) -> list[MissingEmbeddingDTO]:
+        """Live memories of every user with no vector, touched since the given
+        time. For the backfill job only: reads across users."""
         ...

@@ -11,6 +11,7 @@ from app.domains.memories.interfaces.dtos import (
     MemoryCategory,
     MemoryDTO,
     MemoryOriginValue,
+    MissingEmbeddingDTO,
 )
 from app.domains.memories.interfaces.repositories import CategoryFilter, MemoryWrite
 from app.domains.memories.models import Memory
@@ -207,6 +208,26 @@ class SqlMemoryRepository:
                 )
                 .values(embedding=list(embedding))
             )
+
+    async def select_missing_embeddings(
+        self, *, updated_since: datetime, limit: int
+    ) -> list[MissingEmbeddingDTO]:
+        # No user_transaction: the sweep reads every user's rows on the
+        # service-role connection, as a background job may (T3).
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(
+                    select(Memory.user_id, Memory.id)
+                    .where(
+                        Memory.deleted_at.is_(None),
+                        Memory.embedding.is_(None),
+                        Memory.updated_at >= updated_since,
+                    )
+                    .order_by(Memory.updated_at)
+                    .limit(limit)
+                )
+            ).all()
+        return [MissingEmbeddingDTO(user_id=row[0], memory_id=row[1]) for row in rows]
 
 
 def _live_for(*, user_id: uuid.UUID) -> Select[tuple[Memory]]:

@@ -32,6 +32,12 @@ FORGET_ALL_PHRASES: Final = frozenset({"all", "everything", "all my memories"})
 # Build plan §6: the reembed job's attempts before leaving the vector NULL.
 REEMBED_MAX_ATTEMPTS: Final = 3
 
+# 004 P-6: the sweep that queues a vector for a memory saved while the queue
+# was down. Only recent rows: an older NULL vector means the model refused
+# every retry, and the sweep would otherwise pay for it again every run.
+EMBEDDING_BACKFILL_BATCH: Final = 100
+EMBEDDING_BACKFILL_WINDOW_HOURS: Final = 24
+
 # Descriptions kept terse on purpose: 001's dev log I-1 measured a verbose
 # schema description doubling generation latency.
 JUDGEMENT_SCHEMA: Final[dict[str, Any]] = {

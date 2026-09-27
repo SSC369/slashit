@@ -10,6 +10,7 @@ from app.domains.memories.interfaces.dtos import (
     CategoryJudgement,
     MemoryCategory,
     MemoryDTO,
+    MissingEmbeddingDTO,
     ModelRefused,
 )
 from app.domains.memories.interfaces.ports import MemoryEventType
@@ -132,6 +133,17 @@ class FakeMemoryRepository:
     ) -> None:
         if await self.get_by_id(user_id=user_id, memory_id=memory_id):
             self.embeddings[memory_id] = embedding
+
+    async def select_missing_embeddings(
+        self, *, updated_since: datetime, limit: int
+    ) -> list[MissingEmbeddingDTO]:
+        missing = [
+            MissingEmbeddingDTO(user_id=memory.user_id, memory_id=memory.id)
+            for memory in self.rows.values()
+            if self.embeddings.get(memory.id) is None
+            and memory.updated_at >= updated_since
+        ]
+        return missing[:limit]
 
 
 class FakeMemoryModel:

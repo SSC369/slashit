@@ -13,7 +13,10 @@ from procrastinate import RetryStrategy
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import create_engine, create_session_factory
-from app.core.deps import build_reembed_memory_interactor
+from app.core.deps import (
+    build_queue_missing_embeddings_interactor,
+    build_reembed_memory_interactor,
+)
 from app.core.jobs import procrastinate_app
 from app.core.settings import get_settings
 from app.domains.memories.constants import REEMBED_MAX_ATTEMPTS
@@ -42,3 +45,14 @@ async def reembed(user_id: str, memory_id: str) -> None:
             dto=ReembedMemoryInputDTO(user_id=UUID(user_id), memory_id=UUID(memory_id))
         )
     logger.info("memories.reembed", memory_id=memory_id, refreshed=refreshed)
+
+
+@procrastinate_app.periodic(cron="*/10 * * * *")  # every 10 minutes (004 P-6)
+@procrastinate_app.task(name="memories.backfill_embeddings")
+async def backfill_embeddings(timestamp: int) -> None:
+    """Queue a vector for any recent memory saved while the queue was down."""
+    async with _session_factory()() as session:
+        queued_count = await build_queue_missing_embeddings_interactor(
+            session
+        ).queue_missing_embeddings()
+    logger.info("memories.backfill_embeddings", queued_count=queued_count)

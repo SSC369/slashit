@@ -83,6 +83,9 @@ from app.domains.memories.adapters.gateway_adapter import GatewayMemoryModelAdap
 from app.domains.memories.interactors.forget_memory import ForgetMemoryInteractor
 from app.domains.memories.interactors.get_memory import GetMemoryInteractor
 from app.domains.memories.interactors.list_memories import ListMemoriesInteractor
+from app.domains.memories.interactors.queue_missing_embeddings import (
+    QueueMissingEmbeddingsInteractor,
+)
 from app.domains.memories.interactors.reembed_memory import ReembedMemoryInteractor
 from app.domains.memories.interactors.update_memory import UpdateMemoryInteractor
 from app.domains.memories.repositories.memory_repository import SqlMemoryRepository
@@ -729,6 +732,17 @@ def build_update_memory_interactor(context: Context) -> UpdateMemoryInteractor:
         memory_repository=SqlMemoryRepository(context.session),
         reembed_queue=ProcrastinateReembedQueue(),
         analytics=_build_memory_analytics_port(session=context.session),
+    )
+
+
+def build_queue_missing_embeddings_interactor(
+    session: AsyncSession,
+) -> QueueMissingEmbeddingsInteractor:
+    """For the `memories.backfill_embeddings` job, which has no request context."""
+    return QueueMissingEmbeddingsInteractor(
+        memory_repository=SqlMemoryRepository(session),
+        reembed_queue=ProcrastinateReembedQueue(),
+        now_provider=_utc_now,
     )
 
 
