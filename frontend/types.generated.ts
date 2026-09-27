@@ -35,7 +35,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = ForgetCandidates | MalformedResult | MemoriesListed | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = ForgetCandidates | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -55,6 +55,7 @@ export type CaptureTurn = {
 
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
   | 'MEMORY_SAVED'
@@ -62,6 +63,11 @@ export type CaptureTurnOutcome =
   | 'REFUSED'
   | 'REMINDER_CREATED'
   | 'TASK_CREATED';
+
+export type ConflictAnswer =
+  | 'BOTH'
+  | 'KEEP_NEW'
+  | 'KEEP_OLD';
 
 export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
 
@@ -165,9 +171,23 @@ export type MemoryCategory =
   | 'PERSONAL'
   | 'PROFESSIONAL';
 
+export type MemoryConflictAsked = {
+  __typename?: 'MemoryConflictAsked';
+  category?: Maybe<MemoryCategory>;
+  conflicting: Array<Memory>;
+  newText: Scalars['String']['output'];
+  pendingCaptureId: Scalars['ID']['output'];
+  question: Scalars['String']['output'];
+};
+
 export type MemoryCountChanged = {
   __typename?: 'MemoryCountChanged';
   count: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
+export type MemoryDiscarded = {
+  __typename?: 'MemoryDiscarded';
   message: Scalars['String']['output'];
 };
 
@@ -204,6 +224,7 @@ export type Mutation = {
   markNotificationRead: MarkNotificationReadResult;
   markReminderDone: ReminderActionResult;
   recordsViewOpened: Scalars['Boolean']['output'];
+  resolveMemoryConflict: ResolveMemoryConflictResult;
   signIn: SignInResult;
   snoozeReminder: ReminderActionResult;
   submitCapture: CaptureResult;
@@ -260,6 +281,12 @@ export type MutationMarkNotificationReadArgs = {
 
 export type MutationMarkReminderDoneArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationResolveMemoryConflictArgs = {
+  answer: ConflictAnswer;
+  pendingCaptureId: Scalars['ID']['input'];
 };
 
 
@@ -354,6 +381,11 @@ export type NotificationPage = {
   __typename?: 'NotificationPage';
   items: Array<Notification>;
   nextCursor?: Maybe<Scalars['String']['output']>;
+};
+
+export type PendingCaptureNotFound = {
+  __typename?: 'PendingCaptureNotFound';
+  message: Scalars['String']['output'];
 };
 
 export type PendingQuestionCreated = {
@@ -547,6 +579,8 @@ export type RemindersListed = {
   __typename?: 'RemindersListed';
   reminders: Array<Reminder>;
 };
+
+export type ResolveMemoryConflictResult = MemoryDiscarded | MemorySaved | PendingCaptureNotFound;
 
 export type SecretKind =
   | 'CARD'

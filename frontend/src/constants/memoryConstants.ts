@@ -45,3 +45,11 @@ export interface ForgetCandidatesArgs {
   forgetAll: boolean;
   allCount: number;
 }
+
+/** "Which is correct?" (FR-10): the new fact, unsaved, and what it contradicts. */
+export interface MemoryConflictArgs {
+  pendingCaptureId: string;
+  newText: string;
+  category: MemoryCategory | null;
+  conflicting: MemoryFieldsFragment[];
+}

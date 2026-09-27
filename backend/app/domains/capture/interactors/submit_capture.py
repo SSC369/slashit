@@ -19,6 +19,7 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    CONFLICT_QUESTION,
     FACT_QUESTION,
     KNOWN_COMMANDS,
     MAX_INPUT_LENGTH,
@@ -29,6 +30,7 @@ from app.domains.capture.constants import (
 )
 from app.domains.capture.interfaces.dtos import (
     CaptureTurnOutcome,
+    MemoryConflictAskedDTO,
     MissingField,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
@@ -61,6 +63,7 @@ from app.domains.gateway.public import (
 )
 from app.domains.memories.public import (
     ForgetCandidatesDTO,
+    MemoryConflictDTO,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLongDTO,
@@ -84,6 +87,7 @@ CaptureOutcome = (
     | MemoryListDTO
     | MemoryTooLongDTO
     | ForgetCandidatesDTO
+    | MemoryConflictAskedDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -341,6 +345,13 @@ class SubmitCaptureInteractor:
                 resulting_memory_id=outcome.memory.id,
             )
             return outcome
+        if isinstance(outcome, MemoryConflictDTO):
+            return await self._ask_conflict(
+                user_id=user_id,
+                command_name=command_name,
+                conflict=outcome,
+                original_input=original_input,
+            )
         await self._record_turn(
             user_id=user_id, input_text=original_input, outcome="refused"
         )
@@ -395,6 +406,39 @@ class SubmitCaptureInteractor:
             question_text=question_text,
         )
         return pending_capture
+
+    async def _ask_conflict(
+        self,
+        *,
+        user_id: UUID,
+        command_name: str,
+        conflict: MemoryConflictDTO,
+        original_input: str,
+    ) -> MemoryConflictAskedDTO:
+        """FR-10 and FR-13: nothing is saved; the fact waits for an answer."""
+        pending = await self.pending_capture_repository.create_pending_conflict(
+            user_id=user_id,
+            command_name=command_name,
+            question_text=CONFLICT_QUESTION,
+            original_input=original_input,
+            candidate_text=conflict.text,
+            candidate_category=conflict.category,
+            conflicting_memory_ids=[memory.id for memory in conflict.conflicting],
+        )
+        await self._record_turn(
+            user_id=user_id,
+            input_text=original_input,
+            outcome="question_asked",
+            resulting_pending_capture_id=pending.id,
+            question_text=CONFLICT_QUESTION,
+        )
+        return MemoryConflictAskedDTO(
+            pending_capture_id=pending.id,
+            question=CONFLICT_QUESTION,
+            text=conflict.text,
+            category=conflict.category,
+            conflicting=conflict.conflicting,
+        )
 
     async def _record_no_command_input(self, *, user_id: UUID) -> None:
         """FR-9's metric (PRD section 8). Same non-blocking pattern as

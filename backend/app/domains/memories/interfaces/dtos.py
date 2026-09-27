@@ -120,9 +120,34 @@ class MemoryCountChangedDTO:
 
 
 @dataclass(frozen=True)
+class MemoryConflictDTO:
+    """FR-10: the new fact contradicts one or more memories, so nothing was
+    saved. ``text`` and ``category`` are kept to save on a later answer;
+    ``conflicting`` is read live, never copied into capture (index §4)."""
+
+    text: str
+    category: MemoryCategory | None
+    conflicting: list[MemoryDTO]
+
+
+@dataclass(frozen=True)
+class MemoryDiscardedDTO:
+    """FR-11, "Keep the old one": the new fact was dropped. Nothing changed."""
+
+
+@strawberry.enum
+class ConflictAnswer(StrEnum):
+    """FR-11's three answers. "Decide later" is not an answer: it sends nothing."""
+
+    KEEP_NEW = "keep_new"
+    KEEP_OLD = "keep_old"
+    BOTH = "both"
+
+
+@dataclass(frozen=True)
 class CategoryJudgement:
     """What the model said about one fact: its category, and which of the
-    candidates it contradicts. Slice 1 sends no candidates."""
+    candidates it contradicts (FR-10)."""
 
     category: MemoryCategory | None
     conflicting_ids: tuple[UUID, ...]

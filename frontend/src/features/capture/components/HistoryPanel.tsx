@@ -1,4 +1,4 @@
-import { Bell, Bookmark, Check, Clock, Eraser, History, Search, Trash2, X } from "lucide-react";
+import { Bell, Bookmark, Check, Clock, Eraser, History, Scale, Search, Trash2, X } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 
 import useGetCaptureHistory from "../../../api/queries/GetCaptureHistory/useGetCaptureHistory";
@@ -26,6 +26,11 @@ const OUTCOME_PILL: Record<
   MEMORY_SAVED: { className: Styles.pillDoneStyles, label: "Memory saved", icon: <Bookmark size={12} /> },
   MEMORY_LISTED: { className: Styles.pillMutedStyles, label: "Memories listed", icon: <Search size={12} /> },
   MEMORY_FORGOTTEN: { className: Styles.pillMutedStyles, label: "Forgot memories", icon: <Eraser size={12} /> },
+  MEMORY_CONFLICT_RESOLVED: {
+    className: Styles.pillDoneStyles,
+    label: "Conflict answered",
+    icon: <Scale size={12} />,
+  },
 };
 
 /** FR-28: the `/forget` row names the count and nothing typed. */

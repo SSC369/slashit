@@ -18,9 +18,13 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgottenDTO,
+    MemoryCategory,
+    MemoryConflictDTO,
     MemoryCountChangedDTO,
+    MemoryDiscardedDTO,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLongDTO,
@@ -89,6 +93,7 @@ class LocalClockPort(Protocol):
 
 MemorySaveOutcome = (
     MemorySavedDTO
+    | MemoryConflictDTO
     | MemoryTooLongDTO
     | UserLimitReached
     | ProviderUnavailable
@@ -122,3 +127,14 @@ class MemoryPort(Protocol):
     async def forget_all(
         self, *, user_id: UUID, expected_count: int
     ) -> MemoriesForgottenDTO | MemoryCountChangedDTO: ...
+
+    async def resolve_conflict(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        category: MemoryCategory | None,
+        original_input: str,
+        conflicting_ids: list[UUID],
+        answer: ConflictAnswer,
+    ) -> MemorySavedDTO | MemoryDiscardedDTO: ...

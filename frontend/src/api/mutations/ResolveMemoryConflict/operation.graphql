@@ -1,0 +1,19 @@
+#import "../../../fragments/MemoryFields.graphql"
+
+mutation ResolveMemoryConflict($pendingCaptureId: ID!, $answer: ConflictAnswer!) {
+  resolveMemoryConflict(pendingCaptureId: $pendingCaptureId, answer: $answer) {
+    __typename
+    ... on MemorySaved {
+      memory {
+        ...MemoryFields
+      }
+      secretCaution
+    }
+    ... on MemoryDiscarded {
+      message
+    }
+    ... on PendingCaptureNotFound {
+      message
+    }
+  }
+}

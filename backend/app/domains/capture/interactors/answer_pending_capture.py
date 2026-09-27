@@ -7,10 +7,12 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    CONFLICT_QUESTION,
     DUE_AT_ONLY_INSTRUCTION,
     DUE_AT_ONLY_SCHEMA,
     MEMORY_SAVE_COMMANDS,
 )
+from app.domains.capture.interfaces.dtos import MemoryConflictAskedDTO
 from app.domains.capture.interfaces.ports import (
     ExtractionPort,
     MemoryPort,
@@ -27,11 +29,13 @@ from app.domains.capture.services.reminder_capture import (
     ReminderNeedsDescription,
 )
 from app.domains.gateway.public import Extraction
-from app.domains.memories.public import MemorySavedDTO
+from app.domains.memories.public import MemoryConflictDTO, MemorySavedDTO
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import ReminderDTO, ReminderNeedsWhen
 
-AnswerOutcome = TaskDTO | ReminderCaptureOutcome | MemorySaveOutcome
+AnswerOutcome = (
+    TaskDTO | ReminderCaptureOutcome | MemorySaveOutcome | MemoryConflictAskedDTO
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -81,7 +85,12 @@ class AnswerPendingCaptureInteractor:
         pending_capture = await self.pending_capture_repository.get_pending_capture(
             user_id=user_id, pending_capture_id=pending_capture_id
         )
-        if pending_capture is None:
+        # A conflict is answered by choice, through resolveMemoryConflict,
+        # never by typed text.
+        if (
+            pending_capture is None
+            or pending_capture.missing_field == "memory_conflict"
+        ):
             raise PendingCaptureNotFoundError()
 
         answer_text = answer.strip()
@@ -102,6 +111,7 @@ class AnswerPendingCaptureInteractor:
             return await self._answer_fact(
                 user_id=user_id,
                 pending_capture_id=pending_capture_id,
+                command_name=pending_capture.command_name,
                 question_text=pending_capture.question_text,
                 original_input=pending_capture.original_input,
                 answer_text=answer_text,
@@ -187,16 +197,27 @@ class AnswerPendingCaptureInteractor:
         *,
         user_id: UUID,
         pending_capture_id: UUID,
+        command_name: str,
         question_text: str,
         original_input: str,
         answer_text: str,
-    ) -> MemorySaveOutcome:
+    ) -> MemorySaveOutcome | MemoryConflictAskedDTO:
         """Epic 004, FR-3: the answer is the fact, saved exactly as a fact
         typed after `/remember` would be. A refusal or an over-long answer
-        leaves the question open, as a due-date answer does."""
+        leaves the question open, as a due-date answer does. A contradiction
+        replaces this question with "Which is correct?" (FR-10)."""
         outcome = await self.memory_port.save_memory(
             user_id=user_id, text=answer_text, original_input=original_input
         )
+        if isinstance(outcome, MemoryConflictDTO):
+            return await self._ask_conflict(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
+                command_name=command_name,
+                conflict=outcome,
+                original_input=original_input,
+                answer_text=answer_text,
+            )
         if not isinstance(outcome, MemorySavedDTO):
             return outcome
         try:
@@ -217,6 +238,51 @@ class AnswerPendingCaptureInteractor:
             user_id=user_id, pending_capture_id=pending_capture_id
         )
         return outcome
+
+    async def _ask_conflict(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        command_name: str,
+        conflict: MemoryConflictDTO,
+        original_input: str,
+        answer_text: str,
+    ) -> MemoryConflictAskedDTO:
+        """The fact question is answered; the conflict question takes its
+        place. One turn records both: the fact as its answer, and the new
+        pending id, so forgetting the memory later scrubs this turn too."""
+        pending = await self.pending_capture_repository.create_pending_conflict(
+            user_id=user_id,
+            command_name=command_name,
+            question_text=CONFLICT_QUESTION,
+            original_input=original_input,
+            candidate_text=conflict.text,
+            candidate_category=conflict.category,
+            conflicting_memory_ids=[memory.id for memory in conflict.conflicting],
+        )
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="question_asked",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending.id,
+                question_text=CONFLICT_QUESTION,
+                answer_text=answer_text,
+            )
+        except Exception:
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return MemoryConflictAskedDTO(
+            pending_capture_id=pending.id,
+            question=CONFLICT_QUESTION,
+            text=conflict.text,
+            category=conflict.category,
+            conflicting=conflict.conflicting,
+        )
 
     async def _record_turn(
         self,

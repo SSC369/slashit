@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import cast
 
-from sqlalchemy import literal, select, tuple_, update
+from sqlalchemy import literal, or_, select, tuple_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -95,7 +95,19 @@ class SqlCaptureTurnRepository:
                 update(CaptureTurn)
                 .where(
                     CaptureTurn.user_id == user_id,
-                    CaptureTurn.resulting_memory_id.in_(memory_ids),
+                    or_(
+                        CaptureTurn.resulting_memory_id.in_(memory_ids),
+                        # Sub-plan 4.3 §5: a conflict's question turn holds the
+                        # typed fact but no memory id. It shares a pending id
+                        # with the resolution turn that saved the memory.
+                        CaptureTurn.resulting_pending_capture_id.in_(
+                            select(CaptureTurn.resulting_pending_capture_id).where(
+                                CaptureTurn.user_id == user_id,
+                                CaptureTurn.resulting_memory_id.in_(memory_ids),
+                                CaptureTurn.resulting_pending_capture_id.is_not(None),
+                            )
+                        ),
+                    ),
                     CaptureTurn.forgotten_at.is_(None),
                 )
                 .values(

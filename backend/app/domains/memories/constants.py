@@ -51,5 +51,7 @@ JUDGEMENT_INSTRUCTION: Final = (
     "(family, friends, colleagues), professional (career, skills, work), life "
     "(documents, subscriptions, purchases, travel, decisions), or none. "
     "In conflicting_ids list the ids of candidates the fact directly "
-    "contradicts; [] if none."
+    "contradicts, meaning both cannot be true now; [] if none. A second "
+    "preference, an added detail, or a fact about someone else is not a "
+    "contradiction."
 )

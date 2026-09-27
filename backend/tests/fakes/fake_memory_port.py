@@ -6,9 +6,13 @@ from uuid import UUID
 
 from app.domains.capture.interfaces.ports import MemorySaveOutcome
 from app.domains.memories.public import (
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgottenDTO,
+    MemoryCategory,
+    MemoryConflictDTO,
     MemoryCountChangedDTO,
+    MemoryDiscardedDTO,
     MemoryDTO,
     MemoryListDTO,
     MemorySavedDTO,
@@ -33,10 +37,13 @@ def make_memory(
 
 
 class FakeMemoryPort:
-    """Saves into a list; returns ``refusal`` instead when one is set."""
+    """Saves into a list; returns ``refusal`` instead when one is set, and
+    ``conflict_with`` turns a save into a conflict against those memories."""
 
     def __init__(self, *, refusal: MemorySaveOutcome | None = None) -> None:
         self.refusal = refusal
+        self.conflict_with: list[MemoryDTO] = []
+        self.answers: list[ConflictAnswer] = []
         self.saved: list[MemoryDTO] = []
         self.lookups: list[str] = []
         self.forgotten: list[UUID] = []
@@ -48,6 +55,10 @@ class FakeMemoryPort:
             return self.refusal
         if len(text) > 500:
             return MemoryTooLongDTO(length=len(text))
+        if self.conflict_with:
+            return MemoryConflictDTO(
+                text=text, category=None, conflicting=list(self.conflict_with)
+            )
         memory = make_memory(user_id=user_id, text=text)
         self.saved.append(memory)
         return MemorySavedDTO(memory=memory, secret_caution=None)
@@ -96,6 +107,25 @@ class FakeMemoryPort:
         return await self.forget_memories(
             user_id=user_id, memory_ids=[memory.id for memory in self.saved]
         )
+
+    async def resolve_conflict(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        category: MemoryCategory | None,
+        original_input: str,
+        conflicting_ids: list[UUID],
+        answer: ConflictAnswer,
+    ) -> MemorySavedDTO | MemoryDiscardedDTO:
+        self.answers.append(answer)
+        if answer is ConflictAnswer.KEEP_OLD:
+            return MemoryDiscardedDTO()
+        memory = make_memory(user_id=user_id, text=text)
+        self.saved.append(memory)
+        if answer is ConflictAnswer.KEEP_NEW:
+            self.forgotten.extend(conflicting_ids)
+        return MemorySavedDTO(memory=memory, secret_caution=None)
 
 
 class FakeMemoryRecordsPort:

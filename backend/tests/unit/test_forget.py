@@ -16,6 +16,7 @@ from tests.fakes.fake_memory_repository import (
     FakeMemoryAnalytics,
     FakeMemoryModel,
     FakeMemoryRepository,
+    FakeReembedQueue,
     FakeTurnScrub,
 )
 
@@ -35,6 +36,7 @@ class Harness:
             judgement=self.model,
             analytics=self.analytics,
             turn_scrub=self.scrub,
+            reembed_queue=FakeReembedQueue(),
         )
 
     async def seed(self, text: str, *, user_id: uuid.UUID = USER) -> MemoryDTO:

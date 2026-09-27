@@ -128,3 +128,20 @@ export const forgetConfirmTextStyles = "mt-1.5 text-[13.5px] text-foreground-sec
 export const forgetConfirmBackupStyles = "mt-2.5 text-[12.5px] text-foreground-tertiary";
 export const forgetActionsStyles = "flex justify-end gap-2.5 border-t border-border bg-background px-4 py-3";
 export const forgetErrorStyles = "px-4 pb-3 text-[13px] text-destructive";
+
+// Conflict (004 design: Main, MobileConflict). The pair is design delta `.pair`.
+export const conflictLeadStyles = "px-4 pt-3 text-[13.5px] text-foreground-secondary";
+export const conflictPairStyles = "grid grid-cols-1 gap-2.5 px-4 py-3 sm:grid-cols-2";
+export const conflictSideStyles = "rounded-[10px] border border-border bg-background px-3.5 py-3";
+export const conflictSideNewStyles = "border-accent bg-accent-wash";
+export const conflictSideTextStyles = "mt-1 text-[14.5px] font-medium text-foreground";
+export const conflictSideMetaStyles = "mt-1 text-xs text-foreground-tertiary";
+export const conflictAnswerRowStyles =
+  "flex cursor-pointer items-start gap-3 border-t border-border px-4 py-3 first:border-t-0";
+export const conflictAnswerRowOnStyles = "bg-accent-wash";
+export const conflictAnswerTitleStyles = "text-[14px] font-semibold text-foreground";
+export const conflictAnswerBodyStyles = "mt-0.5 text-[13px] text-foreground-secondary";
+export const conflictActionsStyles =
+  "flex flex-col-reverse gap-2.5 border-t border-border bg-background px-4 py-3 sm:flex-row sm:justify-end";
+export const conflictDeferredStyles = "flex items-center justify-between gap-3 px-4 py-3 text-[13px] text-foreground-secondary";
+export const waitingPillRowStyles = "mb-2 flex justify-center";

@@ -16,14 +16,18 @@ from app.core.deps import (
     build_answer_pending_capture_interactor,
     build_confirm_forget_interactor,
     build_discard_pending_capture_interactor,
+    build_resolve_memory_conflict_interactor,
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
     ForgetCandidates,
     ForgetTargetGone,
     MemoriesListed,
+    MemoryConflictAsked,
+    MemoryDiscarded,
     MemorySaved,
     NonCommandGuidance,
+    PendingCaptureNotFound,
     PendingQuestionCreated,
     ReminderCreated,
     ReminderLimitReached,
@@ -35,6 +39,7 @@ from app.domains.capture.graphql.types import (
 from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
+    MemoryConflictAskedDTO,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
     ReminderListDTO,
@@ -48,10 +53,12 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgotten,
     MemoriesForgottenDTO,
     MemoryCountChanged,
+    MemoryDiscardedDTO,
     MemoryListDTO,
     MemorySavedDTO,
     MemoryTooLong,
@@ -76,6 +83,7 @@ CaptureResult = Annotated[
     | MemoriesListed
     | MemoryTooLong
     | ForgetCandidates
+    | MemoryConflictAsked
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -189,7 +197,26 @@ def _memory_outcome_to_result(
                 all_count=outcome.all_count,
             ),
         )
+    if isinstance(outcome, MemoryConflictAskedDTO):
+        return cast(
+            CaptureResult,
+            MemoryConflictAsked(
+                pending_capture_id=strawberry.ID(str(outcome.pending_capture_id)),
+                question=outcome.question,
+                new_text=outcome.text,
+                category=outcome.category,
+                conflicting=[
+                    memory_dto_to_type(memory=memory) for memory in outcome.conflicting
+                ],
+            ),
+        )
     return None
+
+
+ResolveMemoryConflictResult = Annotated[
+    MemorySaved | MemoryDiscarded | PendingCaptureNotFound,
+    strawberry.union("ResolveMemoryConflictResult"),
+]
 
 
 ForgetFromCaptureResult = Annotated[
@@ -266,5 +293,40 @@ class CaptureMutations:
                 message=f"You now have {outcome.count} {noun}. Confirm again to "
                 "forget them all.",
                 count=outcome.count,
+            ),
+        )
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
+    async def resolve_memory_conflict(
+        self, info: Info, pending_capture_id: strawberry.ID, answer: ConflictAnswer
+    ) -> ResolveMemoryConflictResult:
+        """Epic 004, FR-11 to FR-13: the answer to "Which is correct?"."""
+        context = cast(Context, info.context)
+        user_id = cast(UUID, context.user_id)
+        interactor = build_resolve_memory_conflict_interactor(context)
+        outcome = await interactor.resolve_memory_conflict(
+            user_id=user_id,
+            pending_capture_id=UUID(str(pending_capture_id)),
+            answer=answer,
+        )
+        if isinstance(outcome, MemorySavedDTO):
+            return cast(
+                ResolveMemoryConflictResult,
+                MemorySaved(
+                    memory=memory_dto_to_type(memory=outcome.memory),
+                    secret_caution=outcome.secret_caution,
+                ),
+            )
+        if isinstance(outcome, MemoryDiscardedDTO):
+            return cast(
+                ResolveMemoryConflictResult,
+                MemoryDiscarded(
+                    message="Kept your earlier memory. Nothing new was saved."
+                ),
+            )
+        return cast(
+            ResolveMemoryConflictResult,
+            PendingCaptureNotFound(
+                message="This question was already answered. Nothing changed."
             ),
         )

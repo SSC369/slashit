@@ -6,12 +6,16 @@ section 6.
 """
 
 from app.domains.memories.interfaces.dtos import (
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgotten,
     MemoriesForgottenDTO,
     Memory,
+    MemoryCategory,
+    MemoryConflictDTO,
     MemoryCountChanged,
     MemoryCountChangedDTO,
+    MemoryDiscardedDTO,
     MemoryDTO,
     MemoryListDTO,
     MemorySavedDTO,
@@ -25,13 +29,17 @@ from app.domains.memories.interfaces.dtos import (
 from app.domains.memories.services.memory_service import MemoryService, SaveOutcome
 
 __all__ = [
+    "ConflictAnswer",
     "ForgetCandidatesDTO",
     "MemoriesForgotten",
     "MemoriesForgottenDTO",
     "Memory",
+    "MemoryCategory",
+    "MemoryConflictDTO",
     "MemoryCountChanged",
     "MemoryCountChangedDTO",
     "MemoryDTO",
+    "MemoryDiscardedDTO",
     "MemoryListDTO",
     "MemorySavedDTO",
     "MemoryService",

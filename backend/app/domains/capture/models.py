@@ -3,12 +3,12 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Integer, Text, Uuid
+from sqlalchemy import ARRAY, DateTime, Enum, Integer, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-MISSING_FIELDS = ("title", "due_at", "remind_at", "fact")
+MISSING_FIELDS = ("title", "due_at", "remind_at", "fact", "memory_conflict")
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
     "question_asked",
@@ -18,7 +18,9 @@ CAPTURE_TURN_OUTCOMES = (
     "memory_saved",
     "memory_listed",
     "memory_forgotten",
+    "memory_conflict_resolved",
 )
+MEMORY_CATEGORIES = ("personal", "people", "professional", "life")
 
 
 class PendingCapture(Base):
@@ -37,6 +39,12 @@ class PendingCapture(Base):
     question_text: Mapped[str] = mapped_column(Text)
     original_input: Mapped[str] = mapped_column(Text)
     asked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Epic 004, sub-plan 4.3: set only on a `memory_conflict` row.
+    candidate_text: Mapped[str | None] = mapped_column(Text)
+    candidate_category: Mapped[str | None] = mapped_column(
+        Enum(*MEMORY_CATEGORIES, name="memory_category", create_type=False)
+    )
+    conflicting_memory_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
 
 
 class CaptureTurn(Base):

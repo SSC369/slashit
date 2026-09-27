@@ -38,6 +38,9 @@ from app.domains.capture.interactors.discard_pending_capture import (
 from app.domains.capture.interactors.list_capture_history import (
     ListCaptureHistoryInteractor,
 )
+from app.domains.capture.interactors.resolve_memory_conflict import (
+    ResolveMemoryConflictInteractor,
+)
 from app.domains.capture.interactors.submit_capture import SubmitCaptureInteractor
 from app.domains.capture.repositories.capture_turn_repository import (
     SqlCaptureTurnRepository,
@@ -670,11 +673,22 @@ def build_memory_service(context: Context) -> MemoryService:
         turn_scrub=CaptureTurnScrubber(
             capture_turn_repository=SqlCaptureTurnRepository(context.session)
         ),
+        reembed_queue=ProcrastinateReembedQueue(),
     )
 
 
 def build_forget_memory_interactor(context: Context) -> ForgetMemoryInteractor:
     return ForgetMemoryInteractor(memory_service=build_memory_service(context))
+
+
+def build_resolve_memory_conflict_interactor(
+    context: Context,
+) -> ResolveMemoryConflictInteractor:
+    return ResolveMemoryConflictInteractor(
+        pending_capture_repository=SqlPendingCaptureRepository(context.session),
+        capture_turn_repository=SqlCaptureTurnRepository(context.session),
+        memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
+    )
 
 
 def build_confirm_forget_interactor(context: Context) -> ConfirmForgetInteractor:

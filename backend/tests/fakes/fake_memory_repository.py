@@ -89,6 +89,17 @@ class FakeMemoryRepository:
         self.embeddings[memory_id] = None
         return updated
 
+    async def find_nearest(
+        self, *, user_id: UUID, embedding: tuple[float, ...], limit: int
+    ) -> list[MemoryDTO]:
+        """Newest first stands in for nearest: the fake has no geometry."""
+        with_vector = [
+            row
+            for row in self.rows.values()
+            if row.user_id == user_id and self.embeddings.get(row.id) is not None
+        ]
+        return sorted(with_vector, key=lambda row: row.created_at, reverse=True)[:limit]
+
     async def filter_live_ids(
         self, *, user_id: UUID, memory_ids: list[UUID]
     ) -> list[UUID]:
@@ -138,6 +149,9 @@ class FakeMemoryModel:
         self.judge_refusal = judge_refusal
         self.embedded_texts: list[str] = []
         self.judged_texts: list[str] = []
+        # Candidate texts the judgement calls contradicted, and what it saw.
+        self.contradicts: set[str] = set()
+        self.offered: list[list[CandidateMemory]] = []
 
     async def embed_fact(
         self, *, user_id: UUID, text: str
@@ -151,9 +165,17 @@ class FakeMemoryModel:
         self, *, user_id: UUID, text: str, candidates: list[CandidateMemory]
     ) -> CategoryJudgement | ModelRefused:
         self.judged_texts.append(text)
+        self.offered.append(list(candidates))
         if self.judge_refusal is not None:
             return ModelRefused(gateway_result=self.judge_refusal)
-        return CategoryJudgement(category=self.category, conflicting_ids=())
+        return CategoryJudgement(
+            category=self.category,
+            conflicting_ids=tuple(
+                candidate.id
+                for candidate in candidates
+                if candidate.text in self.contradicts
+            ),
+        )
 
 
 class FakeMemoryAnalytics:

@@ -74,7 +74,9 @@ def fake_model(monkeypatch: pytest.MonkeyPatch) -> list[str]:
         self: LangChainGeminiProvider, request: ExtractionRequest
     ) -> ProviderResult:
         prompts.append(request.prompt)
-        category = "life" if "passport" in request.prompt.lower() else "people"
+        # The fact is the prompt's first line; candidates follow (sub-plan 4.3).
+        fact_line = request.prompt.split("\n", 1)[0].lower()
+        category = "life" if "passport" in fact_line else "people"
         return ProviderResult(
             data={"category": category, "conflicting_ids": []},
             input_tokens=120,

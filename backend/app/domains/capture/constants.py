@@ -45,6 +45,17 @@ MAX_MEMORY_LINE_LENGTH: Final = 1000
 # FR-3. The one question an empty `/remember` asks.
 FACT_QUESTION: Final = "What should Slashit remember?"
 
+# Epic 004, FR-10. Fixed, so a conflict turn never stores an existing memory's
+# text: the old memories are shown live, by id (index §4).
+CONFLICT_QUESTION: Final = "Which is correct?"
+
+# What a resolution turn records as the answer. Fixed labels, never typed text.
+CONFLICT_ANSWER_LABELS: Final = {
+    "keep_new": "Keep the new one",
+    "keep_old": "Keep the old one",
+    "both": "Both are correct",
+}
+
 TASK_EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
     "type": "object",
     "properties": {

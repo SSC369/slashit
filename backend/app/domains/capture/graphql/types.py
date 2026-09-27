@@ -12,7 +12,7 @@ from enum import Enum
 import strawberry
 
 from app.domains.capture.interfaces.dtos import CaptureTurnDTO
-from app.domains.memories.public import Memory, SecretKind
+from app.domains.memories.public import Memory, MemoryCategory, SecretKind
 from app.domains.records.public import Task
 from app.domains.reminders.public import Reminder
 
@@ -85,6 +85,33 @@ class ForgetTargetGone:
 
 
 @strawberry.type
+class MemoryConflictAsked:
+    """Epic 004, FR-10: nothing was saved. The new fact waits beside every
+    memory it contradicts until the user answers "Which is correct?"."""
+
+    pending_capture_id: strawberry.ID
+    question: str
+    new_text: str
+    category: MemoryCategory | None
+    conflicting: list[Memory]
+
+
+@strawberry.type
+class MemoryDiscarded:
+    """FR-11, "Keep the old one": the new fact was dropped, nothing changed."""
+
+    message: str
+
+
+@strawberry.type
+class PendingCaptureNotFound:
+    """The conflict was already answered or discarded, from another tab or
+    device. This request changed nothing (FR-13)."""
+
+    message: str
+
+
+@strawberry.type
 class ReminderLimitReached:
     """FR-38. Nothing was saved; the input is kept by the client."""
 
@@ -119,6 +146,7 @@ class CaptureTurnOutcome(Enum):
     MEMORY_SAVED = "memory_saved"
     MEMORY_LISTED = "memory_listed"
     MEMORY_FORGOTTEN = "memory_forgotten"
+    MEMORY_CONFLICT_RESOLVED = "memory_conflict_resolved"
 
 
 @strawberry.type

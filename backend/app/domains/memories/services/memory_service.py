@@ -9,15 +9,21 @@ from uuid import UUID
 import structlog
 
 from app.domains.memories.constants import (
+    CANDIDATE_LIMIT,
     FORGET_ALL_PHRASES,
     FORGET_PICK_LIMIT,
     LOOKUP_LIMIT,
     MAX_FACT_LENGTH,
 )
 from app.domains.memories.interfaces.dtos import (
+    CandidateMemory,
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgottenDTO,
+    MemoryCategory,
+    MemoryConflictDTO,
     MemoryCountChangedDTO,
+    MemoryDiscardedDTO,
     MemoryDTO,
     MemoryListDTO,
     MemorySavedDTO,
@@ -29,6 +35,7 @@ from app.domains.memories.interfaces.ports import (
     JudgementPort,
     MemoryAnalyticsPort,
     MemoryEventType,
+    ReembedQueue,
     TurnScrubPort,
 )
 from app.domains.memories.interfaces.repositories import MemoryRepository, MemoryWrite
@@ -37,7 +44,7 @@ from app.domains.memories.services.secret_check import detect_secret
 
 logger = structlog.get_logger(__name__)
 
-SaveOutcome = MemorySavedDTO | MemoryTooLongDTO | ModelRefused
+SaveOutcome = MemorySavedDTO | MemoryConflictDTO | MemoryTooLongDTO | ModelRefused
 
 
 class MemoryService:
@@ -49,21 +56,25 @@ class MemoryService:
         judgement: JudgementPort,
         analytics: MemoryAnalyticsPort,
         turn_scrub: TurnScrubPort,
+        reembed_queue: ReembedQueue,
     ) -> None:
         self.memory_repository = memory_repository
         self.embedding = embedding
         self.judgement = judgement
         self.analytics = analytics
         self.turn_scrub = turn_scrub
+        self.reembed_queue = reembed_queue
 
     async def save_memory(
         self, *, user_id: UUID, text: str, original_input: str
     ) -> SaveOutcome:
-        """Save one fact, in the user's own words (FR-2).
+        """Save one fact, in the user's own words (FR-2), unless it contradicts
+        a memory the user already has (FR-10).
 
         Nothing is written until both model calls have succeeded, so a failure
         in either leaves no row (FR-9). The caution is decided before any call,
-        and never blocks the save (FR-8).
+        and never blocks the save (FR-8). A contradiction writes nothing here:
+        capture holds the fact as a pending conflict until the user answers.
         """
         fact = text.strip()
         if len(fact) > MAX_FACT_LENGTH:
@@ -73,11 +84,27 @@ class MemoryService:
         vector = await self.embedding.embed_fact(user_id=user_id, text=fact)
         if isinstance(vector, ModelRefused):
             return vector
+        nearest = await self.memory_repository.find_nearest(
+            user_id=user_id, embedding=vector, limit=CANDIDATE_LIMIT
+        )
         judgement = await self.judgement.judge_fact(
-            user_id=user_id, text=fact, candidates=[]
+            user_id=user_id,
+            text=fact,
+            candidates=[
+                CandidateMemory(id=memory.id, text=memory.text) for memory in nearest
+            ],
         )
         if isinstance(judgement, ModelRefused):
             return judgement
+        if judgement.conflicting_ids:
+            by_id = {memory.id: memory for memory in nearest}
+            return MemoryConflictDTO(
+                text=fact,
+                category=judgement.category,
+                conflicting=[
+                    by_id[memory_id] for memory_id in judgement.conflicting_ids
+                ],
+            )
 
         memory = await self.memory_repository.create_memory(
             user_id=user_id,
@@ -90,6 +117,60 @@ class MemoryService:
             ),
         )
         await self._record_event(user_id=user_id, event_type="memory_saved")
+        if secret_caution is not None:
+            await self._record_event(
+                user_id=user_id, event_type="memory_secret_caution"
+            )
+        return MemorySavedDTO(memory=memory, secret_caution=secret_caution)
+
+    async def resolve_conflict(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        category: MemoryCategory | None,
+        original_input: str,
+        conflicting_ids: list[UUID],
+        answer: ConflictAnswer,
+    ) -> MemorySavedDTO | MemoryDiscardedDTO:
+        """FR-11 and FR-12. Never calls the model, so an answer works while it
+        is down. "Keep the new one" forgets only the memories still live."""
+        await self._record_event(user_id=user_id, event_type="memory_conflict_answered")
+        if answer is ConflictAnswer.KEEP_OLD:
+            return MemoryDiscardedDTO()
+        saved = await self.save_resolved(
+            user_id=user_id,
+            text=text,
+            category=category,
+            original_input=original_input,
+        )
+        if answer is ConflictAnswer.KEEP_NEW:
+            await self.forget_memories(user_id=user_id, memory_ids=conflicting_ids)
+        return saved
+
+    async def save_resolved(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        category: MemoryCategory | None,
+        original_input: str,
+    ) -> MemorySavedDTO:
+        """Save a fact the user kept after a conflict. The vector is filled by
+        the reembed job, so this never waits on the model (sub-plan 4.3, Q1)."""
+        memory = await self.memory_repository.create_memory(
+            user_id=user_id,
+            write=MemoryWrite(
+                text=text,
+                category=category,
+                embedding=None,
+                origin="command",
+                original_input=original_input,
+            ),
+        )
+        await self.reembed_queue.enqueue_reembed(user_id=user_id, memory_id=memory.id)
+        await self._record_event(user_id=user_id, event_type="memory_saved")
+        secret_caution = detect_secret(text=text)
         if secret_caution is not None:
             await self._record_event(
                 user_id=user_id, event_type="memory_secret_caution"

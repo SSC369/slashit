@@ -5,9 +5,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
-MissingField = Literal["title", "due_at", "remind_at", "fact"]
+MissingField = Literal["title", "due_at", "remind_at", "fact", "memory_conflict"]
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,29 @@ class PendingCaptureDTO:
     question_text: str
     original_input: str
     asked_at: datetime
+    # Epic 004, sub-plan 4.3: set only when ``missing_field`` is
+    # ``memory_conflict``. The new fact and the ids it contradicts, never the
+    # old memories' text (index §4).
+    candidate_text: str | None = None
+    candidate_category: MemoryCategory | None = None
+    conflicting_memory_ids: tuple[UUID, ...] = ()
+
+
+@dataclass(frozen=True)
+class MemoryConflictAskedDTO:
+    """FR-10: nothing saved; "Which is correct?" waits as a pending conflict.
+    ``conflicting`` is read live for the card and never stored by capture."""
+
+    pending_capture_id: UUID
+    question: str
+    text: str
+    category: MemoryCategory | None
+    conflicting: list[MemoryDTO]
+
+
+@dataclass(frozen=True)
+class PendingCaptureGoneDTO:
+    """The conflict was already answered or discarded, from another tab."""
 
 
 @dataclass(frozen=True)
@@ -45,6 +69,7 @@ CaptureTurnOutcome = Literal[
     "memory_saved",
     "memory_listed",
     "memory_forgotten",
+    "memory_conflict_resolved",
 ]
 
 

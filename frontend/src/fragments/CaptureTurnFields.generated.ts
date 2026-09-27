@@ -5,6 +5,7 @@ import * as Types from '../../types.generated';
 import { gql } from '@apollo/client';
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
   | 'MEMORY_SAVED'

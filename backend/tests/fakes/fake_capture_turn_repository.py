@@ -51,11 +51,23 @@ class FakeCaptureTurnRepository:
     async def scrub_turns_for_memories(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]
     ) -> int:
+        owned = [
+            row for row in self.rows if self._owner_by_turn_id.get(row.id) == user_id
+        ]
+        threads = {
+            row.resulting_pending_capture_id
+            for row in owned
+            if row.resulting_memory_id in memory_ids
+            and row.resulting_pending_capture_id is not None
+        }
         scrubbed = 0
         for index, row in enumerate(self.rows):
             if (
                 self._owner_by_turn_id.get(row.id) == user_id
-                and row.resulting_memory_id in memory_ids
+                and (
+                    row.resulting_memory_id in memory_ids
+                    or row.resulting_pending_capture_id in threads
+                )
                 and not row.forgotten
             ):
                 self.rows[index] = replace(

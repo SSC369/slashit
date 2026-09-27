@@ -12,10 +12,14 @@ from app.domains.gateway.public import (
     UserLimitReached,
 )
 from app.domains.memories.public import (
+    ConflictAnswer,
     ForgetCandidatesDTO,
     MemoriesForgottenDTO,
+    MemoryCategory,
     MemoryCountChangedDTO,
+    MemoryDiscardedDTO,
     MemoryListDTO,
+    MemorySavedDTO,
     MemoryService,
     ModelRefused,
 )
@@ -72,4 +76,23 @@ class MemoriesAdapter:
     ) -> MemoriesForgottenDTO | MemoryCountChangedDTO:
         return await self.memory_service.forget_all(
             user_id=user_id, expected_count=expected_count
+        )
+
+    async def resolve_conflict(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        category: MemoryCategory | None,
+        original_input: str,
+        conflicting_ids: list[UUID],
+        answer: ConflictAnswer,
+    ) -> MemorySavedDTO | MemoryDiscardedDTO:
+        return await self.memory_service.resolve_conflict(
+            user_id=user_id,
+            text=text,
+            category=category,
+            original_input=original_input,
+            conflicting_ids=conflicting_ids,
+            answer=answer,
         )

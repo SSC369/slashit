@@ -168,7 +168,9 @@ async def test_forget_from_records_leaves_no_trace(
     forgotten_turns = [
         item for item in history["captureHistory"]["items"] if item["forgotten"]
     ]
-    assert len(forgotten_turns) == 2
+    # The direct save, the answer, and since sub-plan 4.3 the question the
+    # answer closed: the scrub reaches every turn of a thread.
+    assert len(forgotten_turns) == 3
     assert all(item["inputText"] == "" for item in forgotten_turns)
     assert all(item["answerText"] is None for item in forgotten_turns)
     async with session_factory() as session, session.begin():

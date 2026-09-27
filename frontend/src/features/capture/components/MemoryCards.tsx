@@ -14,19 +14,21 @@ import * as Styles from "./styles";
 interface MemorySavedCardProps {
   memory: MemoryFieldsFragment;
   secretCaution: SecretKind | null;
+  /** Design §4 success copy after a conflict: "Saved. Both memories kept". */
+  headline?: string;
   onEditMemory: (id: string) => void;
   onOpenMemory: (id: string) => void;
 }
 
 /** `MemorySaved` and `MemorySecretCaution` (FR-7, FR-8). */
 export const MemorySavedCard = (props: MemorySavedCardProps): ReactElement => {
-  const { memory, secretCaution, onEditMemory, onOpenMemory } = props;
+  const { memory, secretCaution, headline = "Memory saved", onEditMemory, onOpenMemory } = props;
 
   return (
     <div className={Styles.cardStyles}>
       <div className={Styles.cardHeadStyles}>
         <span className={`${Styles.pillBaseStyles} ${Styles.pillDoneStyles}`}>
-          <Check size={13} /> Memory saved
+          <Check size={13} /> {headline}
         </span>
       </div>
       <div className={Styles.memoryFieldsGridStyles}>

@@ -1,6 +1,6 @@
 import { makeAutoObservable } from "mobx";
 
-import type { SecretKind } from "../../types.generated";
+import type { MemoryCategory, SecretKind } from "../../types.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
@@ -19,7 +19,26 @@ export type CaptureTurn =
       status: "memorySaved";
       memory: MemoryFieldsFragment;
       secretCaution: SecretKind | null;
+      /** Set when the save answered a conflict, for the card's headline. */
+      resolution?: "KEEP_NEW" | "BOTH";
+      /** How many old memories "Keep the new one" forgot. */
+      forgottenCount?: number;
     }
+  /** `Main`, FR-10 to FR-13: nothing saved until an answer. */
+  | {
+      id: string;
+      said: string;
+      status: "memoryConflict";
+      pendingCaptureId: string;
+      newText: string;
+      category: MemoryCategory | null;
+      conflicting: MemoryFieldsFragment[];
+      /** "Decide later": the card folds but the question still waits. */
+      deferred: boolean;
+      error: string | null;
+    }
+  | { id: string; said: string; status: "memoryDiscarded" }
+  | { id: string; said: string; status: "conflictGone" }
   | {
       id: string;
       said: string;
@@ -126,6 +145,24 @@ export class CaptureStoreModel {
     const turn = this.turns.get(id);
     if (!turn || (turn.status !== "forgetConfirm" && turn.status !== "forgetAll")) return;
     this.turns.set(id, { ...turn, error });
+  }
+
+  setConflictDeferred(id: string, deferred: boolean): void {
+    const turn = this.turns.get(id);
+    if (!turn || turn.status !== "memoryConflict") return;
+    this.turns.set(id, { ...turn, deferred });
+  }
+
+  setConflictError(id: string, error: string | null): void {
+    const turn = this.turns.get(id);
+    if (!turn || turn.status !== "memoryConflict") return;
+    this.turns.set(id, { ...turn, error });
+  }
+
+  /** "1 question waiting": every question still open in the stream (Q2). */
+  get waitingCount(): number {
+    return this.getAll().filter((turn) => turn.status === "pending" || turn.status === "memoryConflict")
+      .length;
   }
 
   removeTurn(id: string): void {

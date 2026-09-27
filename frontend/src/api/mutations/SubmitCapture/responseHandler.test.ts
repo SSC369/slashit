@@ -56,6 +56,31 @@ describe("SubmitCapture responseHandler, epic 004's members", () => {
     });
   });
 
+  it("hands MemoryConflictAsked to onMemoryConflictAsked", () => {
+    const { handleResponse } = useResponseHandler();
+    const onMemoryConflictAsked = vi.fn();
+    const old = buildMemory({ text: "Preferred airline is Emirates" });
+    const data: SubmitCaptureMutation = {
+      submitCapture: {
+        __typename: "MemoryConflictAsked",
+        pendingCaptureId: "p1",
+        question: "Which is correct?",
+        newText: "My preferred airline is Qatar Airways",
+        category: "PERSONAL",
+        conflicting: [old],
+      },
+    };
+
+    handleResponse({ data, onMemoryConflictAsked });
+
+    expect(onMemoryConflictAsked).toHaveBeenCalledWith({
+      pendingCaptureId: "p1",
+      newText: "My preferred airline is Qatar Airways",
+      category: "PERSONAL",
+      conflicting: [old],
+    });
+  });
+
   it("hands MemoryTooLong to onMemoryTooLong", () => {
     const { handleResponse } = useResponseHandler();
     const onMemoryTooLong = vi.fn();

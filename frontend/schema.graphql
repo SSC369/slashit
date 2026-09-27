@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | ForgetCandidates | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | ForgetCandidates | MemoryConflictAsked | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -42,6 +42,13 @@ enum CaptureTurnOutcome {
   MEMORY_SAVED
   MEMORY_LISTED
   MEMORY_FORGOTTEN
+  MEMORY_CONFLICT_RESOLVED
+}
+
+enum ConflictAnswer {
+  KEEP_NEW
+  KEEP_OLD
+  BOTH
 }
 
 """Date (isoformat)"""
@@ -140,9 +147,21 @@ enum MemoryCategory {
   LIFE
 }
 
+type MemoryConflictAsked {
+  pendingCaptureId: ID!
+  question: String!
+  newText: String!
+  category: MemoryCategory
+  conflicting: [Memory!]!
+}
+
 type MemoryCountChanged {
   message: String!
   count: Int!
+}
+
+type MemoryDiscarded {
+  message: String!
 }
 
 type MemoryNotFound {
@@ -167,6 +186,7 @@ type Mutation {
   answerPendingCapture(pendingCaptureId: ID!, answer: String!): CaptureResult!
   discardPendingCapture(pendingCaptureId: ID!): Boolean!
   forgetFromCapture(memoryIds: [ID!]!, forgetAll: Boolean!, expectedCount: Int!): ForgetFromCaptureResult!
+  resolveMemoryConflict(pendingCaptureId: ID!, answer: ConflictAnswer!): ResolveMemoryConflictResult!
   updateTask(id: ID!, input: UpdateTaskInput!): UpdateTaskResult!
   completeTask(id: ID!): UpdateTaskResult!
   deleteTask(ids: [ID!]!): Int!
@@ -230,6 +250,10 @@ type NotificationNotFound {
 type NotificationPage {
   items: [Notification!]!
   nextCursor: String
+}
+
+type PendingCaptureNotFound {
+  message: String!
 }
 
 type PendingQuestionCreated {
@@ -366,6 +390,8 @@ type ReminderTimePassed {
 type RemindersListed {
   reminders: [Reminder!]!
 }
+
+union ResolveMemoryConflictResult = MemorySaved | MemoryDiscarded | PendingCaptureNotFound
 
 enum SecretKind {
   CARD

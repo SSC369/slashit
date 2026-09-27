@@ -31,7 +31,7 @@ class SqlMemoryRepository:
             user_id=user_id,
             text=write.text,
             category=write.category.value if write.category else None,
-            embedding=list(write.embedding),
+            embedding=list(write.embedding) if write.embedding is not None else None,
             origin=write.origin,
             original_input=write.original_input,
             created_at=now,
@@ -110,6 +110,19 @@ class SqlMemoryRepository:
             memory.updated_at = datetime.now(UTC)
             await scoped.flush()
             return _memory_to_dto(memory=memory)
+
+    async def find_nearest(
+        self, *, user_id: uuid.UUID, embedding: tuple[float, ...], limit: int
+    ) -> list[MemoryDTO]:
+        query = (
+            _live_for(user_id=user_id)
+            .where(Memory.embedding.is_not(None))
+            .order_by(Memory.embedding.cosine_distance(list(embedding)))
+            .limit(limit)
+        )
+        async with user_transaction(self.session, user_id) as scoped:
+            memories = (await scoped.scalars(query)).all()
+            return [_memory_to_dto(memory=memory) for memory in memories]
 
     async def filter_live_ids(
         self, *, user_id: uuid.UUID, memory_ids: list[uuid.UUID]

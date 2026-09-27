@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
+import type { ConflictAnswer } from "../../../../types.generated";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
 import {
   MemoryListCard,
@@ -11,6 +12,7 @@ import {
   MemorySavedCard,
   MemoryTooLongNote,
 } from "./MemoryCards";
+import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
 import {
   ForgetAllCard,
   ForgetCancelledNote,
@@ -43,12 +45,24 @@ interface TurnCardProps {
   onForgetContinue: (id: string) => void;
   onForgetConfirm: (id: string) => void;
   onForgetCancel: (id: string) => void;
+  isResolving?: boolean;
+  onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
+  onConflictDefer: (id: string, deferred: boolean) => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
 const REMIND_QUICK_ANSWERS = ["In 1 hour", "This evening, 7:00 PM", "Tomorrow, 9:00 AM"];
 
 const isRemindCommand = (said: string): boolean => said.startsWith("/remind ") || said === "/remind";
+
+/** Design §4 success copy for a save that answered a conflict. */
+const savedHeadline = (resolution: "KEEP_NEW" | "BOTH" | undefined, forgottenCount = 0): string => {
+  if (resolution === "BOTH") return "Saved. Both memories kept";
+  if (resolution === "KEEP_NEW") {
+    return `Memory saved · forgot ${forgottenCount} old ${forgottenCount === 1 ? "memory" : "memories"}`;
+  }
+  return "Memory saved";
+};
 
 const assertNever = (value: never): never => {
   throw new Error(`Unhandled capture turn status: ${JSON.stringify(value)}`);
@@ -58,7 +72,7 @@ const TurnCard = (props: TurnCardProps): ReactElement => {
   const { turn } = props;
 
   return (
-    <div className={Styles.turnStyles}>
+    <div className={Styles.turnStyles} id={`turn-${turn.id}`}>
       <div className={Styles.saidRowStyles}>
         <div className={Styles.saidBoxStyles}>{turn.said}</div>
       </div>
@@ -88,6 +102,9 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onForgetContinue,
     onForgetConfirm,
     onForgetCancel,
+    isResolving = false,
+    onConflictAnswer,
+    onConflictDefer,
   } = props;
   const isRemind = isRemindCommand(turn.said);
 
@@ -205,6 +222,7 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
         <MemorySavedCard
           memory={turn.memory}
           secretCaution={turn.secretCaution}
+          headline={savedHeadline(turn.resolution, turn.forgottenCount)}
           onEditMemory={onEditMemory}
           onOpenMemory={onOpenMemory}
         />
@@ -225,6 +243,26 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "memoryModelDown":
       return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;
+
+    case "memoryConflict":
+      return (
+        <ConflictCard
+          newText={turn.newText}
+          conflicting={turn.conflicting}
+          deferred={turn.deferred}
+          error={turn.error}
+          isBusy={isResolving}
+          onAnswer={(answer) => onConflictAnswer(turn.id, answer)}
+          onDecideLater={() => onConflictDefer(turn.id, true)}
+          onReopen={() => onConflictDefer(turn.id, false)}
+        />
+      );
+
+    case "memoryDiscarded":
+      return <ConflictOutcomeNote kind="discarded" />;
+
+    case "conflictGone":
+      return <ConflictOutcomeNote kind="gone" />;
 
     case "forgetPick":
       return (

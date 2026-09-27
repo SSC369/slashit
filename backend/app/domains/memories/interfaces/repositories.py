@@ -20,7 +20,9 @@ class MemoryWrite:
 
     text: str
     category: MemoryCategory | None
-    embedding: tuple[float, ...]
+    # None for a save resolved from a conflict: the reembed job fills it, so
+    # an answer never waits on the model (sub-plan 4.3, Q1).
+    embedding: tuple[float, ...] | None
     origin: MemoryOriginValue
     original_input: str | None
 
@@ -56,6 +58,14 @@ class MemoryRepository(Protocol):
     ) -> MemoryDTO | None:
         """Edit one live memory, clearing its vector until the reembed job
         refills it. None when it is not this user's live memory."""
+        ...
+
+    async def find_nearest(
+        self, *, user_id: UUID, embedding: tuple[float, ...], limit: int
+    ) -> list[MemoryDTO]:
+        """This user's live memories that have a vector, nearest first by
+        cosine distance (AD-5). A forgotten memory has no vector, so it is
+        never returned."""
         ...
 
     async def filter_live_ids(

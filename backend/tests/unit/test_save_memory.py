@@ -15,6 +15,7 @@ from tests.fakes.fake_memory_repository import (
     FakeMemoryAnalytics,
     FakeMemoryModel,
     FakeMemoryRepository,
+    FakeReembedQueue,
     FakeTurnScrub,
 )
 
@@ -33,6 +34,7 @@ def _service(
         judgement=memory_model,
         analytics=analytics,
         turn_scrub=FakeTurnScrub(repository=repository),
+        reembed_queue=FakeReembedQueue(),
     )
     return service, repository, memory_model, analytics
 

@@ -55,6 +55,15 @@ mutation SubmitCapture($rawInput: String!) {
         ...MemoryFields
       }
     }
+    ... on MemoryConflictAsked {
+      pendingCaptureId
+      question
+      newText
+      category
+      conflicting {
+        ...MemoryFields
+      }
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question

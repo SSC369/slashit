@@ -30,6 +30,8 @@ const baseProps = {
   onForgetContinue: vi.fn(),
   onForgetConfirm: vi.fn(),
   onForgetCancel: vi.fn(),
+  onConflictAnswer: vi.fn(),
+  onConflictDefer: vi.fn(),
 };
 
 describe("TurnCard", () => {
