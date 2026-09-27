@@ -6,14 +6,14 @@ stage: 5
 status: draft
 owner: user
 created: 2026-09-25
-updated: 2026-09-26
+updated: 2026-09-27
 approved_on: null
 supersedes: null
 ---
 
 # Dev Log — Persistent Memory
 
-Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-save-and-browse.md) · [04.2](./04.2-forget.md)
+Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-save-and-browse.md) · [04.2](./04.2-forget.md) · [04.3](./04.3-conflicts.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -140,11 +140,64 @@ tests. Forget never calls the model, so nothing here waits on a provider key.
 Slice 1's D-7 said Forget arrives with slice 3. It arrived with slice 2 after
 the reorder, and the detail page now has it.
 
+## Slice 3 — Conflicts
+
+Backend and frontend built 2026-09-27 on slices 1 and 2. Verified against
+local PostgreSQL 16 with `0029_memory_conflicts` applied, and in unit and
+component tests, with the model faked. **Not yet verified against the real
+model or live in a browser**: see T-3.10 and T-3.11. With this slice all three
+are built; the feature ships once the owed live checks pass.
+
+### Tasks
+
+| # | Sub-plan | Task | Status | Note |
+|---|---|---|---|---|
+| T-3.1 | 4.3 | Conflict eval set | **done** | 40 cases in `backend/tests/eval/memory_conflicts.json`, accepted by the user without changes on 2026-09-27 |
+| T-3.2 | 4.3 | Migration `0029_memory_conflicts` | **done** | Upgrade, downgrade to `0028` and upgrade again clean. The check refuses a row with a candidate and no ids |
+| T-3.3 | 4.3 | `find_nearest` and candidates in `save_memory` | **done** | C-3.1, C-3.2 in `test_memory_conflicts.py` |
+| T-3.4 | 4.3 | `resolve_conflict` and `save_resolved` | **done** | C-3.3, C-3.4, C-3.7, C-3.12 |
+| T-3.5 | 4.3 | Capture: pending conflict, answer path, resolver | **done** | C-3.5, C-3.8, C-3.11 in `test_conflict_capture.py` |
+| T-3.6 | 4.3 | Thread-wide scrub | **done** | C-3.6 unit and through GraphQL; after "Both are correct" and a forget, "Qatar" is found in no table |
+| T-3.7 | 4.3 | GraphQL and boundary tests | **done** | C-3.9, C-3.10 in `test_conflicts_graphql.py` |
+| T-3.8 | 4.3 | Frontend operation, store, conflict card, pill | **done** | F-3.1 to F-3.4: `ConflictCard.test.tsx` (5), controller (4), handlers (3 files) |
+| T-3.9 | 4.3 | Live eval scorer | **done** | `test_memory_conflict_eval_live.py`, type-checked, marked `live` |
+| T-3.10 | 4.3 | NFR-4 and NFR-7 on the real model | **owed** | No provider key here, the same constraint as T-1.1 and T-1.11 |
+| T-3.11 | 4.3 | Live browser pass | **owed** | With T-1.14 and T-2.11. F-3.4's 390 px layout is checked by class names only until then |
+
+### Checks
+
+| Check | Result |
+|---|---|
+| `pytest -m "not live"` against local PostgreSQL 16 | **376 passed**, up from 358: 18 new |
+| `mypy app` | clean, 271 files |
+| `mypy tests` | 3 errors, the same three present before slice 1 |
+| `ruff check .` | clean |
+| `npm run test` | **206 passed**, up from 192: 14 new |
+| `npm run build` (`tsc -b` and Vite) | clean |
+| `npm run lint` | one warning, present before slice 1 (`main.tsx`) |
+
+### Deviations from the plan
+
+| # | Planned | Actual | Why | Approved by |
+|---|---|---|---|---|
+| D-15 | 4.3 §4: new `CONFLICT_CANDIDATE_LIMIT = 10` | Slice 1's `CANDIDATE_LIMIT = 10` is used | The same constant already existed for AD-5; a second would drift | logged, pending user |
+| D-16 | 4.3 §4: `MemoryPort.list_live` so the card reads old memories live | The card reads them from the client's `MemoriesStore`. An edit or forget in this tab shows at once; one in another tab shows only when answered, where the server forgets only live ids | Q2 made waiting questions session-only, so the store already holds every memory the card shows. The port method was written, found unused, and removed | logged, pending user |
+| D-17 | 0029: "a check that a conflict row carries all three" | The check ties `candidate_text` and a non-empty `conflicting_memory_ids` together. `candidate_category` may be NULL | An uncategorised fact is valid (FR-6), so a conflict row can have no category | logged, pending user |
+| D-18 | Not stated | `answerPendingCapture` refuses a conflict row as not found | A conflict is answered by choice through `resolveMemoryConflict`, never by typed text | logged, pending user |
+| D-19 | 4.3 §5: the scrub reaches the conflict thread | It reaches every thread, so a "What should Slashit remember?" question turn is blanked with the answer it led to. 4.2's C-2.3 test now expects three scrubbed turns, not two | One rule, keyed on the pending id, rather than a conflict-only special case. The extra turn held no fact | logged, pending user |
+| D-20 | Design §4: success copy "Memory saved" | After "Keep the new one" the card reads "Memory saved · forgot 1 old memory" | FR-12 makes the forget part of the answer; the count confirms it happened | logged, pending user |
+| D-21 | Design `Main`: "Decide later" | It folds the card to one line with "Answer now"; the waiting pill still counts it | The design draws the button, not the state after it | logged, pending user |
+
+### Incidents and defects
+
+| Date | What broke | Cause | Fix |
+|---|---|---|---|
+| 2026-09-27 | `test_tab_detail_edit_and_all_records` failed after candidates were added | The test's fake model chose a category from the whole prompt, which now includes candidate text | The fake reads only the prompt's first line, the fact |
+
 ## Deferred
 
 | Item | Why deferred | Where it goes next |
 |---|---|---|
-| Conflict check (FR-10 to FR-14) | Slice 3, after the reorder | `04.3-conflicts.md`, not yet drafted |
 | Backup window in the forget copy | User deferred it to launch, 2026-09-25 | Before launch |
 
 ## Notes for the next feature
@@ -166,3 +219,4 @@ the reorder, and the detail page now has it.
 | 2026-09-25 | Created with slice 1's record | Slice 1 built | pending |
 | 2026-09-25 | Slice 2's record added; Deferred table corrected for the slice reorder | Slice 2 built | pending |
 | 2026-09-26 | Deviations D-1 to D-14 approved | User approved all | user |
+| 2026-09-27 | Slice 3's record added | Slice 3 built | pending |
