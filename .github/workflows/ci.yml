@@ -45,6 +45,9 @@ jobs:
           DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
           SUPABASE_URL: "https://ci-placeholder.supabase.co"
           SUPABASE_JWKS_URL: "https://ci-placeholder.supabase.co/auth/v1/.well-known/jwks.json"
+          # Required by Settings since 002's b7efa24; the Format step's failure
+          # hid its absence until now. Not a secret (app/core/settings.py).
+          SUPABASE_PUBLISHABLE_KEY: "ci-placeholder-publishable-key"
 
   secrets:
     name: Secret scan
