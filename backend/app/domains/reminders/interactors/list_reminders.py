@@ -17,9 +17,7 @@ class ListRemindersInteractor:
     async def list_reminders(self, *, dto: ListRemindersInputDTO) -> ReminderGroupsDTO:
         """Group the caller's live reminders. Fired ones need attention, newest
         first; upcoming ones soonest first; done ones most recent first."""
-        reminders = await self.reminder_repository.list_for_user(
-            user_id=dto.user_id, search=dto.search
-        )
+        reminders = await self.reminder_repository.list_for_user(user_id=dto.user_id)
         return ReminderGroupsDTO(
             needs_attention=self._newest_first(
                 reminders=[item for item in reminders if item.state == "fired"]

@@ -84,9 +84,7 @@ class ReminderRepository(Protocol):
         """Live and not done. The 100-reminder cap reads this (FR-38)."""
         ...
 
-    async def list_for_user(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[ReminderDTO]:
+    async def list_for_user(self, *, user_id: UUID) -> list[ReminderDTO]:
         """Every live reminder, unordered. Grouping is the interactor's."""
         ...
 

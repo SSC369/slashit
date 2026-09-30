@@ -77,12 +77,10 @@ async def test_list_filters_by_category_and_by_uncategorised() -> None:
     interactor = ListMemoriesInteractor(memory_repository=repository)
 
     people = await interactor.list_memories(
-        dto=ListMemoriesInputDTO(
-            user_id=USER, category=MemoryCategory.PEOPLE, search=None
-        )
+        dto=ListMemoriesInputDTO(user_id=USER, category=MemoryCategory.PEOPLE)
     )
     none = await interactor.list_memories(
-        dto=ListMemoriesInputDTO(user_id=USER, category="uncategorised", search=" ")
+        dto=ListMemoriesInputDTO(user_id=USER, category="uncategorised")
     )
 
     assert [memory.text for memory in people] == ["Mom's birthday"]

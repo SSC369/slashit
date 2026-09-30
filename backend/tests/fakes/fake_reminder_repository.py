@@ -82,13 +82,8 @@ class FakeReminderRepository:
     async def count_active_for_user(self, *, user_id: uuid.UUID) -> int:
         return sum(1 for row in self._live_for(user_id=user_id) if row.state != "done")
 
-    async def list_for_user(
-        self, *, user_id: uuid.UUID, search: str | None
-    ) -> list[ReminderDTO]:
-        rows = self._live_for(user_id=user_id)
-        if search:
-            rows = [row for row in rows if search.lower() in row.description.lower()]
-        return rows
+    async def list_for_user(self, *, user_id: uuid.UUID) -> list[ReminderDTO]:
+        return self._live_for(user_id=user_id)
 
     async def get_by_id(
         self, *, user_id: uuid.UUID, reminder_id: uuid.UUID

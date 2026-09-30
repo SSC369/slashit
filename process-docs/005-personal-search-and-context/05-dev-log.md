@@ -252,6 +252,19 @@ failing step, so each fix exposed the next:
 005 stays **in progress** after the merge. It is not shipped until the owed
 live runs and browser passes below are recorded (index §8).
 
+## Follow-ups after the merge
+
+Two cleanups the user asked for on 2026-09-30, on this branch, restarted from
+`main` after PR #2 merged.
+
+| Item | What changed | Verified |
+|---|---|---|
+| D-21's dead search code | `reminders(search)` and `memories(filter.search)` are gone from the schema, with the letter match behind each: the input fields, DTO fields, service and repository parameters, and memories' `_escape_like`. The Reminders and Memories tabs load without text; their unreachable no-match-for-text copy is removed. The Memories tab keeps its category no-match state. `/memories <text>` in capture is untouched: it uses `find_by_terms`, a separate path | 501 backend, none dropped; 274 frontend |
+| `errorLink.test.ts` | Stubs `./supabaseClient`, as `sessionExpiry.test.ts` does, so the real client is never built without `VITE_SUPABASE_*` | The suite passes with no env set; all 52 frontend suites pass |
+
+The local database had to be rebuilt first: the container had been reset, and
+the stub needed `supabase_auth_admin` as well as the roles listed in Base.
+
 ## Remaining work
 
 | Item | Needs | Owner |

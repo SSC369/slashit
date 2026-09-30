@@ -58,22 +58,16 @@ class ReminderService:
     async def list_active(self, *, user_id: UUID) -> list[ReminderDTO]:
         """FR-25, `/reminders`: live and not done. A fired one-time reminder has
         no next time and sorts first, since it needs attention."""
-        reminders = await self.reminder_repository.list_for_user(
-            user_id=user_id, search=None
-        )
+        reminders = await self.reminder_repository.list_for_user(user_id=user_id)
         active = [item for item in reminders if item.state != "done"]
         return sorted(
             active,
             key=lambda item: (item.state != "fired", item.next_due_at or _FAR_FUTURE),
         )
 
-    async def list_for_records(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[ReminderDTO]:
+    async def list_for_records(self, *, user_id: UUID) -> list[ReminderDTO]:
         """Every live reminder, for the Records All tab. Records orders them."""
-        return await self.reminder_repository.list_for_user(
-            user_id=user_id, search=search
-        )
+        return await self.reminder_repository.list_for_user(user_id=user_id)
 
     async def search_candidates(
         self,

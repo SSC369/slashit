@@ -11,7 +11,6 @@ from app.domains.memories.interfaces.repositories import CategoryFilter
 class ListMemoriesInputDTO:
     user_id: UUID
     category: CategoryFilter
-    search: str | None
 
 
 @dataclass(frozen=True)

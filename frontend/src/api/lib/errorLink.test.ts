@@ -6,6 +6,11 @@ import { errorLink } from "./errorLink";
 
 const mocks = vi.hoisted(() => ({ endExpiredSession: vi.fn() }));
 
+// importOriginal below loads the real sessionExpiry, which imports the Supabase
+// client; the real client throws without VITE_SUPABASE_* set. errorLink never
+// reaches it, so an inert stub is enough, as sessionExpiry.test.ts does.
+vi.mock("./supabaseClient", () => ({ supabaseClient: { auth: {} } }));
+
 vi.mock("./sessionExpiry", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./sessionExpiry")>()),
   endExpiredSession: () => mocks.endExpiredSession(),

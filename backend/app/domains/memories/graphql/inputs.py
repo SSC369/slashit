@@ -11,7 +11,6 @@ class MemoriesFilterInput:
 
     category: MemoryCategory | None = None
     uncategorised: bool = False
-    search: str | None = None
 
 
 @strawberry.input

@@ -8,7 +8,6 @@ import { gql } from '@apollo/client';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
 export type MemoriesFilterInput = {
   category?: MemoryCategory | null | undefined;
-  search?: string | null | undefined;
   uncategorised?: boolean;
 };
 

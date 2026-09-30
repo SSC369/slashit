@@ -103,8 +103,8 @@ async def _graphql(
 
 
 REMINDERS_QUERY = """
-query($search: String) {
-  reminders(search: $search) {
+query {
+  reminders {
     needsAttention { id description }
     upcoming { id description whenText repeatText }
     done { id }

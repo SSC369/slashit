@@ -46,15 +46,13 @@ class FakeMemoryRepository:
         return memory if memory and memory.user_id == user_id else None
 
     async def list_for_user(
-        self, *, user_id: UUID, category: CategoryFilter, search: str | None
+        self, *, user_id: UUID, category: CategoryFilter
     ) -> list[MemoryDTO]:
         owned = [row for row in self.rows.values() if row.user_id == user_id]
         if category == "uncategorised":
             owned = [row for row in owned if row.category is None]
         elif category is not None:
             owned = [row for row in owned if row.category == category]
-        if search:
-            owned = [row for row in owned if search.lower() in row.text.lower()]
         return sorted(owned, key=lambda row: row.created_at, reverse=True)
 
     async def find_by_terms(
