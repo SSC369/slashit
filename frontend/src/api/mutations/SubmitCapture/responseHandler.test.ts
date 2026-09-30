@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { buildMemory } from "../../../testing/memoryFixture";
+import { buildSearchResults } from "../../../testing/searchFixture";
 import type { SubmitCaptureMutation } from "./operation.generated";
 import { useResponseHandler } from "./responseHandler";
 
@@ -72,5 +73,30 @@ describe("SubmitCapture responseHandler, epic 004's members", () => {
     const data = { submitCapture: { __typename: "Unknown" } } as unknown as SubmitCaptureMutation;
 
     expect(() => handleResponse({ data })).toThrow("Unhandled CaptureResult type");
+  });
+});
+
+describe("SubmitCapture responseHandler, epic 005's members", () => {
+  it("hands SearchResults to onSearchResults whole", () => {
+    const { handleResponse } = useResponseHandler();
+    const onSearchResults = vi.fn();
+    const results = buildSearchResults();
+    const data: SubmitCaptureMutation = { submitCapture: { __typename: "SearchResults", ...results } };
+
+    handleResponse({ data, onSearchResults });
+
+    expect(onSearchResults).toHaveBeenCalledWith({ __typename: "SearchResults", ...results });
+  });
+
+  it("hands SearchTooLong to onSearchTooLong with its length and limit", () => {
+    const { handleResponse } = useResponseHandler();
+    const onSearchTooLong = vi.fn();
+    const data: SubmitCaptureMutation = {
+      submitCapture: { __typename: "SearchTooLong", length: 612, limit: 500 },
+    };
+
+    handleResponse({ data, onSearchTooLong });
+
+    expect(onSearchTooLong).toHaveBeenCalledWith({ length: 612, limit: 500 });
   });
 });

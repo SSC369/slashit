@@ -12,6 +12,7 @@ export type CaptureTurnOutcome =
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'REMINDER_CREATED'
+  | 'SEARCHED'
   | 'TASK_CREATED';
 
 export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string };

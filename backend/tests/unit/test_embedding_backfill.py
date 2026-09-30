@@ -77,4 +77,3 @@ async def test_the_sweep_queues_only_recent_memories_with_no_vector() -> None:
         now_provider=lambda: datetime.now(UTC) + timedelta(days=2),
     )
     assert await later.queue_missing_embeddings() == 0
-

@@ -11,5 +11,5 @@ class RecordEventInteractor:
         every caller-supplied event type is valid by construction, since
         EventType is a closed Literal."""
         await self.event_repository.record_event(
-            user_id=dto.user_id, event_type=dto.event_type
+            user_id=dto.user_id, event_type=dto.event_type, properties=dto.properties
         )

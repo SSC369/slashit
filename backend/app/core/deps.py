@@ -28,6 +28,7 @@ from app.domains.capture.adapters.identity_clock_adapter import (
 from app.domains.capture.adapters.memories_adapter import MemoriesAdapter
 from app.domains.capture.adapters.records_task_adapter import RecordsTaskAdapter
 from app.domains.capture.adapters.reminders_adapter import RemindersAdapter
+from app.domains.capture.adapters.search_adapter import SearchAdapter
 from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
 )
@@ -123,29 +124,42 @@ from app.domains.notifications.services.smtp_sender import SmtpEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
+from app.domains.records.adapters.gateway_adapter import GatewayTaskEmbeddingAdapter
 from app.domains.records.adapters.memories_adapter import MemoryRecordsAdapter
 from app.domains.records.adapters.reminders_adapter import ReminderRecordsAdapter
 from app.domains.records.interactors.delete_tasks import DeleteTasksInteractor
+from app.domains.records.interactors.embed_task import EmbedTaskInteractor
 from app.domains.records.interactors.get_record_detail import GetRecordDetailInteractor
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interactors.log_records_view_opened import (
     LogRecordsViewOpenedInteractor,
 )
+from app.domains.records.interactors.queue_missing_task_embeddings import (
+    QueueMissingTaskEmbeddingsInteractor,
+)
 from app.domains.records.interactors.update_task import UpdateTaskInteractor
 from app.domains.records.repositories.task_repository import SqlTaskRepository
+from app.domains.records.services.embed_queue import ProcrastinateTaskEmbedQueue
 from app.domains.records.services.records_service import RecordsService
+from app.domains.reminders.adapters.gateway_adapter import (
+    GatewayReminderEmbeddingAdapter,
+)
 from app.domains.reminders.adapters.identity_clock_adapter import (
     IdentityUserClockAdapter,
 )
 from app.domains.reminders.adapters.notifications_adapter import NotificationsAdapter
 from app.domains.reminders.interactors.create_reminder import CreateReminderInteractor
 from app.domains.reminders.interactors.delete_reminder import DeleteReminderInteractor
+from app.domains.reminders.interactors.embed_reminder import EmbedReminderInteractor
 from app.domains.reminders.interactors.fire_due import FireDueInteractor
 from app.domains.reminders.interactors.fire_one import FireOneInteractor
 from app.domains.reminders.interactors.get_reminder import GetReminderInteractor
 from app.domains.reminders.interactors.list_reminders import ListRemindersInteractor
 from app.domains.reminders.interactors.mark_reminder_done import (
     MarkReminderDoneInteractor,
+)
+from app.domains.reminders.interactors.queue_missing_reminder_embeddings import (
+    QueueMissingReminderEmbeddingsInteractor,
 )
 from app.domains.reminders.interactors.reconcile_reminders import (
     ReconcileRemindersInteractor,
@@ -158,8 +172,27 @@ from app.domains.reminders.interactors.update_reminder import UpdateReminderInte
 from app.domains.reminders.repositories.reminder_repository import (
     SqlReminderRepository,
 )
+from app.domains.reminders.services.embed_queue import (
+    ProcrastinateReminderEmbedQueue,
+)
 from app.domains.reminders.services.firing_queue import ProcrastinateFiringQueue
 from app.domains.reminders.services.reminder_service import ReminderService
+from app.domains.search.adapters.analytics_adapter import SearchAnalyticsAdapter
+from app.domains.search.adapters.gateway_adapter import GatewayQueryEmbeddingAdapter
+from app.domains.search.adapters.gateway_answer_adapter import GatewayAnswerAdapter
+from app.domains.search.adapters.identity_adapter import IdentityTimezoneAdapter
+from app.domains.search.adapters.memories_adapter import MemorySearchAdapter
+from app.domains.search.adapters.reminders_adapter import ReminderSearchAdapter
+from app.domains.search.adapters.tasks_adapter import TaskSearchAdapter
+from app.domains.search.constants import SEARCH_EMBED_TIMEOUT_SECONDS
+from app.domains.search.interactors.list_related_records import (
+    ListRelatedRecordsInteractor,
+)
+from app.domains.search.interactors.record_search_event import (
+    RecordSearchEventInteractor,
+)
+from app.domains.search.interactors.search_records import SearchRecordsInteractor
+from app.domains.search.services.search_service import SearchService
 
 
 async def build_context(
@@ -250,7 +283,7 @@ def _build_model_provider(*, settings: Settings) -> LangChainGeminiProvider:
 
 
 def _build_task_port(*, context: Context) -> RecordsTaskAdapter:
-    records_service = RecordsService(task_repository=SqlTaskRepository(context.session))
+    records_service = _build_records_service(context=context)
     return RecordsTaskAdapter(records_service=records_service)
 
 
@@ -291,6 +324,7 @@ def build_reminder_service(context: Context) -> ReminderService:
             user_clock=_build_user_clock_port(context=context),
             now_provider=_utc_now,
         ),
+        embed_queue=ProcrastinateReminderEmbedQueue(),
     )
 
 
@@ -338,6 +372,7 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
         ),
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
+        search_port=SearchAdapter(search_service=build_search_service(context)),
     )
 
 
@@ -351,6 +386,7 @@ def build_answer_pending_capture_interactor(
         extraction=_build_extraction_port(context=context),
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
+        search_port=SearchAdapter(search_service=build_search_service(context)),
     )
 
 
@@ -376,7 +412,39 @@ def build_records_service(context: Context) -> RecordsService:
     surface capture's adapter reaches through a port. See 04.2-records-and-
     settings.md section 4: the `tasks` query reuses this, not a new
     interactor, because it is exactly the list `/tasks` already calls."""
-    return RecordsService(task_repository=SqlTaskRepository(context.session))
+    return _build_records_service(context=context)
+
+
+def _build_records_service(*, context: Context) -> RecordsService:
+    return RecordsService(
+        task_repository=SqlTaskRepository(context.session),
+        embed_queue=ProcrastinateTaskEmbedQueue(),
+    )
+
+
+def build_embed_task_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> EmbedTaskInteractor:
+    """For the `records.embed_task` job, which has no request context."""
+    return EmbedTaskInteractor(
+        task_repository=SqlTaskRepository(session),
+        embedding=GatewayTaskEmbeddingAdapter(
+            embed_interactor=build_embed_interactor(
+                session_factory=session_factory, settings=get_settings()
+            )
+        ),
+    )
+
+
+def build_queue_missing_task_embeddings_interactor(
+    session: AsyncSession,
+) -> QueueMissingTaskEmbeddingsInteractor:
+    """For the `records.backfill_embeddings` job, which has no request context."""
+    return QueueMissingTaskEmbeddingsInteractor(
+        task_repository=SqlTaskRepository(session),
+        embed_queue=ProcrastinateTaskEmbedQueue(),
+        now_provider=_utc_now,
+    )
 
 
 def build_list_tasks_interactor(context: Context) -> ListTasksInteractor:
@@ -408,6 +476,32 @@ def build_update_reminder_interactor(context: Context) -> UpdateReminderInteract
         reminder_repository=SqlReminderRepository(context.session),
         user_clock=_build_user_clock_port(context=context),
         now_provider=_utc_now,
+        embed_queue=ProcrastinateReminderEmbedQueue(),
+    )
+
+
+def build_embed_reminder_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> EmbedReminderInteractor:
+    """For the `reminders.embed_reminder` job, which has no request context."""
+    return EmbedReminderInteractor(
+        reminder_repository=SqlReminderRepository(session),
+        embedding=GatewayReminderEmbeddingAdapter(
+            embed_interactor=build_embed_interactor(
+                session_factory=session_factory, settings=get_settings()
+            )
+        ),
+    )
+
+
+def build_queue_missing_reminder_embeddings_interactor(
+    session: AsyncSession,
+) -> QueueMissingReminderEmbeddingsInteractor:
+    """For the `reminders.backfill_embeddings` job, which has no request context."""
+    return QueueMissingReminderEmbeddingsInteractor(
+        reminder_repository=SqlReminderRepository(session),
+        embed_queue=ProcrastinateReminderEmbedQueue(),
+        now_provider=_utc_now,
     )
 
 
@@ -423,7 +517,10 @@ def build_get_record_detail_interactor(context: Context) -> GetRecordDetailInter
 
 
 def build_update_task_interactor(context: Context) -> UpdateTaskInteractor:
-    return UpdateTaskInteractor(task_repository=SqlTaskRepository(context.session))
+    return UpdateTaskInteractor(
+        task_repository=SqlTaskRepository(context.session),
+        embed_queue=ProcrastinateTaskEmbedQueue(),
+    )
 
 
 def build_delete_tasks_interactor(context: Context) -> DeleteTasksInteractor:
@@ -745,4 +842,58 @@ def build_reembed_memory_interactor(
     return ReembedMemoryInteractor(
         memory_repository=SqlMemoryRepository(session),
         embedding=_build_memory_model_port(session_factory=session_factory),
+    )
+
+
+def build_search_service(context: Context) -> SearchService:
+    """Search's published service (epic 005). One port per record type, in
+    the order their groups are fetched; AD-11's test checks every type has one."""
+    return SearchService(
+        search_ports=[
+            TaskSearchAdapter(records_service=_build_records_service(context=context)),
+            ReminderSearchAdapter(reminder_service=build_reminder_service(context)),
+            MemorySearchAdapter(memory_service=build_memory_service(context)),
+        ],
+        query_embedding=GatewayQueryEmbeddingAdapter(
+            embed_interactor=build_embed_interactor(
+                session_factory=context.session_factory, settings=get_settings()
+            ),
+            timeout_seconds=SEARCH_EMBED_TIMEOUT_SECONDS,
+        ),
+        answer=GatewayAnswerAdapter(
+            extract_interactor=build_extract_interactor(
+                session_factory=context.session_factory, settings=get_settings()
+            )
+        ),
+        user_timezone=IdentityTimezoneAdapter(
+            identity_service=_build_identity_service(context=context)
+        ),
+        analytics=_build_search_analytics_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def _build_search_analytics_port(*, context: Context) -> SearchAnalyticsAdapter:
+    return SearchAnalyticsAdapter(
+        record_event_interactor=RecordEventInteractor(
+            event_repository=SqlEventRepository(context.session)
+        )
+    )
+
+
+def build_search_records_interactor(context: Context) -> SearchRecordsInteractor:
+    return SearchRecordsInteractor(search_service=build_search_service(context))
+
+
+def build_list_related_records_interactor(
+    context: Context,
+) -> ListRelatedRecordsInteractor:
+    return ListRelatedRecordsInteractor(search_service=build_search_service(context))
+
+
+def build_record_search_event_interactor(
+    context: Context,
+) -> RecordSearchEventInteractor:
+    return RecordSearchEventInteractor(
+        analytics=_build_search_analytics_port(context=context)
     )

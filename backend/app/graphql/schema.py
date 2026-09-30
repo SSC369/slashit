@@ -20,6 +20,8 @@ from app.domains.records.graphql.mutations import RecordMutations
 from app.domains.records.graphql.queries import RecordQueries
 from app.domains.reminders.graphql.mutations import ReminderMutations
 from app.domains.reminders.graphql.queries import ReminderQueries
+from app.domains.search.graphql.mutations import SearchMutations
+from app.domains.search.graphql.queries import SearchQueries
 
 
 @strawberry.type
@@ -30,6 +32,7 @@ class Query(
     ReminderQueries,
     NotificationQueries,
     MemoryQueries,
+    SearchQueries,
 ):
     """Root query. Each domain's queries class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""
@@ -48,6 +51,7 @@ class Mutation(
     ReminderMutations,
     NotificationMutations,
     MemoryMutations,
+    SearchMutations,
 ):
     """Root mutation. Each domain's mutations class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""

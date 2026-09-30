@@ -13,7 +13,7 @@ from app.domains.reminders.graphql.errors import (
 )
 from app.domains.reminders.interactors.dtos import UpdateReminderInputDTO
 from app.domains.reminders.interfaces.dtos import ReminderDTO
-from app.domains.reminders.interfaces.ports import UserClockPort
+from app.domains.reminders.interfaces.ports import ReminderEmbedQueue, UserClockPort
 from app.domains.reminders.interfaces.repositories import (
     ReminderRepository,
     ReminderWrite,
@@ -33,10 +33,12 @@ class UpdateReminderInteractor:
         reminder_repository: ReminderRepository,
         user_clock: UserClockPort,
         now_provider: Callable[[], datetime],
+        embed_queue: ReminderEmbedQueue,
     ) -> None:
         self.reminder_repository = reminder_repository
         self.user_clock = user_clock
         self.now_provider = now_provider
+        self.embed_queue = embed_queue
 
     async def update_reminder(self, *, dto: UpdateReminderInputDTO) -> ReminderDTO:
         """Replace the reminder's text and schedule, and recompute its next time.
@@ -71,6 +73,11 @@ class UpdateReminderInteractor:
         )
         if updated is None:
             raise ReminderDeletedError()
+        # Epic 005 FR-14: a changed description lost its vector in the update.
+        # The job re-embeds it, and does nothing if the words were unchanged.
+        await self.embed_queue.queue_reminder_embed(
+            user_id=dto.user_id, reminder_id=updated.id, delay_seconds=0
+        )
         return updated
 
     def _validate_description(self, *, description: str) -> None:

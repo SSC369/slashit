@@ -24,6 +24,12 @@ export type AccountNotVerified = {
   message: Scalars['String']['output'];
 };
 
+export type AnswerSentence = {
+  __typename?: 'AnswerSentence';
+  citations: Array<Scalars['Int']['output']>;
+  text: Scalars['String']['output'];
+};
+
 export type AuthProviderUnavailable = {
   __typename?: 'AuthProviderUnavailable';
   message: Scalars['String']['output'];
@@ -35,7 +41,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -62,6 +68,7 @@ export type CaptureTurnOutcome =
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'REMINDER_CREATED'
+  | 'SEARCHED'
   | 'TASK_CREATED';
 
 export type ConflictAnswer =
@@ -200,6 +207,7 @@ export type Mutation = {
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded;
   markNotificationRead: MarkNotificationReadResult;
   markReminderDone: ReminderActionResult;
+  recordSearchEvent: Scalars['Boolean']['output'];
   recordsViewOpened: Scalars['Boolean']['output'];
   resolveMemoryConflict: ResolveMemoryConflictResult;
   signIn: SignInResult;
@@ -251,6 +259,11 @@ export type MutationMarkNotificationReadArgs = {
 
 export type MutationMarkReminderDoneArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationRecordSearchEventArgs = {
+  input: RecordSearchEventInput;
 };
 
 
@@ -385,8 +398,10 @@ export type Query = {
   notifications: NotificationPage;
   record: RecordResult;
   records: Array<RecordItem>;
+  relatedRecords: Array<SearchRecord>;
   reminder: ReminderResult;
   reminders: ReminderGroups;
+  search: SearchPageResult;
   settings: Settings;
   tasks: Array<Task>;
   unreadNotificationCount: Scalars['Int']['output'];
@@ -424,6 +439,12 @@ export type QueryRecordsArgs = {
 };
 
 
+export type QueryRelatedRecordsArgs = {
+  id: Scalars['ID']['input'];
+  recordType: RecordType;
+};
+
+
 export type QueryReminderArgs = {
   id: Scalars['ID']['input'];
 };
@@ -431,6 +452,14 @@ export type QueryReminderArgs = {
 
 export type QueryRemindersArgs = {
   search?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QuerySearchArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  recordType?: InputMaybe<RecordType>;
+  text: Scalars['String']['input'];
 };
 
 
@@ -447,9 +476,18 @@ export type RecordNotFound = {
 
 export type RecordResult = RecordNotFound | Task;
 
+export type RecordSearchEventInput = {
+  kind: SearchEventKind;
+  position: Scalars['Int']['input'];
+};
+
+export type RecordType =
+  | 'MEMORY'
+  | 'REMINDER'
+  | 'TASK';
+
 export type RecordsFilterInput = {
   kind?: InputMaybe<Scalars['String']['input']>;
-  search?: InputMaybe<Scalars['String']['input']>;
   sortBy?: SortField;
   sortDesc?: Scalars['Boolean']['input'];
 };
@@ -551,6 +589,58 @@ export type RemindersListed = {
 };
 
 export type ResolveMemoryConflictResult = MemoryDiscarded | MemorySaved | PendingCaptureNotFound;
+
+export type SearchAnswer = {
+  __typename?: 'SearchAnswer';
+  sentences: Array<AnswerSentence>;
+};
+
+export type SearchEventKind =
+  | 'ANSWER_CITATION_OPENED'
+  | 'RELATED_OPENED'
+  | 'SEARCH_RESULT_OPENED';
+
+export type SearchGroup = {
+  __typename?: 'SearchGroup';
+  hits: Array<SearchHit>;
+  recordType: RecordType;
+  total: Scalars['Int']['output'];
+};
+
+export type SearchHit = {
+  __typename?: 'SearchHit';
+  citation?: Maybe<Scalars['Int']['output']>;
+  record: SearchRecord;
+};
+
+export type SearchPage = {
+  __typename?: 'SearchPage';
+  hits: Array<SearchRecord>;
+  meaningUnavailable: Scalars['Boolean']['output'];
+  otherTypesTotal: Scalars['Int']['output'];
+  query: Scalars['String']['output'];
+  total: Scalars['Int']['output'];
+};
+
+export type SearchPageResult = SearchPage | SearchTooLong;
+
+export type SearchRecord = Memory | Reminder | Task;
+
+export type SearchResults = {
+  __typename?: 'SearchResults';
+  answer?: Maybe<SearchAnswer>;
+  answerUnavailable: Scalars['Boolean']['output'];
+  groups: Array<SearchGroup>;
+  meaningUnavailable: Scalars['Boolean']['output'];
+  noSupport: Scalars['Boolean']['output'];
+  query: Scalars['String']['output'];
+};
+
+export type SearchTooLong = {
+  __typename?: 'SearchTooLong';
+  length: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+};
 
 export type SecretKind =
   | 'CARD'

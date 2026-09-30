@@ -1,0 +1,192 @@
+{
+  "_about": "Epic 005, sub-plan 4.3, T-3.1, for NFR-9 and tuning RELATED_MAX_DISTANCE (AD-6). Drafted by Claude on 2026-09-30 for the user to correct. Each case is a record from search_queries.json's account and the records a person would call related to it. A related list is judged by hand: over 70% of listed records related (NFR-9). `related` also serves as the recall check when tuning: a threshold that lists none of them is too tight.",
+  "status": "accepted by the user as drafted, 2026-09-30",
+  "cases": [
+    {
+      "record": "t-renew-passport",
+      "related": [
+        "m-passport",
+        "r-passport-req",
+        "t-docs",
+        "t-visa"
+      ]
+    },
+    {
+      "record": "m-passport",
+      "related": [
+        "t-renew-passport",
+        "r-passport-req",
+        "t-docs"
+      ]
+    },
+    {
+      "record": "t-visa",
+      "related": [
+        "m-japan",
+        "t-renew-passport",
+        "r-passport-req"
+      ]
+    },
+    {
+      "record": "m-japan",
+      "related": [
+        "t-visa",
+        "m-language",
+        "t-japanese",
+        "r-japanese"
+      ]
+    },
+    {
+      "record": "t-rest-api",
+      "related": [
+        "m-springboot",
+        "t-course",
+        "r-course",
+        "t-cv"
+      ]
+    },
+    {
+      "record": "m-career",
+      "related": [
+        "t-cv",
+        "t-apply",
+        "t-priya-career",
+        "t-mock",
+        "t-sysdesign"
+      ]
+    },
+    {
+      "record": "t-apply",
+      "related": [
+        "t-cv",
+        "m-career",
+        "t-mock"
+      ]
+    },
+    {
+      "record": "m-landlord",
+      "related": [
+        "t-rent",
+        "r-rent"
+      ]
+    },
+    {
+      "record": "t-rent",
+      "related": [
+        "m-landlord",
+        "r-rent"
+      ]
+    },
+    {
+      "record": "m-car",
+      "related": [
+        "t-insurance",
+        "r-insurance",
+        "t-car-service"
+      ]
+    },
+    {
+      "record": "t-insurance",
+      "related": [
+        "m-car",
+        "r-insurance"
+      ]
+    },
+    {
+      "record": "m-mom-bday",
+      "related": [
+        "t-gift-mom",
+        "r-mom-call"
+      ]
+    },
+    {
+      "record": "t-cake",
+      "related": [
+        "m-dad-bday"
+      ]
+    },
+    {
+      "record": "m-dentist",
+      "related": [
+        "t-dentist",
+        "r-dentist"
+      ]
+    },
+    {
+      "record": "t-glasses",
+      "related": [
+        "m-glasses"
+      ]
+    },
+    {
+      "record": "m-swim",
+      "related": [
+        "t-swim"
+      ]
+    },
+    {
+      "record": "m-wedding",
+      "related": [
+        "t-wedding-tickets",
+        "t-wedding-outfit",
+        "r-wedding"
+      ]
+    },
+    {
+      "record": "r-wedding",
+      "related": [
+        "m-wedding",
+        "t-wedding-tickets",
+        "t-wedding-outfit"
+      ]
+    },
+    {
+      "record": "m-fd",
+      "related": [
+        "t-fd",
+        "r-fd"
+      ]
+    },
+    {
+      "record": "m-mutual",
+      "related": [
+        "t-sip",
+        "r-sip"
+      ]
+    },
+    {
+      "record": "m-mentor",
+      "related": [
+        "t-mentor",
+        "r-mentor"
+      ]
+    },
+    {
+      "record": "m-plant",
+      "related": [
+        "r-water-plant",
+        "t-plant"
+      ]
+    },
+    {
+      "record": "m-netflix",
+      "related": [
+        "t-netflix",
+        "r-netflix"
+      ]
+    },
+    {
+      "record": "m-laptop",
+      "related": [
+        "t-laptop",
+        "r-laptop"
+      ]
+    },
+    {
+      "record": "t-electric",
+      "related": [
+        "r-electric"
+      ]
+    }
+  ]
+}

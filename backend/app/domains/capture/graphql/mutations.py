@@ -64,6 +64,14 @@ from app.domains.reminders.public import ReminderDTO, reminder_dto_to_type
 from app.domains.reminders.public import (
     ReminderLimitReached as ReminderLimitReachedDTO,
 )
+from app.domains.search.public import (
+    SearchResults,
+    SearchResultsDTO,
+    SearchTooLong,
+    SearchTooLongDTO,
+    search_results_to_type,
+    search_too_long_to_type,
+)
 from app.graphql.permissions import IsAuthenticated
 
 CaptureResult = Annotated[
@@ -76,6 +84,8 @@ CaptureResult = Annotated[
     | MemoriesListed
     | MemoryTooLong
     | MemoryConflictAsked
+    | SearchResults
+    | SearchTooLong
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -95,6 +105,10 @@ def _capture_outcome_to_result(
     memory_result = _memory_outcome_to_result(outcome=outcome)
     if memory_result is not None:
         return memory_result
+    if isinstance(outcome, SearchResultsDTO):
+        return cast(CaptureResult, search_results_to_type(results=outcome))
+    if isinstance(outcome, SearchTooLongDTO):
+        return cast(CaptureResult, search_too_long_to_type(too_long=outcome))
     if isinstance(outcome, ReminderDTO):
         return cast(
             CaptureResult,

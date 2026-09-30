@@ -19,6 +19,9 @@ const { mockUseGetReminder, mockUpdate, mockDelete, mockMarkDone, mockSnooze, mo
     mockUseOnlineStatus: vi.fn(),
   }));
 
+// Epic 005: the related list has its own tests; here it only has to mount.
+vi.mock("../RelatedRecordsController/RelatedRecordsController", () => ({ default: () => null }));
+
 vi.mock("../../../../api/queries/GetReminder/useGetReminder", () => ({
   default: () => mockUseGetReminder(),
 }));

@@ -9,9 +9,12 @@ no table in its metadata to point a ``ForeignKey`` at.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Text, Uuid
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import Computed, DateTime, Enum, Text, Uuid
+from sqlalchemy.dialects.postgresql import TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domains.records.constants import TASK_EMBEDDING_DIMENSIONS
 from app.models import Base
 
 TASK_STATUSES = ("pending", "done")
@@ -37,3 +40,11 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Epic 005, migration 0032. NULL until records.embed_task fills it, and
+    # NULL again after a title edit (AD-7).
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(TASK_EMBEDDING_DIMENSIONS)
+    )
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', title)", persisted=True)
+    )

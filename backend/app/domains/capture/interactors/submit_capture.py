@@ -25,6 +25,8 @@ from app.domains.capture.constants import (
     MAX_INPUT_LENGTH,
     MAX_MEMORY_LINE_LENGTH,
     MEMORY_SAVE_COMMANDS,
+    SEARCH_COMMAND,
+    SEARCH_QUESTION,
     TASK_EXTRACTION_INSTRUCTION,
     TASK_EXTRACTION_SCHEMA,
 )
@@ -42,6 +44,7 @@ from app.domains.capture.interfaces.ports import (
     ExtractionPort,
     MemoryPort,
     ReminderPort,
+    SearchPort,
     TaskPort,
 )
 from app.domains.capture.interfaces.repositories import (
@@ -73,6 +76,11 @@ from app.domains.reminders.public import (
     ReminderLimitReached,
     ReminderNeedsWhen,
 )
+from app.domains.search.public import (
+    MAX_SEARCH_LENGTH,
+    SearchResultsDTO,
+    SearchTooLongDTO,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -86,6 +94,8 @@ CaptureOutcome = (
     | MemoryListDTO
     | MemoryTooLongDTO
     | MemoryConflictAskedDTO
+    | SearchResultsDTO
+    | SearchTooLongDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -109,6 +119,7 @@ class SubmitCaptureInteractor:
         reminder_port: ReminderPort,
         reminder_capture: ReminderCaptureService,
         memory_port: MemoryPort,
+        search_port: SearchPort,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -118,13 +129,15 @@ class SubmitCaptureInteractor:
         self.reminder_port = reminder_port
         self.reminder_capture = reminder_capture
         self.memory_port = memory_port
+        self.search_port = search_port
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
 
         Raises:
             ValueError: the input is empty or over its cap: 500 characters,
-                or, for a memory save, the outer guard of 1,000 (AD-7). Not a
+                or, for a memory save or a search, the outer guard of 1,000
+                (AD-7, epic 005 FR-3). Not a
                 ``CaptureOutcome`` member: a client bug, not an outcome.
         """
         text = self._validate_and_normalise(raw_input=raw_input)
@@ -154,6 +167,11 @@ class SubmitCaptureInteractor:
 
         if command_name == "/remind":
             return await self._submit_remind(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name == SEARCH_COMMAND:
+            return await self._submit_search(
                 user_id=user_id, argument_text=argument_text, original_input=text
             )
 
@@ -189,7 +207,7 @@ class SubmitCaptureInteractor:
         an over-long fact with a drawn state (FR-4). Every other line keeps
         001's 500-character cap."""
         command_name, _ = self._split_command(text=text)
-        if command_name in MEMORY_SAVE_COMMANDS:
+        if command_name in MEMORY_SAVE_COMMANDS or command_name == SEARCH_COMMAND:
             return
         if len(text) > MAX_INPUT_LENGTH:
             raise ValueError(f"capture input exceeds {MAX_INPUT_LENGTH} characters")
@@ -346,6 +364,32 @@ class SubmitCaptureInteractor:
             user_id=user_id, input_text=original_input, outcome="refused"
         )
         return outcome
+
+    async def _submit_search(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> PendingCaptureDTO | SearchResultsDTO | SearchTooLongDTO:
+        """Epic 005, FR-1 to FR-3. An empty search asks one question; an
+        over-long one is refused with its length; anything else is searched.
+        The turn keeps the typed line only, never the results (FR-21)."""
+        if not argument_text:
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name=SEARCH_COMMAND,
+                known_title=None,
+                missing_field="search_text",
+                question_text=SEARCH_QUESTION,
+                original_input=original_input,
+            )
+        if len(argument_text) > MAX_SEARCH_LENGTH:
+            await self._record_turn(
+                user_id=user_id, input_text=original_input, outcome="refused"
+            )
+            return SearchTooLongDTO(length=len(argument_text))
+        results = await self.search_port.search(user_id=user_id, text=argument_text)
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="searched"
+        )
+        return results
 
     async def _list_memories(
         self, *, user_id: UUID, argument_text: str, original_input: str

@@ -1,5 +1,6 @@
 """Repository contracts. Protocols, so a fake needs no inheritance."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Protocol
@@ -9,6 +10,7 @@ from app.domains.memories.interfaces.dtos import (
     MemoryCategory,
     MemoryDTO,
     MemoryOriginValue,
+    MemorySearchPageDTO,
     MissingEmbeddingDTO,
 )
 
@@ -92,4 +94,23 @@ class MemoryRepository(Protocol):
     ) -> list[MissingEmbeddingDTO]:
         """Live memories of every user with no vector, touched since the given
         time. For the backfill job only: reads across users."""
+        ...
+
+    # Epic 005, sub-plan 4.1.
+    async def search_memories(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> MemorySearchPageDTO:
+        """Live memories matching any term or within the distance, with scores."""
+        ...
+
+    async def get_embedding(
+        self, *, user_id: UUID, memory_id: UUID
+    ) -> tuple[float, ...] | None:
+        """The live memory's stored vector, or None."""
         ...

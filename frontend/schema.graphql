@@ -7,6 +7,11 @@ type AccountNotVerified {
   message: String!
 }
 
+type AnswerSentence {
+  text: String!
+  citations: [Int!]!
+}
+
 type AuthProviderUnavailable {
   message: String!
 }
@@ -16,7 +21,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -43,6 +48,7 @@ enum CaptureTurnOutcome {
   MEMORY_LISTED
   MEMORY_FORGOTTEN
   MEMORY_CONFLICT_RESOLVED
+  SEARCHED
 }
 
 enum ConflictAnswer {
@@ -182,6 +188,7 @@ type Mutation {
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded!
   updateMemory(id: ID!, input: UpdateMemoryInput!): UpdateMemoryResult!
   forgetMemory(id: ID!): ForgetMemoryResult!
+  recordSearchEvent(input: RecordSearchEventInput!): Boolean!
 }
 
 type NoFieldsToUpdate {
@@ -263,6 +270,8 @@ type Query {
   unreadNotificationCount: Int!
   memories(filter: MemoriesFilterInput = null): [Memory!]!
   memory(id: ID!): MemoryResult!
+  search(text: String!, recordType: RecordType = null, offset: Int! = 0, limit: Int! = 50): SearchPageResult!
+  relatedRecords(recordType: RecordType!, id: ID!): [SearchRecord!]!
   apiVersion: String!
 }
 
@@ -274,9 +283,19 @@ type RecordNotFound {
 
 union RecordResult = Task | RecordNotFound
 
+input RecordSearchEventInput {
+  kind: SearchEventKind!
+  position: Int!
+}
+
+enum RecordType {
+  TASK
+  REMINDER
+  MEMORY
+}
+
 input RecordsFilterInput {
   kind: String = null
-  search: String = null
   sortBy: SortField! = CREATED_AT
   sortDesc: Boolean! = false
 }
@@ -372,6 +391,53 @@ type RemindersListed {
 }
 
 union ResolveMemoryConflictResult = MemorySaved | MemoryDiscarded | PendingCaptureNotFound
+
+type SearchAnswer {
+  sentences: [AnswerSentence!]!
+}
+
+enum SearchEventKind {
+  SEARCH_RESULT_OPENED
+  ANSWER_CITATION_OPENED
+  RELATED_OPENED
+}
+
+type SearchGroup {
+  recordType: RecordType!
+  total: Int!
+  hits: [SearchHit!]!
+}
+
+type SearchHit {
+  citation: Int
+  record: SearchRecord!
+}
+
+type SearchPage {
+  query: String!
+  hits: [SearchRecord!]!
+  total: Int!
+  otherTypesTotal: Int!
+  meaningUnavailable: Boolean!
+}
+
+union SearchPageResult = SearchPage | SearchTooLong
+
+union SearchRecord = Task | Reminder | Memory
+
+type SearchResults {
+  query: String!
+  groups: [SearchGroup!]!
+  meaningUnavailable: Boolean!
+  answer: SearchAnswer
+  noSupport: Boolean!
+  answerUnavailable: Boolean!
+}
+
+type SearchTooLong {
+  length: Int!
+  limit: Int!
+}
 
 enum SecretKind {
   CARD

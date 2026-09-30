@@ -1,0 +1,790 @@
+{
+  "_about": "Epic 005, sub-plan 4.1, T-1.1, for NFR-6 and NFR-7 and to tune MEANING_MAX_DISTANCE (AD-3). Drafted by Claude on 2026-09-30 for the user to correct. `records` seed one account. Each word query shares a word with its expected record and must rank it in the top three (NFR-6, over 95%). Each meaning query shares no word, not even a five-letter stem, with its expected record and must rank it in the top five (NFR-7, over 80%). Scored live by tests/integration/test_search_eval_live.py.",
+  "status": "corrected: accepted by the user as drafted, 2026-09-30",
+  "records": [
+    {
+      "key": "m-passport",
+      "type": "memory",
+      "text": "My passport expires in 2030"
+    },
+    {
+      "key": "m-airline",
+      "type": "memory",
+      "text": "My preferred airline is Qatar Airways"
+    },
+    {
+      "key": "m-mom-bday",
+      "type": "memory",
+      "text": "Mom's birthday is October 12"
+    },
+    {
+      "key": "m-dad-bday",
+      "type": "memory",
+      "text": "Dad's birthday is March 3"
+    },
+    {
+      "key": "m-career",
+      "type": "memory",
+      "text": "Career goal: become a backend engineer by 2027"
+    },
+    {
+      "key": "m-springboot",
+      "type": "memory",
+      "text": "Learning Spring Boot on weekends"
+    },
+    {
+      "key": "m-checkup",
+      "type": "memory",
+      "text": "Annual health check booked at Apollo hospital"
+    },
+    {
+      "key": "m-allergy",
+      "type": "memory",
+      "text": "I'm allergic to penicillin"
+    },
+    {
+      "key": "m-veg",
+      "type": "memory",
+      "text": "I'm vegetarian"
+    },
+    {
+      "key": "m-shoe",
+      "type": "memory",
+      "text": "My shoe size is 9 UK"
+    },
+    {
+      "key": "m-gym",
+      "type": "memory",
+      "text": "My gym is Cult Fit in Indiranagar"
+    },
+    {
+      "key": "m-landlord",
+      "type": "memory",
+      "text": "Landlord is Mr Rao, rent due on the 5th"
+    },
+    {
+      "key": "m-wifi",
+      "type": "memory",
+      "text": "Home broadband is ACT Fibernet, account in my name"
+    },
+    {
+      "key": "m-car",
+      "type": "memory",
+      "text": "Car insurance renews every August with Acko"
+    },
+    {
+      "key": "m-bank",
+      "type": "memory",
+      "text": "Salary account is with HDFC Bank"
+    },
+    {
+      "key": "m-sister",
+      "type": "memory",
+      "text": "My sister Priya lives in Pune"
+    },
+    {
+      "key": "m-friend-job",
+      "type": "memory",
+      "text": "Arjun works at Flipkart as a product manager"
+    },
+    {
+      "key": "m-doctor",
+      "type": "memory",
+      "text": "Family doctor is Dr Meera Nair"
+    },
+    {
+      "key": "m-japan",
+      "type": "memory",
+      "text": "Planning a trip to Japan next April"
+    },
+    {
+      "key": "m-coffee",
+      "type": "memory",
+      "text": "Favourite coffee order is a filter coffee, less sugar"
+    },
+    {
+      "key": "m-book",
+      "type": "memory",
+      "text": "Favourite author is Ursula Le Guin"
+    },
+    {
+      "key": "m-swim",
+      "type": "memory",
+      "text": "Want to learn to swim this year"
+    },
+    {
+      "key": "m-netflix",
+      "type": "memory",
+      "text": "Netflix subscription renews on the 18th"
+    },
+    {
+      "key": "m-spotify",
+      "type": "memory",
+      "text": "Spotify family plan shared with Priya"
+    },
+    {
+      "key": "m-pan",
+      "type": "memory",
+      "text": "PAN card copy is in the blue folder"
+    },
+    {
+      "key": "m-aadhaar",
+      "type": "memory",
+      "text": "Aadhaar address still shows the old flat"
+    },
+    {
+      "key": "m-fd",
+      "type": "memory",
+      "text": "Fixed deposit matures in January"
+    },
+    {
+      "key": "m-mutual",
+      "type": "memory",
+      "text": "SIP of 5000 goes out on the 10th"
+    },
+    {
+      "key": "m-guitar",
+      "type": "memory",
+      "text": "Stopped guitar lessons in May"
+    },
+    {
+      "key": "m-mentor",
+      "type": "memory",
+      "text": "Mentor at work is Kavya, meets fortnightly"
+    },
+    {
+      "key": "m-laptop",
+      "type": "memory",
+      "text": "Work laptop warranty ends December 2026"
+    },
+    {
+      "key": "m-plant",
+      "type": "memory",
+      "text": "Water the money plant twice a week"
+    },
+    {
+      "key": "m-dentist",
+      "type": "memory",
+      "text": "Dentist said a cleaning every six months"
+    },
+    {
+      "key": "m-wedding",
+      "type": "memory",
+      "text": "Cousin Rahul's wedding is in Jaipur in February"
+    },
+    {
+      "key": "m-anniv",
+      "type": "memory",
+      "text": "Parents' anniversary is June 21"
+    },
+    {
+      "key": "m-glasses",
+      "type": "memory",
+      "text": "Glasses prescription is minus 2.25 both eyes"
+    },
+    {
+      "key": "m-running",
+      "type": "memory",
+      "text": "Personal best 5k is 27 minutes"
+    },
+    {
+      "key": "m-language",
+      "type": "memory",
+      "text": "Learning Japanese on Duolingo"
+    },
+    {
+      "key": "m-vaccine",
+      "type": "memory",
+      "text": "Tetanus shot was last taken in 2022"
+    },
+    {
+      "key": "m-loan",
+      "type": "memory",
+      "text": "Education loan fully repaid in 2025"
+    },
+    {
+      "key": "t-renew-passport",
+      "type": "task",
+      "text": "Renew passport"
+    },
+    {
+      "key": "t-visa",
+      "type": "task",
+      "text": "Book visa appointment for Japan trip"
+    },
+    {
+      "key": "t-rest-api",
+      "type": "task",
+      "text": "Build a REST API with Spring Boot"
+    },
+    {
+      "key": "t-course",
+      "type": "task",
+      "text": "Finish the Spring Boot course"
+    },
+    {
+      "key": "t-cv",
+      "type": "task",
+      "text": "Update CV for backend roles"
+    },
+    {
+      "key": "t-sysdesign",
+      "type": "task",
+      "text": "Read the system design primer"
+    },
+    {
+      "key": "t-mock",
+      "type": "task",
+      "text": "Mock interview with Arjun"
+    },
+    {
+      "key": "t-apply",
+      "type": "task",
+      "text": "Apply to three backend roles"
+    },
+    {
+      "key": "t-priya-career",
+      "type": "task",
+      "text": "Ask Priya about a career move into platform teams"
+    },
+    {
+      "key": "t-rent",
+      "type": "task",
+      "text": "Pay rent to Mr Rao"
+    },
+    {
+      "key": "t-insurance",
+      "type": "task",
+      "text": "Renew car insurance"
+    },
+    {
+      "key": "t-tax",
+      "type": "task",
+      "text": "File income tax return"
+    },
+    {
+      "key": "t-aadhaar",
+      "type": "task",
+      "text": "Update Aadhaar address"
+    },
+    {
+      "key": "t-groceries",
+      "type": "task",
+      "text": "Buy groceries for the week"
+    },
+    {
+      "key": "t-milk",
+      "type": "task",
+      "text": "Buy milk"
+    },
+    {
+      "key": "t-gift-mom",
+      "type": "task",
+      "text": "Order a birthday gift for Mom"
+    },
+    {
+      "key": "t-cake",
+      "type": "task",
+      "text": "Book a cake for Dad's birthday"
+    },
+    {
+      "key": "t-dentist",
+      "type": "task",
+      "text": "Book dentist cleaning"
+    },
+    {
+      "key": "t-glasses",
+      "type": "task",
+      "text": "Get new glasses made"
+    },
+    {
+      "key": "t-swim",
+      "type": "task",
+      "text": "Sign up for swimming classes"
+    },
+    {
+      "key": "t-laptop",
+      "type": "task",
+      "text": "Back up work laptop"
+    },
+    {
+      "key": "t-plumber",
+      "type": "task",
+      "text": "Call plumber about the kitchen tap"
+    },
+    {
+      "key": "t-electric",
+      "type": "task",
+      "text": "Pay electricity bill"
+    },
+    {
+      "key": "t-broadband",
+      "type": "task",
+      "text": "Complain to ACT about slow internet"
+    },
+    {
+      "key": "t-wedding-tickets",
+      "type": "task",
+      "text": "Book train tickets to Jaipur for the wedding"
+    },
+    {
+      "key": "t-wedding-outfit",
+      "type": "task",
+      "text": "Get a kurta stitched for Rahul's wedding"
+    },
+    {
+      "key": "t-fd",
+      "type": "task",
+      "text": "Decide whether to renew the fixed deposit"
+    },
+    {
+      "key": "t-sip",
+      "type": "task",
+      "text": "Increase SIP amount"
+    },
+    {
+      "key": "t-docs",
+      "type": "task",
+      "text": "Scan PAN card and passport"
+    },
+    {
+      "key": "t-guitar",
+      "type": "task",
+      "text": "Sell the old guitar"
+    },
+    {
+      "key": "t-run",
+      "type": "task",
+      "text": "Run a 10k before December"
+    },
+    {
+      "key": "t-japanese",
+      "type": "task",
+      "text": "Finish Japanese lesson 12"
+    },
+    {
+      "key": "t-mentor",
+      "type": "task",
+      "text": "Prepare questions for Kavya"
+    },
+    {
+      "key": "t-blog",
+      "type": "task",
+      "text": "Write a blog post about Postgres indexes"
+    },
+    {
+      "key": "t-car-service",
+      "type": "task",
+      "text": "Get the car serviced"
+    },
+    {
+      "key": "t-clean",
+      "type": "task",
+      "text": "Deep clean the kitchen"
+    },
+    {
+      "key": "t-plant",
+      "type": "task",
+      "text": "Repot the money plant"
+    },
+    {
+      "key": "t-photos",
+      "type": "task",
+      "text": "Print photos from the Goa trip"
+    },
+    {
+      "key": "t-books",
+      "type": "task",
+      "text": "Return library books"
+    },
+    {
+      "key": "t-netflix",
+      "type": "task",
+      "text": "Cancel Netflix subscription"
+    },
+    {
+      "key": "r-passport-req",
+      "type": "reminder",
+      "text": "Check passport renewal requirements"
+    },
+    {
+      "key": "r-rent",
+      "type": "reminder",
+      "text": "Rent due to Mr Rao"
+    },
+    {
+      "key": "r-mom-call",
+      "type": "reminder",
+      "text": "Call Mom"
+    },
+    {
+      "key": "r-standup",
+      "type": "reminder",
+      "text": "Standup notes"
+    },
+    {
+      "key": "r-electric",
+      "type": "reminder",
+      "text": "Pay electricity bill before the due date"
+    },
+    {
+      "key": "r-meds",
+      "type": "reminder",
+      "text": "Take vitamin D"
+    },
+    {
+      "key": "r-water-plant",
+      "type": "reminder",
+      "text": "Water the money plant"
+    },
+    {
+      "key": "r-sip",
+      "type": "reminder",
+      "text": "Check SIP debit went through"
+    },
+    {
+      "key": "r-course",
+      "type": "reminder",
+      "text": "Start Spring Boot course"
+    },
+    {
+      "key": "r-gym",
+      "type": "reminder",
+      "text": "Gym, leg day"
+    },
+    {
+      "key": "r-dentist",
+      "type": "reminder",
+      "text": "Dentist appointment"
+    },
+    {
+      "key": "r-insurance",
+      "type": "reminder",
+      "text": "Car insurance renewal"
+    },
+    {
+      "key": "r-tax",
+      "type": "reminder",
+      "text": "Tax filing deadline"
+    },
+    {
+      "key": "r-japanese",
+      "type": "reminder",
+      "text": "Japanese practice, 15 minutes"
+    },
+    {
+      "key": "r-mentor",
+      "type": "reminder",
+      "text": "Meet Kavya"
+    },
+    {
+      "key": "r-bin",
+      "type": "reminder",
+      "text": "Put the bins out"
+    },
+    {
+      "key": "r-wedding",
+      "type": "reminder",
+      "text": "Leave for Jaipur"
+    },
+    {
+      "key": "r-netflix",
+      "type": "reminder",
+      "text": "Netflix renews tomorrow"
+    },
+    {
+      "key": "r-fd",
+      "type": "reminder",
+      "text": "Fixed deposit matures this week"
+    },
+    {
+      "key": "r-laptop",
+      "type": "reminder",
+      "text": "Laptop backup"
+    }
+  ],
+  "word_queries": [
+    {
+      "query": "passport",
+      "expected": "t-renew-passport"
+    },
+    {
+      "query": "passport",
+      "expected": "m-passport"
+    },
+    {
+      "query": "passport",
+      "expected": "r-passport-req"
+    },
+    {
+      "query": "Qatar",
+      "expected": "m-airline"
+    },
+    {
+      "query": "birthday gift",
+      "expected": "t-gift-mom"
+    },
+    {
+      "query": "REST API",
+      "expected": "t-rest-api"
+    },
+    {
+      "query": "Spring Boot course",
+      "expected": "t-course"
+    },
+    {
+      "query": "CV",
+      "expected": "t-cv"
+    },
+    {
+      "query": "system design",
+      "expected": "t-sysdesign"
+    },
+    {
+      "query": "mock interview",
+      "expected": "t-mock"
+    },
+    {
+      "query": "rent",
+      "expected": "t-rent"
+    },
+    {
+      "query": "rent",
+      "expected": "r-rent"
+    },
+    {
+      "query": "car insurance",
+      "expected": "t-insurance"
+    },
+    {
+      "query": "income tax",
+      "expected": "t-tax"
+    },
+    {
+      "query": "Aadhaar",
+      "expected": "t-aadhaar"
+    },
+    {
+      "query": "groceries",
+      "expected": "t-groceries"
+    },
+    {
+      "query": "milk",
+      "expected": "t-milk"
+    },
+    {
+      "query": "cake",
+      "expected": "t-cake"
+    },
+    {
+      "query": "dentist cleaning",
+      "expected": "t-dentist"
+    },
+    {
+      "query": "new glasses",
+      "expected": "t-glasses"
+    },
+    {
+      "query": "swimming",
+      "expected": "t-swim"
+    },
+    {
+      "query": "laptop backup",
+      "expected": "r-laptop"
+    },
+    {
+      "query": "plumber",
+      "expected": "t-plumber"
+    },
+    {
+      "query": "electricity bill",
+      "expected": "t-electric"
+    },
+    {
+      "query": "ACT",
+      "expected": "t-broadband"
+    },
+    {
+      "query": "train tickets",
+      "expected": "t-wedding-tickets"
+    },
+    {
+      "query": "kurta",
+      "expected": "t-wedding-outfit"
+    },
+    {
+      "query": "fixed deposit",
+      "expected": "t-fd"
+    },
+    {
+      "query": "SIP amount",
+      "expected": "t-sip"
+    },
+    {
+      "query": "guitar",
+      "expected": "t-guitar"
+    },
+    {
+      "query": "10k",
+      "expected": "t-run"
+    },
+    {
+      "query": "Japanese lesson",
+      "expected": "t-japanese"
+    },
+    {
+      "query": "questions for Kavya",
+      "expected": "t-mentor"
+    },
+    {
+      "query": "Postgres",
+      "expected": "t-blog"
+    },
+    {
+      "query": "car serviced",
+      "expected": "t-car-service"
+    },
+    {
+      "query": "clean kitchen",
+      "expected": "t-clean"
+    },
+    {
+      "query": "water money plant",
+      "expected": "r-water-plant"
+    },
+    {
+      "query": "Goa photos",
+      "expected": "t-photos"
+    },
+    {
+      "query": "library",
+      "expected": "t-books"
+    },
+    {
+      "query": "vitamin",
+      "expected": "r-meds"
+    }
+  ],
+  "meaning_queries": [
+    {
+      "query": "profession",
+      "expected": "m-career"
+    },
+    {
+      "query": "job hunting",
+      "expected": "t-apply"
+    },
+    {
+      "query": "travel documents",
+      "expected": "t-renew-passport"
+    },
+    {
+      "query": "flight",
+      "expected": "m-airline"
+    },
+    {
+      "query": "mother",
+      "expected": "m-mom-bday"
+    },
+    {
+      "query": "father",
+      "expected": "t-cake"
+    },
+    {
+      "query": "fitness",
+      "expected": "m-gym"
+    },
+    {
+      "query": "medicine",
+      "expected": "m-allergy"
+    },
+    {
+      "query": "diet",
+      "expected": "m-veg"
+    },
+    {
+      "query": "footwear",
+      "expected": "m-shoe"
+    },
+    {
+      "query": "tenancy",
+      "expected": "m-landlord"
+    },
+    {
+      "query": "internet",
+      "expected": "m-wifi"
+    },
+    {
+      "query": "vehicle",
+      "expected": "t-car-service"
+    },
+    {
+      "query": "wages",
+      "expected": "m-bank"
+    },
+    {
+      "query": "sibling",
+      "expected": "m-sister"
+    },
+    {
+      "query": "physician",
+      "expected": "m-doctor"
+    },
+    {
+      "query": "vacation",
+      "expected": "m-japan"
+    },
+    {
+      "query": "novel",
+      "expected": "m-book"
+    },
+    {
+      "query": "streaming",
+      "expected": "m-netflix"
+    },
+    {
+      "query": "music",
+      "expected": "m-spotify"
+    },
+    {
+      "query": "investment",
+      "expected": "m-mutual"
+    },
+    {
+      "query": "teeth",
+      "expected": "t-dentist"
+    },
+    {
+      "query": "marriage",
+      "expected": "m-wedding"
+    },
+    {
+      "query": "eyesight",
+      "expected": "m-glasses"
+    },
+    {
+      "query": "jogging",
+      "expected": "m-running"
+    },
+    {
+      "query": "immunisation",
+      "expected": "m-vaccine"
+    },
+    {
+      "query": "debt",
+      "expected": "m-loan"
+    },
+    {
+      "query": "programming",
+      "expected": "t-rest-api"
+    },
+    {
+      "query": "power",
+      "expected": "r-electric"
+    },
+    {
+      "query": "garbage",
+      "expected": "r-bin"
+    }
+  ]
+}

@@ -4,8 +4,9 @@ import type { ReactElement } from "react";
 import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
-import type { ConflictAnswer } from "../../../../types.generated";
+import type { ConflictAnswer, RecordType } from "../../../../types.generated";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
+import { isSearchQuestion } from "../../../utils/isSearchQuestion";
 import {
   MemoryListCard,
   MemoryModelDownNote,
@@ -14,6 +15,13 @@ import {
 } from "./MemoryCards";
 import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
+import {
+  SearchLoadingCard,
+  SearchResultsCard,
+  SearchTooLongNote,
+  type SearchOpenEvent,
+  type SearchRecordFragment,
+} from "./SearchCards";
 import * as Styles from "./styles";
 
 interface TurnCardProps {
@@ -34,6 +42,8 @@ interface TurnCardProps {
   isResolving?: boolean;
   onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
   onConflictDefer: (id: string, deferred: boolean) => void;
+  onOpenSearchRecord: (record: SearchRecordFragment, opened: SearchOpenEvent) => void;
+  onSeeAllSearch: (recordType: RecordType | null, query: string) => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
@@ -48,6 +58,9 @@ const MEMORY_SAVE_COMMANDS = new Set(["/remember", "/add-memory"]);
 
 /** A memory lookup: nothing to fill in, so no fields. */
 const MEMORY_READ_COMMANDS = new Set(["/memories"]);
+
+/** Epic 005: a search reads records, so its loading card says so. */
+const SEARCH_COMMAND = "/search";
 
 /** Design §4 success copy for a save that answered a conflict. */
 const savedHeadline = (resolution: "KEEP_NEW" | "BOTH" | undefined, forgottenCount = 0): string => {
@@ -94,6 +107,8 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     isResolving = false,
     onConflictAnswer,
     onConflictDefer,
+    onOpenSearchRecord,
+    onSeeAllSearch,
   } = props;
   const isRemind = isRemindCommand(turn.said);
 
@@ -101,6 +116,10 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     case "loading":
       if (MEMORY_SAVE_COMMANDS.has(commandName(turn.said))) return <MemoryLoadingCard />;
       if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
+      if (commandName(turn.said) === SEARCH_COMMAND) {
+        const searchText = turn.said.trim().slice(SEARCH_COMMAND.length);
+        return <SearchLoadingCard isQuestion={isSearchQuestion(searchText)} />;
+      }
       return (
         <div className={Styles.cardStyles}>
           <div className={Styles.cardHeadStyles}>
@@ -231,6 +250,18 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "memoryTooLong":
       return <MemoryTooLongNote length={turn.length} limit={turn.limit} />;
+
+    case "searchResults":
+      return (
+        <SearchResultsCard
+          results={turn.results}
+          onOpenRecord={onOpenSearchRecord}
+          onSeeAll={onSeeAllSearch}
+        />
+      );
+
+    case "searchTooLong":
+      return <SearchTooLongNote length={turn.length} limit={turn.limit} />;
 
     case "memoryModelDown":
       return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;

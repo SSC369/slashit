@@ -10,9 +10,14 @@ and a class that exists only to forward to it would be ceremony.
 """
 
 from app.domains.analytics.interactors.record_event import RecordEventInteractor
-from app.domains.analytics.interfaces.dtos import EventType, RecordEventInputDTO
+from app.domains.analytics.interfaces.dtos import (
+    EventProperties,
+    EventType,
+    RecordEventInputDTO,
+)
 
 __all__ = [
+    "EventProperties",
     "EventType",
     "RecordEventInputDTO",
     "RecordEventInteractor",

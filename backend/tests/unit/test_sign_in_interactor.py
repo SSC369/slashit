@@ -62,9 +62,7 @@ async def test_a_correct_attempt_resets_a_prior_failed_count() -> None:
 
     for _ in range(4):
         with pytest.raises(InvalidCredentialsError):
-            await interactor.sign_in(
-                dto=SignInInputDTO(email=email, password="wrong")
-            )
+            await interactor.sign_in(dto=SignInInputDTO(email=email, password="wrong"))
 
     await interactor.sign_in(dto=SignInInputDTO(email=email, password="correct"))
 
@@ -82,9 +80,7 @@ async def test_fifth_failed_attempt_locks_the_account() -> None:
 
     for _ in range(4):
         with pytest.raises(InvalidCredentialsError):
-            await interactor.sign_in(
-                dto=SignInInputDTO(email=email, password="wrong")
-            )
+            await interactor.sign_in(dto=SignInInputDTO(email=email, password="wrong"))
 
     with pytest.raises(AccountLockedError):
         await interactor.sign_in(dto=SignInInputDTO(email=email, password="wrong"))
@@ -96,9 +92,7 @@ async def test_a_locked_account_never_reaches_the_provider() -> None:
     email = "user@example.com"
     for _ in range(5):
         with pytest.raises((InvalidCredentialsError, AccountLockedError)):
-            await interactor.sign_in(
-                dto=SignInInputDTO(email=email, password="wrong")
-            )
+            await interactor.sign_in(dto=SignInInputDTO(email=email, password="wrong"))
     provider.calls.clear()
 
     with pytest.raises(AccountLockedError):

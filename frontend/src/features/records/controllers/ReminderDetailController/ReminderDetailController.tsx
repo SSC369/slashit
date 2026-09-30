@@ -29,6 +29,7 @@ import ReminderDetailView, { ReminderDetailSkeleton } from "../../components/Rem
 import ReminderEditForm, { type EditBannerType } from "../../components/ReminderEditForm";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import * as RecordsStyles from "../../components/styles";
+import RelatedRecordsController from "../RelatedRecordsController/RelatedRecordsController";
 import * as Styles from "./styles";
 
 export type ReminderDetailModeType = "VIEW" | "EDIT";
@@ -252,19 +253,22 @@ const ReminderDetailController = (props: ReminderDetailControllerProps): ReactEl
       );
     }
     return (
-      <ReminderDetailView
-        reminder={reminder}
-        isOffline={!isOnline}
-        actionState={actionState}
-        defaultReminderTime={store.settings.defaultReminderTime}
-        onEdit={() => navigate(`/records/reminders/${id}/edit`)}
-        onDelete={() => {
-          setDeleteError(null);
-          setIsDeleteOpen(true);
-        }}
-        onDone={handleDone}
-        onSnooze={handleSnooze}
-      />
+      <>
+        <ReminderDetailView
+          reminder={reminder}
+          isOffline={!isOnline}
+          actionState={actionState}
+          defaultReminderTime={store.settings.defaultReminderTime}
+          onEdit={() => navigate(`/records/reminders/${id}/edit`)}
+          onDelete={() => {
+            setDeleteError(null);
+            setIsDeleteOpen(true);
+          }}
+          onDone={handleDone}
+          onSnooze={handleSnooze}
+        />
+        <RelatedRecordsController recordType="REMINDER" id={reminder.id} />
+      </>
     );
   };
 

@@ -33,6 +33,7 @@ from app.domains.reminders.public import (
     ReminderLimitReached,
     ReminderNeedsWhen,
 )
+from app.domains.search.public import SearchResultsDTO
 
 
 class TaskPort(Protocol):
@@ -123,3 +124,10 @@ class MemoryPort(Protocol):
         conflicting_ids: list[UUID],
         answer: ConflictAnswer,
     ) -> MemorySavedDTO | MemoryDiscardedDTO: ...
+
+
+class SearchPort(Protocol):
+    """What capture needs from search: `/search <text>` across every record
+    type, grouped and ranked (epic 005, FR-1 to FR-12, FR-20)."""
+
+    async def search(self, *, user_id: UUID, text: str) -> SearchResultsDTO: ...

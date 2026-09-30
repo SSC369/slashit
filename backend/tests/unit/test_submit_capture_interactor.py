@@ -32,6 +32,7 @@ from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
 from tests.fakes.fake_reminder_port import FakeReminderPort, fake_reminder_capture
+from tests.fakes.fake_search_port import FakeSearchPort
 from tests.fakes.fake_task_port import FakeTaskPort
 
 
@@ -51,6 +52,7 @@ def _interactor(
     resolved_extraction = extraction_port or FakeExtractionPort(result=extraction())
     interactor = SubmitCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=pending_capture_repository,
         capture_turn_repository=capture_turn_repository,
         task_port=task_port,

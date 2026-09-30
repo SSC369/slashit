@@ -21,15 +21,29 @@ class ReminderRecordsPort(Protocol):
     """What records needs from reminders: every live reminder, for the All
     tab (epic 003, FR-26). Records orders the merged list itself."""
 
-    async def list_reminders(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[ReminderDTO]: ...
+    async def list_reminders(self, *, user_id: UUID) -> list[ReminderDTO]: ...
 
 
 class MemoryRecordsPort(Protocol):
     """What records needs from memories: every live memory, for the All tab
     (epic 004, FR-15). Records orders the merged list itself."""
 
-    async def list_memories(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[MemoryDTO]: ...
+    async def list_memories(self, *, user_id: UUID) -> list[MemoryDTO]: ...
+
+
+class TaskEmbeddingPort(Protocol):
+    """What records needs to give a task a meaning vector (epic 005 AD-7).
+    None when the model refused; the job then retries."""
+
+    async def embed_task_title(
+        self, *, user_id: UUID, title: str
+    ) -> tuple[float, ...] | None: ...
+
+
+class TaskEmbedQueue(Protocol):
+    """Queues a task's vector after a create or a title edit, so neither
+    waits on, or fails with, the model (005 build plan §7)."""
+
+    async def queue_task_embed(
+        self, *, user_id: UUID, task_id: UUID, delay_seconds: int
+    ) -> None: ...

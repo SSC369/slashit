@@ -6,7 +6,7 @@ stage: 1
 status: approved
 owner: user
 created: 2026-09-08
-updated: 2026-09-14
+updated: 2026-09-30
 approved_on: 2026-09-09
 supersedes: null
 ---
@@ -124,7 +124,7 @@ build targets, not success bets.
 | FR-13 | Every record created by any input path is visible in the records view without the user reloading or waiting. | must | US-6 |
 | FR-14 | The records view lists all records with type, title, date and status. | must | US-6 |
 | FR-15 | The user can filter records by type. | must | US-6 |
-| FR-16 | The user can text-search records by title and description. | must | US-6 |
+| ~~FR-16~~ | ~~The user can text-search records by title and description.~~ Superseded 2026-09-30 by [005's FR-22](../005-personal-search-and-context/01-prd.md#records-view): the records view search matches by words and meaning, as `/search` does | must | US-6 |
 | FR-17 | The user can sort records by created date and by due date. | should | US-6 |
 | FR-18 | Opening a record shows every stored field, its creation time, and its origin: command, conversation, or a later edit. | must | US-6 |
 | FR-19 | The user can edit any field they supplied, from the record detail. | must | US-7 |
@@ -267,7 +267,7 @@ made unavoidable, not a disappointing result.
 | ~~Q5~~ | Should plain-language capture create records directly, or propose them first? | FR-9, design | user | **Neither. Commands only in V1.** Plain-language capture is deferred. |
 | ~~Q6~~ | Are task priority and recurrence needed in V1? | FR-23, FR-26 | user | **No.** Both are out. A task is a title, a due date and a status. |
 | ~~Q13~~ | Are recurring reminders also out? | epic 003 | user | **In.** Reminders keep recurrence. Carried to epic 003 along with the scheduling machinery it needs. |
-| Q14 | With conversation out of V1, does `/search` still answer questions in sentences, or only return matching records? Epic 005 owns search, but the answer changes what the command surface is. | epic 005 | user | |
+| ~~Q14~~ | With conversation out of V1, does `/search` still answer questions in sentences, or only return matching records? Epic 005 owns search, but the answer changes what the command surface is. | epic 005 | user | **Answered 2026-09-30 in epic 005.** Records always; a written answer, citing its records, only when the input reads as a question. [005 FR-15](../005-personal-search-and-context/01-prd.md#written-answer) |
 | ~~Q7~~ | What numeric targets make G1 to G4 pass or fail? | section 3 | user | **Deferred.** No targets in V1. Instrument everything, set targets once there is real usage. |
 | ~~Q8~~ | Is there a settings surface in this epic? | FR-27, scope | user | **Yes.** Timezone lives here, in FR-27 and FR-28. The default reminder time goes to epic 003 with reminders. |
 | ~~Q9~~ | Is a pending question blocking? | FR-8, design | user | **No.** The question sits in the conversation. The user may leave the screen, return, answer it, ignore it, or run other commands. FR-36 to FR-38 added. |
@@ -297,3 +297,4 @@ capture, undo beyond edit and delete, attachments on records, and any sharing.
 | 2026-09-08 | Numeric targets removed from goals and success metrics. Metrics are instrumented without targets. Engineering numbers in section 7 unchanged. Q7 closed as deferred. | User deferred targets until real usage exists | user |
 | 2026-09-08 | Commands-only capture. FR-1 rewritten, FR-9 repurposed to handle non-command input, FR-10, FR-11, FR-26 and NFR-5 withdrawn, FR-23 reduced to title, due date and status. US-4 dropped, US-9 added. Q3, Q5, Q6 closed. Q13, Q14 opened. | User cut plain language, task priority and task recurrence from V1 | user |
 | 2026-09-08 | Surface, notification channels and model provider settled. FR-29 split into FR-33 and FR-34, FR-35 added for quota failure, NFR-10 rewritten from cost to quota, NFR-11 and NFR-12 added, two risks added, Q10 to Q12 opened. | User answered Q1, Q2 and Q4 | user |
+| 2026-09-30 | FR-16 superseded by epic 005's FR-22: the records view search moves from letter matching to 005's word and meaning matching. Q14 closed by 005's FR-15. Stale downstream: none reopened in 001; the change is designed and built by epic 005 | Epic 005 Q5 and Q1, answered by the user; 005's PRD approved | user, 2026-09-30 |

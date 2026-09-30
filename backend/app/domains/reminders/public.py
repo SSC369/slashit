@@ -11,6 +11,8 @@ from app.domains.reminders.interfaces.dtos import (
     ReminderFields,
     ReminderLimitReached,
     ReminderNeedsWhen,
+    ReminderSearchMatchDTO,
+    ReminderSearchPageDTO,
     reminder_dto_to_type,
 )
 from app.domains.reminders.services.reminder_service import ReminderService
@@ -22,6 +24,8 @@ __all__ = [
     "ReminderFields",
     "ReminderLimitReached",
     "ReminderNeedsWhen",
+    "ReminderSearchMatchDTO",
+    "ReminderSearchPageDTO",
     "ReminderService",
     "RepeatKind",
     "ScheduleSummary",

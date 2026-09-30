@@ -1,0 +1,18 @@
+#import "../../../fragments/TaskFields.graphql"
+#import "../../../fragments/ReminderFields.graphql"
+#import "../../../fragments/MemoryFields.graphql"
+
+query GetRelatedRecords($recordType: RecordType!, $id: ID!) {
+  relatedRecords(recordType: $recordType, id: $id) {
+    __typename
+    ... on Task {
+      ...TaskFields
+    }
+    ... on Reminder {
+      ...ReminderFields
+    }
+    ... on Memory {
+      ...MemoryFields
+    }
+  }
+}

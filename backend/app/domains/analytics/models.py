@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, Uuid
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -18,6 +19,11 @@ EVENT_TYPES = (
     "memory_forgotten",
     "memory_category_edited",
     "memory_secret_caution",
+    # Epic 005, migration 0035.
+    "search_run",
+    "search_result_opened",
+    "answer_citation_opened",
+    "related_opened",
 )
 
 
@@ -38,3 +44,8 @@ class Event(Base):
         Enum(*EVENT_TYPES, name="event_type", create_type=False)
     )
     occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Epic 005, migration 0036: counts and positions only. A check constraint
+    # refuses any value that is not a number or a boolean (T6).
+    properties: Mapped[dict[str, int | float | bool] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )

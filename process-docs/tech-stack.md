@@ -4,7 +4,7 @@ title: Slashit Technical Stack
 status: current
 owner: user
 created: 2026-09-09
-updated: 2026-09-25
+updated: 2026-09-30
 ---
 
 # Slashit — Technical Stack
@@ -32,6 +32,7 @@ choice changes, it changes here, and the change log at the bottom records it.
 | Database driver | asyncpg |
 | Migrations | Alembic |
 | Vector search | pgvector, in the same database. Enabled by epic 004, `vector(768)` |
+| Search | PostgreSQL full-text plus pgvector, columns on each record's own table, merged by a `search` domain that holds no data (epic 005 AD-1, AD-2) |
 | Embedding model | Gemini embedding model through the gateway's `embed`, 768 dimensions. Exact model name confirmed against Google's list at build (epic 004 AD-4) |
 | Auth | Supabase Auth |
 | Data isolation | PostgreSQL Row Level Security |
@@ -314,6 +315,33 @@ reminders. Epics 006 to 009 follow this unless their build plan argues otherwise
 
 ---
 
+### Search: settled by epic 005
+
+Settled by [epic 005's build plan](./005-personal-search-and-context/03-build-plan.md)
+on 2026-09-30, decisions AD-1, AD-2 and AD-8.
+
+**Each record type answers search over its own rows** (AD-1). A `search` domain
+with no tables merges the results. Every record type implements `SearchPort`
+from its first build, and a test fails when a type has none. Epics 006 to 009
+inherit this.
+
+**Search data lives on the record's own table** (AD-2): a generated
+`search_vector` and a nullable `embedding vector(768)`, filled by a job after
+commit and set NULL when the text is edited.
+
+| Alternative | Why it lost |
+|---|---|
+| One shared search index table | Duplicates record text and cannot hold a foreign key to every record table, so delete and forget would clean it by code rather than by the database |
+
+**The GraphQL schema stays one graph** (AD-8, closes T-Q7). Search returns the
+existing record types in one union from the same endpoint.
+
+| Alternative | Why it lost |
+|---|---|
+| Split by domain, stitched | A stitching layer and cross-graph references for a one-person product |
+
+---
+
 ## 4. Standing technical rules
 
 Binding on every build plan. A build plan that contradicts one of these says so
@@ -326,7 +354,7 @@ explicitly and argues for it.
 | T3 | The service-role key never reaches the browser, and never serves a request made on behalf of a user unless the resolver has already established ownership. It is for migrations and background jobs |
 | T4 | The model provider stays behind a boundary. Nothing above it knows which provider is in use, so a tier or vendor change is configuration, not a rewrite |
 | T5 | DataLoader from the first resolver, not retrofitted after the N+1 appears |
-| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half |
+| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half. Extended by epic 005 AD-10 to all record text, search queries and written answers |
 | T7 | Every feature touching user data tests the boundary: a case where user A requests user B's record and receives nothing |
 | T8 | Every number in a build plan carries its source. A benchmark, a vendor page, a measurement, or the label `estimate` |
 | T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
@@ -364,7 +392,7 @@ month costs about one cent. This is why the free tier was not worth its terms.
 | T-Q4 | What are the query depth and complexity limits, as numbers? | public launch |
 | ~~T-Q5~~ | Vercel or Cloudflare Pages for the frontend? | **Answered 2026-09-13.** Vercel |
 | T-Q6 | Supabase free-tier projects pause after inactivity. What is the current threshold, and on what date does the project move to Pro? | launch |
-| T-Q7 | Does the GraphQL schema stay one graph as epics land, or split by domain? | epic 005 |
+| ~~T-Q7~~ | Does the GraphQL schema stay one graph as epics land, or split by domain? | **Answered 2026-09-30.** One graph, section 3 (epic 005 AD-8) |
 | T-Q8 | The model tier moved from free to paid, so a runaway user now costs money rather than exhausting a shared quota. Do epic 000's per-user caps keep request ceilings, or gain a spend ceiling? | epic 000 build plan |
 
 ---
@@ -424,6 +452,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-09-30 | Search row added and a Search section in §3: each record type answers search over its own rows, search columns on each record table (005 AD-1, AD-2). T-Q7 closed: one graph (005 AD-8). T6 extended to all record text, search queries and answers (005 AD-10). Stale downstream: none; epics 006 to 009 are not yet opened, and each inherits `SearchPort` | Epic 005's build plan approved | user |
 | 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
 | 2026-09-23 | Subscription backplane set to PostgreSQL `LISTEN/NOTIFY`, closing T-Q3. Background jobs run in a separate worker container. One backend domain per record type. Stale downstream: none; epic 003 is the first consumer | Decisions AD-1, AD-4 and AD-9 of epic 003's approved build plan, graduated per rule 8 of the process | user |
 | 2026-09-14 | T-Q3 and T-Q7's `Blocks` column renumbered from epic 002/004 to epic 003/005 | Epic 002, Authentication, inserted ahead of the old 002 to 010, which shifted to 003 to 011 (`product/v1-features.md`, 2026-09-14) | user |

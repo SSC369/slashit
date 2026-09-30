@@ -15,6 +15,7 @@ from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
 from tests.fakes.fake_reminder_port import fake_reminder_capture
+from tests.fakes.fake_search_port import FakeSearchPort
 from tests.fakes.fake_task_port import FakeTaskPort
 
 
@@ -35,6 +36,7 @@ async def test_answering_a_title_question_creates_the_task() -> None:
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=turn_repo,
         task_port=task_port,
@@ -82,6 +84,7 @@ async def test_answering_a_due_date_question_resolves_it_and_creates_the_task() 
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=turn_repo,
         task_port=task_port,
@@ -117,6 +120,7 @@ async def test_unresolvable_due_date_answer_raises() -> None:
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=turn_repo,
         task_port=FakeTaskPort(),
@@ -138,6 +142,7 @@ async def test_answering_a_pending_capture_that_does_not_exist_raises() -> None:
     """T-1.11: not found is a plain error, not a screen."""
     interactor = AnswerPendingCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=FakePendingCaptureRepository(),
         capture_turn_repository=FakeCaptureTurnRepository(),
         task_port=FakeTaskPort(),
@@ -167,6 +172,7 @@ async def test_answering_another_users_pending_capture_raises_not_found() -> Non
     )
     interactor = AnswerPendingCaptureInteractor(
         memory_port=FakeMemoryPort(),
+        search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=FakeCaptureTurnRepository(),
         task_port=FakeTaskPort(),

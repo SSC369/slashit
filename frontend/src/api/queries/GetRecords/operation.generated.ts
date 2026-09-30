@@ -16,7 +16,6 @@ export type MemoryCategory =
 
 export type RecordsFilterInput = {
   kind?: string | null | undefined;
-  search?: string | null | undefined;
   sortBy?: SortField;
   sortDesc?: boolean;
 };

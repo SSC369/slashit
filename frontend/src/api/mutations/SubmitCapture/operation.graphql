@@ -1,3 +1,4 @@
+#import "../../../fragments/SearchResultsFields.graphql"
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
@@ -54,6 +55,13 @@ mutation SubmitCapture($rawInput: String!) {
       conflicting {
         ...MemoryFields
       }
+    }
+    ... on SearchResults {
+      ...SearchResultsFields
+    }
+    ... on SearchTooLong {
+      length
+      limit
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

@@ -1,0 +1,3 @@
+mutation RecordSearchEvent($input: RecordSearchEventInput!) {
+  recordSearchEvent(input: $input)
+}

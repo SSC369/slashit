@@ -28,9 +28,7 @@ __all__ = ["patched_jwks", "signing_key"]
 
 SAVES = 20
 TARGET_P95_SECONDS = 8.0
-FACTS = [
-    f"My test locker number at gym branch {n} is {1000 + n}" for n in range(SAVES)
-]
+FACTS = [f"My test locker number at gym branch {n} is {1000 + n}" for n in range(SAVES)]
 
 
 @pytest.mark.live
@@ -42,9 +40,10 @@ async def test_save_latency_meets_nfr_4(
     eval_user: uuid.UUID,
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    async with session_factory() as session, user_transaction(
-        session, eval_user
-    ) as scoped:
+    async with (
+        session_factory() as session,
+        user_transaction(session, eval_user) as scoped,
+    ):
         # One random vector shared by all rows is enough: the candidate search
         # still ranks 1,000 of them.
         await scoped.execute(

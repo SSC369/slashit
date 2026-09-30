@@ -63,6 +63,32 @@ class ReminderDTO:
 
 
 @dataclass(frozen=True)
+class ReminderSearchMatchDTO:
+    """One reminder a search matched, with the scores search ranks by (005
+    AD-3). ``word_rank`` is None when no term is present; ``distance`` is None
+    when the reminder has no vector yet or the search had none."""
+
+    reminder: ReminderDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class ReminderSearchPageDTO:
+    matches: list[ReminderSearchMatchDTO]
+    total: int
+
+
+@dataclass(frozen=True)
+class ReminderEmbeddingTargetDTO:
+    """A reminder the embed backfill should queue: owner and id only."""
+
+    user_id: UUID
+    reminder_id: UUID
+
+
+@dataclass(frozen=True)
 class FiringDTO:
     """One occurrence that fired."""
 

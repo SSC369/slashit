@@ -14,6 +14,7 @@ import PageTopbar from "../../../../components/PageTopbar";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
 import RecordEditForm, { type EditableStatus } from "../../components/RecordEditForm";
 import * as RecordsStyles from "../../components/styles";
+import RelatedRecordsController from "../RelatedRecordsController/RelatedRecordsController";
 import {
   formatLongDate,
   formatLongDateTime,
@@ -221,6 +222,7 @@ const RecordDetailController = (): ReactElement => {
                 <Button onClick={() => setIsEditing(true)}>Edit</Button>
                 <Button onClick={() => setIsDeleteConfirmOpen(true)}>Delete</Button>
               </div>
+              <RelatedRecordsController recordType="TASK" id={task.id} />
             </>
           )}
         </div>

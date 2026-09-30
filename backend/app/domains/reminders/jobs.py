@@ -16,16 +16,23 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import create_engine, create_session_factory
 from app.core.deps import (
+    build_embed_reminder_interactor,
     build_fire_due_interactor,
     build_fire_one_interactor,
+    build_queue_missing_reminder_embeddings_interactor,
     build_reconcile_reminders_interactor,
     build_rezone_reminders_interactor,
 )
 from app.core.jobs import procrastinate_app
 from app.core.settings import get_settings
 from app.domains.reminders.constants import (
+    EMBED_MAX_ATTEMPTS,
     FIRE_ONE_MAX_ATTEMPTS,
     REZONE_MAX_ATTEMPTS,
+)
+from app.domains.reminders.interactors.dtos import (
+    EmbedReminderInputDTO,
+    QueueMissingReminderEmbeddingsInputDTO,
 )
 
 logger = structlog.get_logger(__name__)
@@ -79,3 +86,37 @@ async def reconcile(timestamp: int) -> None:
     async with _session_factory()() as session:
         lost_count = await build_reconcile_reminders_interactor(session).reconcile()
     logger.info("reminders.reconcile", lost_count=lost_count)
+
+
+@procrastinate_app.task(
+    name="reminders.embed_reminder",
+    retry=RetryStrategy(max_attempts=EMBED_MAX_ATTEMPTS, exponential_wait=2),
+)
+async def embed_reminder(user_id: str, reminder_id: str) -> None:
+    """Give one reminder its meaning vector (005 AD-7). Safe to run twice.
+    Runs inside a ``user_transaction`` for the reminder's own user."""
+    session_factory = _session_factory()
+    async with session_factory() as session:
+        interactor = build_embed_reminder_interactor(
+            session=session, session_factory=session_factory
+        )
+        embedded = await interactor.embed_reminder(
+            dto=EmbedReminderInputDTO(
+                user_id=UUID(user_id), reminder_id=UUID(reminder_id)
+            )
+        )
+    logger.info("reminders.embed_reminder", reminder_id=reminder_id, embedded=embedded)
+
+
+@procrastinate_app.periodic(cron="*/10 * * * *")  # every 10 minutes, as 004 P-6
+@procrastinate_app.task(name="reminders.backfill_embeddings")
+async def backfill_embeddings(timestamp: int, full: bool = False) -> None:
+    """Queue a vector for reminders with none. ``full`` is deferred once, by
+    hand, at deploy (index §6); the periodic run covers recent ones only."""
+    async with _session_factory()() as session:
+        queued_count = await build_queue_missing_reminder_embeddings_interactor(
+            session
+        ).queue_missing_reminder_embeddings(
+            dto=QueueMissingReminderEmbeddingsInputDTO(full=full)
+        )
+    logger.info("reminders.backfill_embeddings", queued_count=queued_count, full=full)

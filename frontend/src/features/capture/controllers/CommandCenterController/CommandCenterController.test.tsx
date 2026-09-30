@@ -6,13 +6,16 @@ import { RootStore } from "@/stores/RootStore";
 import { StoreProvider } from "@/stores/StoreProvider";
 import { buildMemory } from "@/testing/memoryFixture";
 import { buildReminder } from "@/testing/reminderFixture";
+import { buildAnsweredResults } from "@/testing/searchFixture";
 import CommandCenterController from "./CommandCenterController";
 
 const {
   mockUseOnlineStatus,
   mockTriggerSubmitCapture,
   mockTriggerResolveMemoryConflict,
+  mockTriggerRecordSearchEvent,
 } = vi.hoisted(() => ({
+  mockTriggerRecordSearchEvent: vi.fn(),
   mockUseOnlineStatus: vi.fn(),
   mockTriggerSubmitCapture: vi.fn(),
   mockTriggerResolveMemoryConflict: vi.fn(),
@@ -36,6 +39,10 @@ vi.mock("@/api/mutations/DiscardPendingCapture/useDiscardPendingCapture", () => 
 
 vi.mock("@/api/mutations/ResolveMemoryConflict/useResolveMemoryConflict", () => ({
   default: () => ({ triggerAPI: mockTriggerResolveMemoryConflict, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("@/api/mutations/RecordSearchEvent/useRecordSearchEvent", () => ({
+  default: () => ({ triggerAPI: mockTriggerRecordSearchEvent, apiStatus: 0, apiError: null }),
 }));
 
 vi.mock("@/api/queries/GetCaptureHistory/useGetCaptureHistory", () => ({
@@ -293,5 +300,43 @@ describe("CommandCenterController conflicts, F-3.2 of sub-plan 4.3", () => {
 
     expect(screen.queryByLabelText("Saved before")).not.toBeInTheDocument();
     expect(screen.getByText(/has since been forgotten/)).toBeInTheDocument();
+  });
+});
+
+/** Epic 005, sub-plan 4.2, C-2.15: opens are recorded with their position (PRD §8). */
+describe("CommandCenterController search events", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const askPassportQuestion = (): void => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation((args) => args.onSearchResults(buildAnsweredResults()));
+    renderWithProviders();
+    const input = screen.getByPlaceholderText("Type / to begin");
+    fireEvent.change(input, { target: { value: "/search when does my passport expire?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+  };
+
+  it("records a followed citation with its number", () => {
+    askPassportQuestion();
+
+    fireEvent.click(screen.getByRole("button", { name: "source 2: Renew passport" }));
+
+    expect(mockTriggerRecordSearchEvent).toHaveBeenCalledWith({
+      kind: "ANSWER_CITATION_OPENED",
+      position: 2,
+    });
+  });
+
+  it("records an opened row with its place down the card", () => {
+    askPassportQuestion();
+
+    fireEvent.click(screen.getByText("Renew passport"));
+
+    expect(mockTriggerRecordSearchEvent).toHaveBeenCalledWith({
+      kind: "SEARCH_RESULT_OPENED",
+      position: 2,
+    });
   });
 });

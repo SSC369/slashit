@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
-from app.domains.analytics.interfaces.dtos import EventType
+from app.domains.analytics.interfaces.dtos import EventProperties, EventType
 from app.domains.analytics.models import Event
 
 
@@ -16,7 +16,13 @@ class SqlEventRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def record_event(self, *, user_id: uuid.UUID, event_type: EventType) -> None:
+    async def record_event(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_type: EventType,
+        properties: EventProperties | None = None,
+    ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
             scoped.add(
                 Event(
@@ -24,5 +30,6 @@ class SqlEventRepository:
                     user_id=user_id,
                     event_type=event_type,
                     occurred_at=datetime.now(UTC),
+                    properties=properties,
                 )
             )

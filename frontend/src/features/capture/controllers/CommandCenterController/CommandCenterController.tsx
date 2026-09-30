@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCapture/responseHandler";
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
+import useRecordSearchEvent from "../../../../api/mutations/RecordSearchEvent/useRecordSearchEvent";
 import useResolveMemoryConflict from "../../../../api/mutations/ResolveMemoryConflict/useResolveMemoryConflict";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
 import { clearOfflineReadCache } from "../../../../api/lib/offlineReadCache";
@@ -16,6 +17,7 @@ import {
   CAPTURE_COMMANDS,
   MEMORY_SAVE_COMMANDS,
 } from "../../../../constants/captureCommands";
+import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
 import { whenTextInSentence } from "../../../../utils/formatReminder";
@@ -26,9 +28,16 @@ import EmptyState from "../../components/EmptyState";
 import HistoryPanel from "../../components/HistoryPanel";
 import TurnCard from "../../components/TurnCard";
 import WaitingPill from "../../components/WaitingPill";
-import type { ConflictAnswer } from "../../../../../types.generated";
+import type { ConflictAnswer, RecordType } from "../../../../../types.generated";
+import type { SearchOpenEvent, SearchRecordFragment } from "../../components/SearchCards";
 import * as StreamStyles from "../../components/styles";
 import * as Styles from "./styles";
+
+const SEARCH_KIND_FILTER: Record<RecordType, RecordsKindFilter> = {
+  TASK: "TASKS",
+  REMINDER: "REMINDERS",
+  MEMORY: "MEMORIES",
+};
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
 
@@ -92,6 +101,11 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "memoryTooLong", length, limit });
       restoreInput(said);
     },
+    onSearchResults: (results) => captureStore.resolveTurn(turnId, { status: "searchResults", results }),
+    onSearchTooLong: ({ length, limit }) => {
+      captureStore.resolveTurn(turnId, { status: "searchTooLong", length, limit });
+      restoreInput(said);
+    },
     onMemoryConflictAsked: ({ pendingCaptureId, newText, category, conflicting }) => {
       // The card reads these back from the store, so an edit or forget made
       // in Records before the answer shows here too (sub-plan 4.3 §6).
@@ -139,6 +153,7 @@ const CommandCenterController = (): ReactElement => {
     triggerAPI: triggerAnswerPendingCapture,
     apiStatus: answerApiStatus,
   } = useAnswerPendingCapture();
+  const { triggerAPI: recordSearchEvent } = useRecordSearchEvent();
   const { triggerAPI: triggerDiscardPendingCapture } = useDiscardPendingCapture();
   const { triggerAPI: triggerResolveMemoryConflict, apiStatus: resolveApiStatus } =
     useResolveMemoryConflict();
@@ -336,6 +351,36 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
+  // Epic 005, FR-9 and FR-17: a row or a citation opens its record's detail.
+  // PRD §8: the open is recorded with its position, and never waited on.
+  const handleOpenSearchRecord = (record: SearchRecordFragment, opened: SearchOpenEvent): void => {
+    recordSearchEvent({ kind: opened.kind, position: opened.position });
+    switch (record.__typename) {
+      case "Task":
+        navigate(`/records/${record.id}`);
+        return;
+      case "Reminder":
+        navigate(`/records/reminders/${record.id}`);
+        return;
+      case "Memory":
+        navigate(`/records/memories/${record.id}`);
+        return;
+    }
+  };
+
+  // FR-8: the records view, filtered to that type and this search.
+  const handleSeeAllSearch = (recordType: RecordType | null, query: string): void => {
+    store.records.setKindFilter(recordType === null ? "ALL" : SEARCH_KIND_FILTER[recordType]);
+    store.records.setSearchText(query);
+    navigate("/records");
+  };
+
+  // FR-21: history keeps the line, never the results, so a search is rerun.
+  const handleRunAgain = (inputText: string): void => {
+    setIsHistoryOpen(false);
+    submit(inputText);
+  };
+
   // Old memories are read live: an edit shows, a forgotten one drops out.
   const turns = store.capture.getAll().map((turn) =>
     turn.status === "memoryConflict"
@@ -372,7 +417,11 @@ const CommandCenterController = (): ReactElement => {
         }
       />
 
-      <HistoryPanel isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+      <HistoryPanel
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onRunAgain={handleRunAgain}
+      />
 
       {showEmpty ? (
         <EmptyState onFillCommand={handleFillCommand} />
@@ -399,6 +448,8 @@ const CommandCenterController = (): ReactElement => {
                 isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
                 onConflictAnswer={handleConflictAnswer}
                 onConflictDefer={handleConflictDefer}
+                onOpenSearchRecord={handleOpenSearchRecord}
+                onSeeAllSearch={handleSeeAllSearch}
               />
             ))}
           </div>

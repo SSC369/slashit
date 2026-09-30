@@ -11,6 +11,7 @@ from app.domains.records.graphql.errors import (
 )
 from app.domains.records.interactors.dtos import UpdateTaskInputDTO
 from app.domains.records.interactors.update_task import UpdateTaskInteractor
+from tests.fakes.fake_embed_queues import FakeTaskEmbedQueue
 from tests.fakes.fake_task_repository import FakeTaskRepository
 
 
@@ -25,7 +26,9 @@ async def test_updates_title_leaves_due_at_untouched_and_bumps_updated_at() -> N
         origin="command",
         original_input=None,
     )
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
 
     updated = await interactor.update_task(
         dto=UpdateTaskInputDTO(
@@ -54,7 +57,9 @@ async def test_due_at_provided_sets_it_even_when_title_and_status_are_not() -> N
         origin="command",
         original_input=None,
     )
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
     new_due_at = datetime(2026, 9, 20, tzinfo=UTC)
 
     updated = await interactor.update_task(
@@ -81,7 +86,9 @@ async def test_due_at_provided_as_none_clears_an_existing_due_date() -> None:
         origin="command",
         original_input=None,
     )
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
 
     updated = await interactor.update_task(
         dto=UpdateTaskInputDTO(
@@ -108,7 +115,9 @@ async def test_no_field_provided_raises_no_fields_to_update() -> None:
         origin="command",
         original_input=None,
     )
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
 
     with pytest.raises(NoFieldsToUpdateError):
         await interactor.update_task(
@@ -126,7 +135,9 @@ async def test_no_field_provided_raises_no_fields_to_update() -> None:
 async def test_missing_task_raises_not_found() -> None:
     user_id = uuid.uuid4()
     repository = FakeTaskRepository()
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
 
     with pytest.raises(RecordNotFoundError):
         await interactor.update_task(
@@ -152,7 +163,9 @@ async def test_cannot_update_another_users_task() -> None:
         origin="command",
         original_input=None,
     )
-    interactor = UpdateTaskInteractor(task_repository=repository)
+    interactor = UpdateTaskInteractor(
+        task_repository=repository, embed_queue=FakeTaskEmbedQueue()
+    )
 
     with pytest.raises(RecordNotFoundError):
         await interactor.update_task(

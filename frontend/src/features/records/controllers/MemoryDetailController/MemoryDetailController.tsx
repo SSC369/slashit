@@ -21,6 +21,7 @@ import MemoryEditForm, {
 } from "../../components/MemoryEditForm";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import * as RecordsStyles from "../../components/styles";
+import RelatedRecordsController from "../RelatedRecordsController/RelatedRecordsController";
 import * as Styles from "./styles";
 
 export type MemoryDetailModeType = "VIEW" | "EDIT";
@@ -195,12 +196,15 @@ const MemoryDetailController = (props: MemoryDetailControllerProps): ReactElemen
       );
     }
     return (
-      <MemoryDetailView
-        memory={memory}
-        isOffline={!isOnline}
-        onEdit={() => navigate(`/records/memories/${id}/edit`)}
-        onForget={openForget}
-      />
+      <>
+        <MemoryDetailView
+          memory={memory}
+          isOffline={!isOnline}
+          onEdit={() => navigate(`/records/memories/${id}/edit`)}
+          onForget={openForget}
+        />
+        <RelatedRecordsController recordType="MEMORY" id={memory.id} />
+      </>
     );
   };
 

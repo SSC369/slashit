@@ -50,3 +50,21 @@ class FiringQueuePort(Protocol):
     ) -> bool:
         """False when that occurrence's job is already queued."""
         ...
+
+
+class ReminderEmbeddingPort(Protocol):
+    """What reminders needs to give a reminder a meaning vector (epic 005
+    AD-7). None when the model refused; the job then retries."""
+
+    async def embed_reminder_description(
+        self, *, user_id: UUID, description: str
+    ) -> tuple[float, ...] | None: ...
+
+
+class ReminderEmbedQueue(Protocol):
+    """Queues a reminder's vector after a create or an edit, so neither waits
+    on, or fails with, the model (005 build plan §7)."""
+
+    async def queue_reminder_embed(
+        self, *, user_id: UUID, reminder_id: UUID, delay_seconds: int
+    ) -> None: ...

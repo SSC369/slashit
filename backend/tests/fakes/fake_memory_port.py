@@ -94,12 +94,5 @@ class FakeMemoryRecordsPort:
     def __init__(self, memories: list[MemoryDTO] | None = None) -> None:
         self.memories = memories or []
 
-    async def list_memories(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[MemoryDTO]:
-        return [
-            memory
-            for memory in self.memories
-            if memory.user_id == user_id
-            and (not search or search.lower() in memory.text.lower())
-        ]
+    async def list_memories(self, *, user_id: UUID) -> list[MemoryDTO]:
+        return [memory for memory in self.memories if memory.user_id == user_id]

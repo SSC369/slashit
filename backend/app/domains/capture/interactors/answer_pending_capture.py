@@ -11,12 +11,14 @@ from app.domains.capture.constants import (
     DUE_AT_ONLY_INSTRUCTION,
     DUE_AT_ONLY_SCHEMA,
     MEMORY_SAVE_COMMANDS,
+    SEARCH_COMMAND,
 )
 from app.domains.capture.interfaces.dtos import MemoryConflictAskedDTO
 from app.domains.capture.interfaces.ports import (
     ExtractionPort,
     MemoryPort,
     MemorySaveOutcome,
+    SearchPort,
     TaskPort,
 )
 from app.domains.capture.interfaces.repositories import (
@@ -32,9 +34,19 @@ from app.domains.gateway.public import Extraction
 from app.domains.memories.public import MemoryConflictDTO, MemorySavedDTO
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import ReminderDTO, ReminderNeedsWhen
+from app.domains.search.public import (
+    MAX_SEARCH_LENGTH,
+    SearchResultsDTO,
+    SearchTooLongDTO,
+)
 
 AnswerOutcome = (
-    TaskDTO | ReminderCaptureOutcome | MemorySaveOutcome | MemoryConflictAskedDTO
+    TaskDTO
+    | ReminderCaptureOutcome
+    | MemorySaveOutcome
+    | MemoryConflictAskedDTO
+    | SearchResultsDTO
+    | SearchTooLongDTO
 )
 
 logger = structlog.get_logger(__name__)
@@ -62,6 +74,7 @@ class AnswerPendingCaptureInteractor:
         extraction: ExtractionPort,
         reminder_capture: ReminderCaptureService,
         memory_port: MemoryPort,
+        search_port: SearchPort,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -69,6 +82,7 @@ class AnswerPendingCaptureInteractor:
         self.extraction = extraction
         self.reminder_capture = reminder_capture
         self.memory_port = memory_port
+        self.search_port = search_port
 
     async def answer_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID, answer: str
@@ -104,6 +118,14 @@ class AnswerPendingCaptureInteractor:
                 known_description=pending_capture.known_title,
                 question_text=pending_capture.question_text,
                 original_input=pending_capture.original_input,
+                answer_text=answer_text,
+            )
+
+        if pending_capture.command_name == SEARCH_COMMAND:
+            return await self._answer_search(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
+                question_text=pending_capture.question_text,
                 answer_text=answer_text,
             )
 
@@ -238,6 +260,39 @@ class AnswerPendingCaptureInteractor:
             user_id=user_id, pending_capture_id=pending_capture_id
         )
         return outcome
+
+    async def _answer_search(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        question_text: str,
+        answer_text: str,
+    ) -> SearchResultsDTO | SearchTooLongDTO:
+        """Epic 005, FR-2: the answer is the search text. An over-long answer
+        leaves the question open, as an over-long fact does. The turn keeps
+        the whole line, `/search <answer>`, so history's Run again repeats
+        this search rather than asking again (FR-21)."""
+        if len(answer_text) > MAX_SEARCH_LENGTH:
+            return SearchTooLongDTO(length=len(answer_text))
+        results = await self.search_port.search(user_id=user_id, text=answer_text)
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=f"{SEARCH_COMMAND} {answer_text}",
+                outcome="searched",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending_capture_id,
+                question_text=question_text,
+                answer_text=answer_text,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the outcome.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return results
 
     async def _ask_conflict(
         self,
