@@ -2,8 +2,8 @@
 
 | Field | Value |
 |---|---|
-| Stage | 4 Implementation plan |
-| Status | approved |
+| Stage | 5 Dev |
+| Status | in progress |
 | Started | 2026-09-30 |
 | Owner | user |
 
@@ -18,7 +18,7 @@
 | 4.1 Search by words and meaning | [04.1-search-by-words-and-meaning.md](./04.1-search-by-words-and-meaning.md) | approved | 2026-09-30 |
 | 4.2 Written answer | `04.2-written-answer.md` | not drafted | |
 | 4.3 Records search and related | `04.3-records-search-and-related.md` | not drafted | |
-| 5 Dev | [05-dev-log.md](./05-dev-log.md) | not started | |
+| 5 Dev | [05-dev-log.md](./05-dev-log.md) | slice 1 built | |
 
 ## One-line summary
 One `/search` across every record type, matching by words and meaning, with a
