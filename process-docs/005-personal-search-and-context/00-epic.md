@@ -3,15 +3,17 @@ doc: epic
 feature: 005-personal-search-and-context
 title: Personal Search and Context
 stage: 0
-status: draft
+status: approved
 owner: user
 created: 2026-09-30
 updated: 2026-09-30
-approved_on: null
+approved_on: 2026-09-30
 supersedes: null
 ---
 
 # Epic — Personal Search and Context
+
+> **Approved** by @user on 2026-09-30. Locked — changes require a change record (§7).
 
 Context: [Product](../product/product.md) · [V1 features](../product/v1-features.md)
 
@@ -183,3 +185,4 @@ Q6 was re-asked in plainer words first.
 |---|---|---|---|
 | 2026-09-30 | Created | User asked for the next feature and to proceed | pending |
 | 2026-09-30 | Q1 to Q8 answered, each with the recommended option. Alternatives updated to match | User answered the open questions | user |
+| 2026-09-30 | Approved | User: "Commit and go with next" | user |
