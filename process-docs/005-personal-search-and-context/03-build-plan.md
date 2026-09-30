@@ -177,7 +177,7 @@ user's own RLS-scoped search.
 |---|---|---|---|---|
 | NFR-4 fails: embed plus answer exceed 8 s at p95 | high | medium | Accepted per Q6: stage timings logged, re-measured from the deployed API with epic 012, and brought back to the user if it still fails | Claude, with epic 012 |
 | NFR-3 fails from a distant host, as 004's NFR-5 did at 1.7 s | medium | medium | Re-measured from the deployed API, per the PRD change | Claude, with epic 012 |
-| Distance thresholds are wrong: meaning matches noisy or missing | medium | medium | AD-3 and AD-6 thresholds tuned on the NFR-7 and NFR-9 sets before implementation plan approval | Claude |
+| Distance thresholds are wrong: meaning matches noisy or missing | medium | medium | AD-3's threshold tuned on the search set during slice 1, before it ships; AD-6's on the related set before sub-plan 4.3 is approved. Amended 2026-09-30, see the change log | Claude |
 | The model cites the wrong record for a true sentence | medium | high | AD-5 checks presence, not truth. NFR-8's hand-judged set measures truth | Claude |
 | The backfill hits the provider's rate limit at deploy | low | low | Throttled to 5 calls a second, `estimate`; the periodic job finishes what is left | Claude |
 | A later record type ships without a search port | medium | medium | AD-11's test, and AD-1 graduated to the tech stack | Claude |
@@ -190,3 +190,4 @@ user's own RLS-scoped search.
 | 2026-09-30 | Created. Q1 to Q4 answered before drafting, all recommended; NFR-3 relaxed in the PRD the same day | Design approved, user asked for the build plan | pending |
 | 2026-09-30 | Q5 and Q6 answered, both recommended | User answered the open questions | user |
 | 2026-09-30 | Approved. AD-1, AD-2, AD-8 and AD-10 graduated to the tech stack in the same commit | User: "Approved, commit and push" | user |
+| 2026-09-30 | Risk row on distance thresholds: the evaluation sets are built and tuned during slice 1 and before 4.3's approval, not before the implementation plan's approval. Stale downstream: none; the implementation plan is drafted to match | Implementation plan question, answered by the user: dev need not wait on correcting about 125 examples, as 004 did for its category set | user, 2026-09-30 |
