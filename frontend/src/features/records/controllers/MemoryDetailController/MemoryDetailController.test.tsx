@@ -7,7 +7,8 @@ import { StoreProvider } from "@/stores/StoreProvider";
 import { buildMemory } from "@/testing/memoryFixture";
 import MemoryDetailController from "./MemoryDetailController";
 
-const { mockTriggerForgetMemory, mockForgetApiStatus } = vi.hoisted(() => ({
+const { mockTriggerForgetMemory, mockForgetApiStatus, mockTriggerRelated } = vi.hoisted(() => ({
+  mockTriggerRelated: vi.fn(),
   mockTriggerForgetMemory: vi.fn(),
   mockForgetApiStatus: { current: 0 },
 }));
@@ -28,6 +29,14 @@ vi.mock("@/api/mutations/ForgetMemory/useForgetMemory", () => ({
     apiStatus: mockForgetApiStatus.current,
     apiError: null,
   }),
+}));
+
+vi.mock("@/api/queries/GetRelatedRecords/useGetRelatedRecords", () => ({
+  default: () => ({ triggerAPI: mockTriggerRelated, data: undefined, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("@/api/mutations/RecordSearchEvent/useRecordSearchEvent", () => ({
+  default: () => ({ triggerAPI: vi.fn(), apiStatus: 0, apiError: null }),
 }));
 
 const memory = buildMemory({ id: "m1", text: "My passport expires in 2030" });
@@ -94,5 +103,19 @@ describe("MemoryDetailController Forget, F-2.2 of sub-plan 4.2", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("could not be forgotten");
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
     expect(store.memories.get("m1")).not.toBeNull();
+  });
+});
+
+/** Epic 005, sub-plan 4.3, C-3.11 (FR-28): the detail never waits on Related. */
+describe("MemoryDetailController related records", () => {
+  it("shows the memory at once, with Related loading below it", () => {
+    const store = new RootStore();
+    store.memories.setMemories([memory]);
+    renderDetail(store);
+
+    expect(screen.getAllByText("My passport expires in 2030").length).toBeGreaterThan(0);
+    expect(screen.getByRole("region", { name: "Related records" })).toHaveAttribute("aria-busy", "true");
+    expect(screen.getByText("Found by meaning · not links you made")).toBeInTheDocument();
+    expect(mockTriggerRelated).toHaveBeenCalledWith({ recordType: "MEMORY", id: "m1" });
   });
 });

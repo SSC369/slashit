@@ -270,6 +270,8 @@ type Query {
   unreadNotificationCount: Int!
   memories(filter: MemoriesFilterInput = null): [Memory!]!
   memory(id: ID!): MemoryResult!
+  search(text: String!, recordType: RecordType = null, offset: Int! = 0, limit: Int! = 50): SearchPageResult!
+  relatedRecords(recordType: RecordType!, id: ID!): [SearchRecord!]!
   apiVersion: String!
 }
 
@@ -294,7 +296,6 @@ enum RecordType {
 
 input RecordsFilterInput {
   kind: String = null
-  search: String = null
   sortBy: SortField! = CREATED_AT
   sortDesc: Boolean! = false
 }
@@ -398,6 +399,7 @@ type SearchAnswer {
 enum SearchEventKind {
   SEARCH_RESULT_OPENED
   ANSWER_CITATION_OPENED
+  RELATED_OPENED
 }
 
 type SearchGroup {
@@ -410,6 +412,16 @@ type SearchHit {
   citation: Int
   record: SearchRecord!
 }
+
+type SearchPage {
+  query: String!
+  hits: [SearchRecord!]!
+  total: Int!
+  otherTypesTotal: Int!
+  meaningUnavailable: Boolean!
+}
+
+union SearchPageResult = SearchPage | SearchTooLong
 
 union SearchRecord = Task | Reminder | Memory
 

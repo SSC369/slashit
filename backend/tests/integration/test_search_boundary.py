@@ -1,6 +1,7 @@
-"""Epic 005, sub-plan 4.1, C-11: rule T7 for search. User B searches with
-user A's exact words, and with the same meaning, and gets none of A's
-records, through the whole stack under Row Level Security (NFR-1)."""
+"""Epic 005, sub-plans 4.1 to 4.3, C-11, C-2.10 and C-3.8: rule T7 for
+search. User B searches with user A's exact words, and with the same meaning,
+asks for A's record's related list by its id, and gets none of A's records,
+through the whole stack under Row Level Security (NFR-1)."""
 
 import uuid
 from typing import Any
@@ -14,6 +15,7 @@ from app.core.settings import Settings
 from tests.integration.search_harness import (
     answering_model,
     auth_headers,
+    graphql,
     keyword_embedder,
     patched_jwks,
     seed,
@@ -86,3 +88,62 @@ async def test_user_b_question_never_puts_user_a_records_in_the_prompt(
 
     assert result["noSupport"] is True
     assert not any("passport" in prompt.lower() for prompt in answering_model)
+
+
+RECORDS_SEARCH = """
+query($text: String!) {
+  search(text: $text) {
+    ... on SearchPage { hits { ... on Task { id } ... on Memory { id } } }
+  }
+}
+"""
+
+RELATED = """
+query($recordType: RecordType!, $id: ID!) {
+  relatedRecords(recordType: $recordType, id: $id) {
+    ... on Task { id }
+    ... on Reminder { id }
+    ... on Memory { id }
+  }
+}
+"""
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder")
+async def test_user_b_records_search_and_related_never_reach_user_a(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+) -> None:
+    """C-3.8, NFR-1, T7: B holds the same records as A, so every match and
+    every neighbour exists in both accounts. B sees only B's, and A's ids
+    give B nothing."""
+    user_a, user_b = two_users
+    seeded_a = await seed(session_factory=session_factory, user_id=user_a)
+    seeded_b = await seed(session_factory=session_factory, user_id=user_b)
+    headers_b = auth_headers(signing_key, settings, user_id=user_b)
+    ids_a = {str(record_id) for record_id in seeded_a.values()}
+
+    page = await graphql(client, headers_b, RECORDS_SEARCH, {"text": "passport"})
+    own_related = await graphql(
+        client,
+        headers_b,
+        RELATED,
+        {"recordType": "TASK", "id": str(seeded_b["passport_task"])},
+    )
+    a_related = await graphql(
+        client,
+        headers_b,
+        RELATED,
+        {"recordType": "TASK", "id": str(seeded_a["passport_task"])},
+    )
+
+    found = {hit["id"] for hit in page["search"]["hits"]}
+    assert found == {str(seeded_b["memory"]), str(seeded_b["passport_task"])}
+    assert found.isdisjoint(ids_a)
+    assert [record["id"] for record in own_related["relatedRecords"]] == [
+        str(seeded_b["memory"])
+    ]
+    assert a_related["relatedRecords"] == []

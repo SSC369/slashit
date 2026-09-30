@@ -304,3 +304,71 @@ async def test_a_question_with_no_records_says_so_without_a_model_call() -> None
 
     assert results.no_support is True
     assert answerer.calls == []
+
+
+async def test_a_records_page_ranks_across_types_and_pages_by_offset() -> None:
+    """Sub-plan 4.3, C-3.1, FR-22: best match first across types; the second
+    page continues where the first stopped; totals are the ports' own."""
+    tasks = _Port(
+        record_type=RecordType.TASK,
+        titles=["career move", "career fair", "buy milk"],
+    )
+    memories = _Port(record_type=RecordType.MEMORY, titles=["career goal"])
+    service = _service(ports=[tasks, memories], embedder=_Embedder(vector=None))
+
+    first = await service.search_page(
+        user_id=uuid.uuid4(), text="career", record_type=None, offset=0, limit=2
+    )
+    second = await service.search_page(
+        user_id=uuid.uuid4(), text="career", record_type=None, offset=2, limit=2
+    )
+
+    assert [hit.item.title for hit in first.hits] == ["career move", "career fair"]
+    assert [hit.item.title for hit in second.hits] == ["career goal"]
+    assert first.total == 3
+    assert first.other_types_total == 0
+    assert first.meaning_unavailable is True
+    assert all(hit.citation is None for hit in first.hits)
+
+
+async def test_a_records_page_filters_to_a_type_and_counts_the_rest() -> None:
+    """C-3.1: the filtered-no-match state needs the other types' count."""
+    tasks = _Port(record_type=RecordType.TASK, titles=["career move", "career fair"])
+    reminders = _Port(record_type=RecordType.REMINDER, titles=["buy milk"])
+    service = _service(ports=[tasks, reminders], embedder=_Embedder(vector=None))
+
+    page = await service.search_page(
+        user_id=uuid.uuid4(),
+        text="career",
+        record_type=RecordType.REMINDER,
+        offset=0,
+        limit=50,
+    )
+
+    assert page.hits == []
+    assert page.total == 0
+    assert page.other_types_total == 2
+
+
+async def test_a_records_page_never_writes_an_answer() -> None:
+    """FR-22: a question typed into the records view is only searched."""
+    answerer = _Answerer()
+    analytics = _Analytics()
+    port = _Port(record_type=RecordType.TASK, titles=["when is rent due"])
+    service = _service(
+        ports=[port],
+        embedder=_Embedder(vector=None),
+        answerer=answerer,
+        analytics=analytics,
+    )
+
+    await service.search_page(
+        user_id=uuid.uuid4(),
+        text="when is rent due?",
+        record_type=None,
+        offset=0,
+        limit=50,
+    )
+
+    assert answerer.calls == []
+    assert analytics.runs == 0

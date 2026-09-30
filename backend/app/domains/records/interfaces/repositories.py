@@ -38,7 +38,6 @@ class TaskRepository(Protocol):
         *,
         user_id: UUID,
         kind_filter: str | None,
-        search: str | None,
         sort_by: str,
         sort_desc: bool,
     ) -> list[TaskDTO]: ...

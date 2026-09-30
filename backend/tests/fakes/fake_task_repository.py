@@ -53,7 +53,6 @@ class FakeTaskRepository:
         *,
         user_id: uuid.UUID,
         kind_filter: str | None,
-        search: str | None,
         sort_by: str,
         sort_desc: bool,
     ) -> list[TaskDTO]:
@@ -62,8 +61,6 @@ class FakeTaskRepository:
             for task in self.tasks.values()
             if task.user_id == user_id and task.id not in self.deleted_ids
         ]
-        if search:
-            tasks = [task for task in tasks if search.lower() in task.title.lower()]
 
         def sort_key(task: TaskDTO) -> tuple[bool, datetime]:
             value = task.due_at if sort_by == "DUE_AT" else task.created_at

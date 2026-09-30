@@ -144,3 +144,24 @@ export const counterStyles = "mt-1 text-right text-[11.5px] text-foreground-tert
 export const counterOverStyles = "text-destructive";
 export const formHintStyles = "text-[12.5px] text-foreground-tertiary";
 export const modalBackupStyles = "mt-2.5 text-[12.5px] text-foreground-tertiary";
+
+// Epic 005: records view search (RecordsSearch, RecordsSearchStates)
+export const searchStripStyles =
+  "mb-3 flex items-center gap-2 rounded-md border border-command-wash bg-command-wash px-4 py-2.5 text-[12.5px] text-command";
+export const showMoreRowStyles = "flex justify-center border-t border-border px-4 py-2.5";
+export const searchFootNoteStyles = "font-mono";
+
+// Epic 005: related records on a detail (RelatedDetail, RelatedStates)
+export const relatedSectionStyles = "mt-[30px]";
+export const relatedHeadStyles = "flex items-baseline justify-between";
+export const relatedLabelStyles = "text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
+export const relatedWhyStyles = "text-xs text-foreground-tertiary";
+export const relatedRowStyles =
+  "flex cursor-pointer items-center gap-3 border-b border-border py-[11px] text-sm hover:bg-background";
+export const relatedTypeStyles = "inline-flex w-24 shrink-0 items-center gap-1.5 text-[12.5px] text-foreground-secondary";
+export const relatedTitleStyles = "min-w-0 flex-1 truncate font-medium text-foreground";
+export const relatedDateStyles = "w-[140px] shrink-0 text-right text-xs text-foreground-tertiary";
+export const relatedStatusStyles = "flex w-[110px] shrink-0 justify-end";
+export const relatedEmptyStyles = "py-3 text-sm text-foreground-secondary";
+export const relatedEmptyBodyStyles = "mt-0.5 text-[13px] text-foreground-tertiary";
+export const relatedErrorStyles = "flex items-center gap-3 py-3 text-sm text-foreground-secondary";

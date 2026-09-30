@@ -6,7 +6,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { API_FAILED, API_INITIAL, API_SUCCESS } from "../../../../constants/apiConstants";
 import type { ReminderFieldsFragment } from "../../../../fragments/ReminderFields.generated";
+import { buildMemory } from "../../../../testing/memoryFixture";
 import { buildReminder as reminder } from "../../../../testing/reminderFixture";
+import { buildTask } from "../../../../testing/searchFixture";
 import { StoreProvider } from "../../../../stores/StoreProvider";
 import RecordsController from "./RecordsController";
 
@@ -18,9 +20,26 @@ const {
   mockMarkDone,
   mockSnooze,
   recordsResult,
+  mockUseSearchRecords,
+  mockTriggerSearch,
+  mockRecordSearchEvent,
+  searchResult,
 } = vi.hoisted(() => {
   const listeners = new Set<() => void>();
+  const searchListeners = new Set<() => void>();
   return {
+    mockUseSearchRecords: vi.fn(),
+    mockTriggerSearch: vi.fn(),
+    mockRecordSearchEvent: vi.fn(),
+    searchResult: {
+      subscribe: (listener: () => void) => {
+        searchListeners.add(listener);
+        return () => searchListeners.delete(listener);
+      },
+      notify: () => {
+        searchListeners.forEach((listener) => listener());
+      },
+    },
     mockUseGetRecords: vi.fn(),
     mockUseRecordsViewOpened: vi.fn(),
     mockUseGetReminders: vi.fn(),
@@ -65,6 +84,14 @@ vi.mock("../../../../hooks/useOnlineStatus", () => ({
 
 vi.mock("../../../../api/queries/GetRecords/useGetRecords", () => ({
   default: () => useSyncExternalStore(recordsResult.subscribe, () => mockUseGetRecords()),
+}));
+
+vi.mock("../../../../api/queries/SearchRecords/useSearchRecords", () => ({
+  default: () => useSyncExternalStore(searchResult.subscribe, () => mockUseSearchRecords()),
+}));
+
+vi.mock("../../../../api/mutations/RecordSearchEvent/useRecordSearchEvent", () => ({
+  default: () => ({ triggerAPI: mockRecordSearchEvent, apiStatus: 0, apiError: null }),
 }));
 
 vi.mock("../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened", () => ({
@@ -233,24 +260,6 @@ describe("RecordsController", () => {
       expect(screen.getByText("No tasks yet")).toBeInTheDocument();
     });
 
-    it("shows the no-match view, not the empty view, for a search with zero results", () => {
-      mockUseGetRecords.mockReturnValue({
-        triggerAPI: vi.fn(),
-        data: { records: [{ __typename: "Reminder", ...reminder({ description: "Call Mom" }) }] },
-        apiStatus: API_SUCCESS,
-        apiError: null,
-      });
-      renderWithProviders();
-      fireEvent.click(screen.getByRole("button", { name: "Tasks" }));
-      setRecordsResult({ triggerAPI: vi.fn(), data: { records: [] }, apiStatus: API_SUCCESS, apiError: null });
-      expect(screen.getByText("No tasks yet")).toBeInTheDocument();
-
-      fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: "zzz" } });
-      setRecordsResult({ triggerAPI: vi.fn(), data: { records: [] }, apiStatus: API_SUCCESS, apiError: null });
-
-      expect(screen.getByText("No tasks match “zzz”")).toBeInTheDocument();
-      expect(screen.queryByText("No tasks yet")).not.toBeInTheDocument();
-    });
   });
 
   describe("Reminders tab", () => {
@@ -326,17 +335,6 @@ describe("RecordsController", () => {
       expect(screen.getByText("Your session ended")).toBeInTheDocument();
     });
 
-    it("names the search that matched nothing", () => {
-      mockUseGetReminders.mockReturnValue({
-        triggerAPI: vi.fn(),
-        data: groups({}),
-        apiStatus: API_SUCCESS,
-        apiError: null,
-      });
-      openRemindersTab();
-      fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: "dentist" } });
-      expect(screen.getByText("No reminders match “dentist”")).toBeInTheDocument();
-    });
 
     it("TC-2.19: Done on a row that needs attention moves it to Upcoming", () => {
       const fired = reminder({ id: "r9", description: "Pay electricity bill", state: "FIRED", repeatKind: "MONTHLY" });
@@ -391,3 +389,152 @@ describe("RecordsController", () => {
   });
 });
 
+
+/** A search response, as the real hook would return it after a request. */
+const searchPage = (overrides: Record<string, unknown> = {}) => ({
+  search: {
+    __typename: "SearchPage",
+    query: "career",
+    total: 3,
+    otherTypesTotal: 0,
+    meaningUnavailable: false,
+    hits: [
+      { __typename: "Memory", ...buildMemory({ id: "m1", text: "Career goal: backend engineer", createdAt: "2026-09-25T10:00:00+00:00" }) },
+      { __typename: "Task", ...buildTask({ id: "t1", title: "Ask Priya about a career move", createdAt: "2026-09-29T10:00:00+00:00" }) },
+      { __typename: "Task", ...buildTask({ id: "t2", title: "Update CV", createdAt: "2026-09-20T10:00:00+00:00" }) },
+    ],
+    ...overrides,
+  },
+});
+
+/** Epic 005, sub-plan 4.3, C-3.10 (FR-22, FR-23, FR-20). */
+describe("RecordsController search", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockUseGetReminders.mockReturnValue({ triggerAPI: vi.fn(), data: undefined, apiStatus: API_INITIAL, apiError: null });
+    mockUseRecordsViewOpened.mockReturnValue({ triggerAPI: vi.fn(), apiStatus: API_INITIAL, apiError: null });
+    // One record, so the toolbar and its search box are shown.
+    mockUseGetRecords.mockReturnValue({
+      triggerAPI: vi.fn(),
+      data: { records: [{ __typename: "Task", ...buildTask({ id: "t0", title: "Buy milk" }) }] },
+      apiStatus: API_SUCCESS,
+      apiError: null,
+    });
+    mockUseSearchRecords.mockReturnValue({ triggerAPI: mockTriggerSearch, data: undefined, apiStatus: API_INITIAL, apiError: null });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.clearAllMocks();
+  });
+
+  const typeSearch = (text: string): void => {
+    fireEvent.change(screen.getByPlaceholderText("Search records"), { target: { value: text } });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+  };
+
+  const respond = (data: unknown, apiStatus: number = API_SUCCESS): void => {
+    act(() => {
+      mockUseSearchRecords.mockReturnValue({ triggerAPI: mockTriggerSearch, data, apiStatus, apiError: null });
+      searchResult.notify();
+    });
+  };
+
+  it("lists matches best first across types, with the search's footer", () => {
+    renderWithProviders();
+    typeSearch("career");
+
+    expect(mockTriggerSearch).toHaveBeenCalledWith({ text: "career", recordType: null, offset: 0, limit: 50 });
+    respond(searchPage());
+
+    const titles = screen.getAllByRole("row").slice(1).map((row) => row.textContent);
+    expect(titles[0]).toContain("Career goal");
+    expect(titles[1]).toContain("Ask Priya");
+    expect(screen.getByText("3 records match “career” · best match first")).toBeInTheDocument();
+    expect(screen.getByText("/search")).toBeInTheDocument();
+  });
+
+  it("toggles to date order, newest first (FR-23)", () => {
+    renderWithProviders();
+    typeSearch("career");
+    respond(searchPage());
+
+    fireEvent.click(screen.getByRole("button", { name: /Sorted by best match/ }));
+
+    const titles = screen.getAllByRole("row").slice(1).map((row) => row.textContent);
+    expect(titles[0]).toContain("Ask Priya");
+    expect(titles[2]).toContain("Update CV");
+    expect(screen.getByRole("button", { name: /Sorted by date/ })).toBeInTheDocument();
+    expect(screen.getByText("3 records match “career” · newest first")).toBeInTheDocument();
+  });
+
+  it("offers Show more past the first page and appends the next", () => {
+    renderWithProviders();
+    typeSearch("career");
+    respond(searchPage({ total: 4 }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(mockTriggerSearch).toHaveBeenLastCalledWith({ text: "career", recordType: null, offset: 3, limit: 50 });
+    respond(
+      searchPage({
+        total: 4,
+        hits: [{ __typename: "Task", ...buildTask({ id: "t4", title: "Apply to backend roles" }) }],
+      }),
+    );
+
+    expect(screen.getAllByRole("row")).toHaveLength(5);
+    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+  });
+
+  it("names the other matches when the open tab has none", () => {
+    renderWithProviders();
+    fireEvent.click(screen.getByRole("button", { name: "Reminders" }));
+    typeSearch("career");
+
+    expect(mockTriggerSearch).toHaveBeenCalledWith({ text: "career", recordType: "REMINDER", offset: 0, limit: 50 });
+    respond(searchPage({ total: 0, otherTypesTotal: 9, hits: [] }));
+
+    expect(screen.getByText("No reminders match “career”")).toBeInTheDocument();
+    expect(screen.getByText("9 other records match. Choose All to see them.")).toBeInTheDocument();
+  });
+
+  it("says nothing matched, by word or by meaning", () => {
+    renderWithProviders();
+    typeSearch("kayak");
+    respond(searchPage({ query: "kayak", total: 0, hits: [] }));
+
+    expect(screen.getByText("No records match “kayak”")).toBeInTheDocument();
+    expect(screen.getByText(/Nothing matches by word or by meaning/)).toBeInTheDocument();
+  });
+
+  it("flags word matches only when meaning matching was unavailable (FR-20)", () => {
+    renderWithProviders();
+    typeSearch("career");
+    respond(searchPage({ meaningUnavailable: true }));
+
+    expect(screen.getByText("Showing word matches only. Results may be incomplete.")).toBeInTheDocument();
+  });
+
+  it("offers Try again when the search fails", () => {
+    renderWithProviders();
+    typeSearch("career");
+    respond(undefined, API_FAILED);
+
+    expect(screen.getByText("Search could not run.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockTriggerSearch).toHaveBeenCalledTimes(2);
+  });
+
+  it("records an opened match with its place in the list", () => {
+    renderWithProviders();
+    typeSearch("career");
+    respond(searchPage());
+
+    fireEvent.click(screen.getByText("Ask Priya about a career move"));
+
+    expect(mockRecordSearchEvent).toHaveBeenCalledWith({ kind: "SEARCH_RESULT_OPENED", position: 2 });
+  });
+});

@@ -185,9 +185,13 @@ from app.domains.search.adapters.memories_adapter import MemorySearchAdapter
 from app.domains.search.adapters.reminders_adapter import ReminderSearchAdapter
 from app.domains.search.adapters.tasks_adapter import TaskSearchAdapter
 from app.domains.search.constants import SEARCH_EMBED_TIMEOUT_SECONDS
+from app.domains.search.interactors.list_related_records import (
+    ListRelatedRecordsInteractor,
+)
 from app.domains.search.interactors.record_search_event import (
     RecordSearchEventInteractor,
 )
+from app.domains.search.interactors.search_records import SearchRecordsInteractor
 from app.domains.search.services.search_service import SearchService
 
 
@@ -875,6 +879,16 @@ def _build_search_analytics_port(*, context: Context) -> SearchAnalyticsAdapter:
             event_repository=SqlEventRepository(context.session)
         )
     )
+
+
+def build_search_records_interactor(context: Context) -> SearchRecordsInteractor:
+    return SearchRecordsInteractor(search_service=build_search_service(context))
+
+
+def build_list_related_records_interactor(
+    context: Context,
+) -> ListRelatedRecordsInteractor:
+    return ListRelatedRecordsInteractor(search_service=build_search_service(context))
 
 
 def build_record_search_event_interactor(

@@ -9,12 +9,5 @@ class FakeReminderRecordsPort:
     def __init__(self, *, reminders: list[ReminderDTO] | None = None) -> None:
         self.reminders = list(reminders or [])
 
-    async def list_reminders(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[ReminderDTO]:
-        return [
-            reminder
-            for reminder in self.reminders
-            if reminder.user_id == user_id
-            and (not search or search.lower() in reminder.description.lower())
-        ]
+    async def list_reminders(self, *, user_id: UUID) -> list[ReminderDTO]:
+        return [reminder for reminder in self.reminders if reminder.user_id == user_id]

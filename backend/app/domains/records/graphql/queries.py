@@ -61,7 +61,6 @@ class RecordQueries:
             dto=ListTasksInputDTO(
                 user_id=user_id,
                 kind_filter=record_filter.kind,
-                search=record_filter.search,
                 sort_by=record_filter.sort_by.value,
                 sort_desc=record_filter.sort_desc,
             )

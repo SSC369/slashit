@@ -1,0 +1,31 @@
+#import "../../../fragments/TaskFields.graphql"
+#import "../../../fragments/ReminderFields.graphql"
+#import "../../../fragments/MemoryFields.graphql"
+
+query SearchRecords($text: String!, $recordType: RecordType, $offset: Int!, $limit: Int!) {
+  search(text: $text, recordType: $recordType, offset: $offset, limit: $limit) {
+    __typename
+    ... on SearchPage {
+      query
+      total
+      otherTypesTotal
+      meaningUnavailable
+      hits {
+        __typename
+        ... on Task {
+          ...TaskFields
+        }
+        ... on Reminder {
+          ...ReminderFields
+        }
+        ... on Memory {
+          ...MemoryFields
+        }
+      }
+    }
+    ... on SearchTooLong {
+      length
+      limit
+    }
+  }
+}

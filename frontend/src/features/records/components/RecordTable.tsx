@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
@@ -11,12 +11,17 @@ interface RecordTableProps {
   records: RecordRow[];
   onOpenRecord: (row: RecordRow) => void;
   isLoading?: boolean;
+  /** Epic 005: a search's own count and note replace the default foot. */
+  footLeft?: ReactNode;
+  footRight?: ReactNode;
+  /** Epic 005: the Show more row, under the last match. */
+  afterRows?: ReactNode;
 }
 
 const SKELETON_ROW_COUNT = 4;
 
 const RecordTable = (props: RecordTableProps): ReactElement => {
-  const { records, onOpenRecord, isLoading = false } = props;
+  const { records, onOpenRecord, isLoading = false, footLeft, footRight, afterRows } = props;
 
   if (isLoading) {
     return (
@@ -91,16 +96,18 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
           })}
         </tbody>
       </table>
+      {afterRows}
       <div className={Styles.cardFootStyles}>
         <span>
-          {records.length} {records.length === 1 ? "record" : "records"}
+          {footLeft ?? `${records.length} ${records.length === 1 ? "record" : "records"}`}
         </span>
         <span>
-          {hasMemories
-            ? "A memory shows its category where a task shows its status"
-            : hasReminders
-              ? "Reminders carry a round marker, tasks a square one"
-              : "Every record here was created by a command"}
+          {footRight ??
+            (hasMemories
+              ? "A memory shows its category where a task shows its status"
+              : hasReminders
+                ? "Reminders carry a round marker, tasks a square one"
+                : "Every record here was created by a command")}
         </span>
       </div>
     </div>

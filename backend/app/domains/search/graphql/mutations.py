@@ -18,6 +18,7 @@ from app.graphql.permissions import IsAuthenticated
 _KIND: dict[SearchEventKind, OpenedEventKind] = {
     SearchEventKind.SEARCH_RESULT_OPENED: "search_result_opened",
     SearchEventKind.ANSWER_CITATION_OPENED: "answer_citation_opened",
+    SearchEventKind.RELATED_OPENED: "related_opened",
 }
 
 

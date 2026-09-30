@@ -119,6 +119,27 @@ class SearchTooLongDTO:
     limit: int = MAX_SEARCH_LENGTH
 
 
+@dataclass(frozen=True)
+class SearchPageDTO:
+    """One page of the records view's search (FR-22). Never an answer."""
+
+    query: str
+    hits: list[SearchHitDTO]
+    # Matches in the chosen type, or in every type when none is chosen.
+    total: int
+    # Matches outside the chosen type, for "9 other records match"; 0 with none.
+    other_types_total: int
+    meaning_unavailable: bool
+
+
+@dataclass(frozen=True)
+class RelatedRecordDTO:
+    """FR-25: one record close in meaning to the one on screen."""
+
+    record_type: RecordType
+    item: RecordDTO
+
+
 SearchRecord = Annotated[Task | Reminder | Memory, strawberry.union("SearchRecord")]
 
 
@@ -192,6 +213,29 @@ def search_results_to_type(*, results: SearchResultsDTO) -> SearchResults:
         no_support=results.no_support,
         answer_unavailable=results.answer_unavailable,
     )
+
+
+@strawberry.type
+class SearchPage:
+    query: str
+    hits: list[SearchRecord]
+    total: int
+    other_types_total: int
+    meaning_unavailable: bool
+
+
+def search_page_to_type(*, page: SearchPageDTO) -> SearchPage:
+    return SearchPage(
+        query=page.query,
+        hits=[_record_to_type(item=hit.item) for hit in page.hits],
+        total=page.total,
+        other_types_total=page.other_types_total,
+        meaning_unavailable=page.meaning_unavailable,
+    )
+
+
+def related_records_to_type(*, related: list[RelatedRecordDTO]) -> list[SearchRecord]:
+    return [_record_to_type(item=record.item) for record in related]
 
 
 def search_too_long_to_type(*, too_long: SearchTooLongDTO) -> SearchTooLong:

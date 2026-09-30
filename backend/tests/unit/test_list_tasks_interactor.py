@@ -1,4 +1,4 @@
-"""Listing, filtering, searching and sorting tasks.
+"""Listing, filtering and sorting tasks.
 
 FR-15, FR-16, FR-17, FR-25, FR-43.
 """
@@ -48,38 +48,12 @@ async def test_kind_filter_tasks_returns_every_row() -> None:
         dto=ListTasksInputDTO(
             user_id=user_id,
             kind_filter="TASKS",
-            search=None,
             sort_by="CREATED_AT",
             sort_desc=False,
         )
     )
 
     assert len(tasks) == 2
-
-
-async def test_search_matches_title_case_insensitively() -> None:
-    """T-2.2."""
-    user_id = uuid.uuid4()
-    repository = await _seeded_repository(user_id=user_id)
-    interactor = ListTasksInteractor(
-        memory_records=FakeMemoryRecordsPort(),
-        task_repository=repository,
-        reminder_records=FakeReminderRecordsPort(),
-    )
-
-    tasks = await interactor.list_tasks(
-        dto=ListTasksInputDTO(
-            user_id=user_id,
-            kind_filter=None,
-            search="docs",
-            sort_by="CREATED_AT",
-            sort_desc=False,
-        )
-    )
-
-    assert [task.title for task in tasks if isinstance(task, TaskDTO)] == [
-        "Finish API docs"
-    ]
 
 
 async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
@@ -111,7 +85,6 @@ async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
         dto=ListTasksInputDTO(
             user_id=user_id,
             kind_filter=None,
-            search=None,
             sort_by="DUE_AT",
             sort_desc=False,
         )
@@ -170,7 +143,6 @@ async def test_the_all_tab_filter_includes_memories() -> None:
             dto=ListTasksInputDTO(
                 user_id=user_id,
                 kind_filter=kind_filter,
-                search=None,
                 sort_by="CREATED_AT",
                 sort_desc=False,
             )

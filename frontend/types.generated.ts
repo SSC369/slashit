@@ -398,8 +398,10 @@ export type Query = {
   notifications: NotificationPage;
   record: RecordResult;
   records: Array<RecordItem>;
+  relatedRecords: Array<SearchRecord>;
   reminder: ReminderResult;
   reminders: ReminderGroups;
+  search: SearchPageResult;
   settings: Settings;
   tasks: Array<Task>;
   unreadNotificationCount: Scalars['Int']['output'];
@@ -437,6 +439,12 @@ export type QueryRecordsArgs = {
 };
 
 
+export type QueryRelatedRecordsArgs = {
+  id: Scalars['ID']['input'];
+  recordType: RecordType;
+};
+
+
 export type QueryReminderArgs = {
   id: Scalars['ID']['input'];
 };
@@ -444,6 +452,14 @@ export type QueryReminderArgs = {
 
 export type QueryRemindersArgs = {
   search?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QuerySearchArgs = {
+  limit?: Scalars['Int']['input'];
+  offset?: Scalars['Int']['input'];
+  recordType?: InputMaybe<RecordType>;
+  text: Scalars['String']['input'];
 };
 
 
@@ -472,7 +488,6 @@ export type RecordType =
 
 export type RecordsFilterInput = {
   kind?: InputMaybe<Scalars['String']['input']>;
-  search?: InputMaybe<Scalars['String']['input']>;
   sortBy?: SortField;
   sortDesc?: Scalars['Boolean']['input'];
 };
@@ -582,6 +597,7 @@ export type SearchAnswer = {
 
 export type SearchEventKind =
   | 'ANSWER_CITATION_OPENED'
+  | 'RELATED_OPENED'
   | 'SEARCH_RESULT_OPENED';
 
 export type SearchGroup = {
@@ -596,6 +612,17 @@ export type SearchHit = {
   citation?: Maybe<Scalars['Int']['output']>;
   record: SearchRecord;
 };
+
+export type SearchPage = {
+  __typename?: 'SearchPage';
+  hits: Array<SearchRecord>;
+  meaningUnavailable: Scalars['Boolean']['output'];
+  otherTypesTotal: Scalars['Int']['output'];
+  query: Scalars['String']['output'];
+  total: Scalars['Int']['output'];
+};
+
+export type SearchPageResult = SearchPage | SearchTooLong;
 
 export type SearchRecord = Memory | Reminder | Task;
 

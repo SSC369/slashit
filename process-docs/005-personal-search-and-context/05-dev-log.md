@@ -14,7 +14,7 @@ supersedes: null
 # Dev Log — Personal Search and Context
 
 Context: [Index](./04-implementation-plan.md) · [04.1](./04.1-search-by-words-and-meaning.md) ·
-[04.2](./04.2-written-answer.md)
+[04.2](./04.2-written-answer.md) · [04.3](./04.3-records-search-and-related.md)
 
 What actually happened. Deviations from the approved plan are recorded the day
 they happen, per rule 5 of the root ruleset.
@@ -34,12 +34,13 @@ listed 8 files; none is touched by this feature and they are left as found.
 | Base | — | 370 backend |
 | 1 Search by words and meaning | `/search` across tasks, reminders and memories, grouped and ranked by words and meaning; the no-argument, too-long, no-match and meaning-unavailable states; history with Run again; every task and reminder embedded on save and edit, with a backfill | 435 backend, 234 frontend |
 | 2 Written answer | A question gets at most four cited sentences above the groups, with markers on the cited rows; the no-support and answer-unavailable states; the question loading card; search events carry counts and positions | 484 backend, 252 frontend |
+| 3 Records view search and related | The records view's box searches as `/search` does, on every tab, with the drawn states, a date toggle and Show more; every detail lists up to five related records | 501 backend, 271 frontend |
 
 Built and verified against a real local PostgreSQL 16 with pgvector, and in
 unit and component tests. The model is faked at `LangChainGeminiProvider` in
 integration tests. **Not yet verified against the real model, a real project,
-or live in a browser**: T-1.13, T-1.14, T-2.9, T-2.10 and the deploy steps are
-owed.
+or live in a browser**: T-1.13, T-1.14, T-2.9, T-2.10, T-3.9's quality run,
+T-3.10 and the deploy steps are owed.
 
 ## Slice 1 — Search by words and meaning
 
@@ -177,6 +178,55 @@ six approved by the user on 2026-09-30.
 |---|---|---|---|
 | ~~Q2~~ | D-15: how should the no-support sentence name the question? Options: (a) quote the question as typed, as built (Recommended); (b) a model rephrase; (c) drop the question | Design match for `SearchNoSupport` | **Answered 2026-09-30.** (a), quote as typed. Design change record the same day |
 
+## Slice 3 — Records view search and related records
+
+### Tasks
+
+| # | Sub-plan | Task | Status | Note |
+|---|---|---|---|---|
+| T-3.1 | 4.3 | Related evaluation set | done | `backend/tests/eval/related_records.json`, 25 records. Accepted by the user as drafted, 2026-09-30 |
+| T-3.2 | 4.3 | `search_page`, `SearchRecordsInteractor`, `search` query | done | C-3.1 to C-3.4. `/search` and `search` share one words-and-meaning pass |
+| T-3.3 | 4.3 | `related`, `ListRelatedRecordsInteractor`, `relatedRecords` query | done | C-3.6, C-3.7 |
+| T-3.4 | 4.3 | Retire `records(filter.search)` | done | C-3.5. D-18, D-21 |
+| T-3.5 | 4.3 | `related_opened` event | done | C-3.9 |
+| T-3.6 | 4.3 | Boundary cases | done | C-3.8 |
+| T-3.7 | 4.3 | Frontend records view search | done | C-3.10. D-19, D-20. Not yet compared against the canvas in a running app: T-3.10 |
+| T-3.8 | 4.3 | Frontend related section on three details | done | C-3.11 |
+| T-3.9 | 4.3 | Related latency run; quality run and tuning | **partial** | C-3.12 run here, no key needed: at 3,000 records, median 0.063 s, p95 0.075 s over 20 lists, against the local database. C-3.13 written and collected; it needs real vectors and no provider key is reachable. `RELATED_MAX_DISTANCE` stays 0.30, `estimate` |
+| T-3.10 | 4.3 | Live browser pass | **owed** | No project credentials reachable, as T-1.14 |
+
+### Test cases
+
+| Case | Where | Result |
+|---|---|---|
+| C-3.1 | `unit/test_search_service.py` | pass, 3 new |
+| C-3.2 to C-3.5, C-3.7 | `integration/test_search_records_graphql.py` | pass, 11 |
+| C-3.6 | `unit/test_search_related.py` | pass, 3 |
+| C-3.8 | `integration/test_search_boundary.py` | pass: user B, holding the same records as A, finds only B's, and A's id gives B an empty related list |
+| C-3.9 | `integration/test_search_events_db.py` | pass |
+| C-3.10 | `RecordsController.test.tsx`; `RecordsStore.test.ts`; both new query handlers | pass, 8, 3 and 4 |
+| C-3.11 | `RelatedRecords.test.tsx`; `MemoryDetailController.test.tsx` | pass, 5 and 1 |
+| C-3.12 | `integration/test_search_related_latency.py` | pass, numbers above |
+| C-3.13 | `integration/test_search_related_eval_live.py` | owed, T-3.9 |
+
+### Deviations from the plan
+
+All recorded 2026-09-30. All four approved by the user on 2026-09-30.
+
+| # | Planned | Actual | Why | Approved by |
+|---|---|---|---|---|
+| D-18 | 4.3 §8, T-3.4: "001 and 003 records tests updated, none dropped" | `test_search_matches_title_case_insensitively` is deleted, and the two records view tests for letter-match no-match states are replaced by search-mode ones | Each tested the letter match FR-22 retires. Nothing else was dropped | user, 2026-09-30 |
+| D-19 | 4.3 §4: the records view's search states in `RecordsController` plus a `RecordsSearchStates.tsx` component | A `RecordsSearchController` holds the search mode and its states; `RecordsController` routes to it when the box holds text. `RecordTable` gains optional footer props for the search's count and Show more | Every other tab with its own load has its own controller here, as Reminders and Memories do. A states component would only have forwarded props | user, 2026-09-30 |
+| D-20 | Design `RecordsSearchStates`: the drawn states | Two more, not drawn: a category chip that hides every memory match ("No memories in this category match “{text}”" · "Choose All to see every match."), and text over 500 characters. The box also stops at 500, so the second is reached only by a bypassed client | Q3's answer makes the first possible; the second is `search`'s union member, and every member is handled | user, 2026-09-30 |
+| D-21 | 4.3 §4 assumption: `reminders(search)` and `memories(filter.search)` stay | They stay, and so does the search code in `RemindersController` and `MemoriesController`, now unreachable: those tabs render only with an empty box. The records adapters pass `search=None` to both services | Removing them belongs to 003 and 004's surfaces. A follow-up, not this slice | user, 2026-09-30 |
+
+### Incidents and defects
+
+| Date | What broke | Cause | Fix |
+|---|---|---|---|
+| 2026-09-30 | `errorLink.test.ts` fails as a suite, in slice 2's run and this one | Pre-existing: its mock loads the real `sessionExpiry`, which needs `VITE_SUPABASE_*` set, and this environment has none. It fails the same on a clean checkout of `736b124`, whose frontend is `4455b4d`'s | Not changed here. Slice 2's summary counted tests, not suites, so it was missed there |
+| 2026-09-30 | `ruff format` on the records adapters folder rewrote `analytics_event_adapter.py`, one of the files left as found | Formatted a folder, not the changed files | Reverted before any commit |
+
 ## Remaining work
 
 | Item | Needs | Owner |
@@ -186,4 +236,5 @@ six approved by the user on 2026-09-30.
 | Deploy steps | Index §6: migrations, worker restart, and the one-off `full=True` backfill for both record types | Claude, at deploy |
 | T-2.9 | A provider key: run `pytest -m live tests/integration/test_search_answer_eval_live.py tests/integration/test_search_latency_live.py`, then judge each printed citation by hand for NFR-8 | Claude with the key, then the user |
 | T-2.10 | A real project: `Main`, `SearchNoSupport`, `SearchDegraded` and `SearchStates` compared in the running app | Claude, with project access |
-| Sub-plan 4.3 | Drafting, then approval | Claude, then user |
+| T-3.9, quality | A provider key: run `pytest -m live tests/integration/test_search_related_eval_live.py`, judge each `?` row by hand, then set `RELATED_MAX_DISTANCE` | Claude with the key, then the user |
+| T-3.10 | A real project: `RecordsSearch`, `RecordsSearchStates`, `RelatedDetail` and `RelatedStates` compared in the running app | Claude, with project access |

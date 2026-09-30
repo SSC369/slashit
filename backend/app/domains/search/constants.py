@@ -16,6 +16,17 @@ PORT_LIMIT: Final = 50
 # distance. `estimate` until the search evaluation set tunes it (T-1.13).
 MEANING_MAX_DISTANCE: Final = 0.35
 
+# AD-6: a related record must be closer than this to the record it is listed
+# on, by cosine distance. Tighter than AD-3's bar: a related list has no words
+# to lean on. `estimate` until the related set tunes it (sub-plan 4.3, T-3.9).
+RELATED_MAX_DISTANCE: Final = 0.30
+
+# FR-25: at most this many related records on a detail.
+RELATED_LIMIT: Final = 5
+
+# Build plan §4: the records view's `search` returns at most this many a page.
+PAGE_LIMIT_MAX: Final = 50
+
 # AD-4, build plan Q5: how long a search waits for the query's vector before
 # returning word matches only (FR-20).
 SEARCH_EMBED_TIMEOUT_SECONDS: Final = 2.5

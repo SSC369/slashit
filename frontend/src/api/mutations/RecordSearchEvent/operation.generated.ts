@@ -12,6 +12,7 @@ export type RecordSearchEventInput = {
 
 export type SearchEventKind =
   | 'ANSWER_CITATION_OPENED'
+  | 'RELATED_OPENED'
   | 'SEARCH_RESULT_OPENED';
 
 export type RecordSearchEventMutationVariables = Exact<{

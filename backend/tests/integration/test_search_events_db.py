@@ -122,6 +122,13 @@ async def test_an_opened_result_is_recorded_with_its_position(
         RECORD,
         {"input": {"kind": "ANSWER_CITATION_OPENED", "position": 1}},
     )
+    # Sub-plan 4.3, C-3.9: a related record opened, by its place in the list.
+    await graphql(
+        client,
+        headers,
+        RECORD,
+        {"input": {"kind": "RELATED_OPENED", "position": 2}},
+    )
 
     async with session_factory() as session:
         rows = (
@@ -133,5 +140,6 @@ async def test_an_opened_result_is_recorded_with_its_position(
         ).all()
     assert sorted((row[0], row[1]) for row in rows) == [
         ("answer_citation_opened", {"citation": 1}),
+        ("related_opened", {"position": 2}),
         ("search_result_opened", {"position": 3}),
     ]

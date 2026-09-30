@@ -11,7 +11,6 @@ from app.domains.records.interfaces.dtos import TaskStatus
 class ListTasksInputDTO:
     user_id: UUID
     kind_filter: str | None
-    search: str | None
     sort_by: str
     sort_desc: bool
 

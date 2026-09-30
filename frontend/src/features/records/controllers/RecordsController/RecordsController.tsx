@@ -1,4 +1,4 @@
-import { ClipboardList, SearchX } from "lucide-react";
+import { ArrowUpDown, ClipboardList } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState, type ChangeEvent, type ReactElement } from "react";
 import { useNavigate } from "react-router";
@@ -7,6 +7,7 @@ import useGetRecords from "../../../../api/queries/GetRecords/useGetRecords";
 import { useResponseHandler } from "../../../../api/queries/GetRecords/responseHandler";
 import useRecordsViewOpened from "../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened";
 import { API_SUCCESS } from "../../../../constants/apiConstants";
+import Button from "../../../../design-system/components/Button";
 import { cn } from "../../../../utils/cn";
 import { useStore } from "../../../../stores/StoreProvider";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
@@ -16,8 +17,12 @@ import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
 import MemoriesController from "../MemoriesController/MemoriesController";
+import RecordsSearchController from "../RecordsSearchController/RecordsSearchController";
 import RemindersController from "../RemindersController/RemindersController";
 import * as Styles from "./styles";
+
+// FR-3's limit, shared with `/search`: the box stops at the length a search allows.
+const MAX_SEARCH_LENGTH = 500;
 
 const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "ALL", label: "All" },
@@ -33,8 +38,11 @@ const RecordsController = (): ReactElement => {
   const { handleResponse } = useResponseHandler();
   const { triggerAPI: triggerRecordsViewOpened } = useRecordsViewOpened();
 
-  const { kindFilter, searchText, sortField } = store.records;
+  const { kindFilter, searchText, sortField, searchSortMode } = store.records;
   const trimmedSearch = searchText.trim();
+  // Epic 005, FR-22: any text in the box moves every tab onto search's own
+  // matching; the tab lists below serve only the unsearched view.
+  const isSearching = trimmedSearch !== "";
 
   useEffect(() => {
     // PRD section 8's "weekly actives opening a records view" metric. Fired
@@ -56,7 +64,7 @@ const RecordsController = (): ReactElement => {
   // state during render (React's documented pattern for resetting state when
   // a derived value changes) catches the change before the first paint, so
   // there is no flash to begin with.
-  const currentFilterKey = `${kindFilter}|${searchText}|${sortField}`;
+  const currentFilterKey = `${kindFilter}|${sortField}`;
   const [committedFilterKey, setCommittedFilterKey] = useState(currentFilterKey);
   const [isFilterPending, setIsFilterPending] = useState(false);
   if (committedFilterKey !== currentFilterKey) {
@@ -65,13 +73,13 @@ const RecordsController = (): ReactElement => {
   }
 
   useEffect(() => {
-    // The Reminders and Memories tabs load their own queries.
-    if (hasOwnQuery) return;
+    // The Reminders and Memories tabs load their own queries, and a search
+    // loads through RecordsSearchController.
+    if (hasOwnQuery || isSearching) return;
     const timeoutId = window.setTimeout(() => {
       triggerAPI({
         filter: {
           kind: kindFilter,
-          search: searchText || null,
           sortBy: sortField,
           sortDesc: false,
         },
@@ -81,7 +89,7 @@ const RecordsController = (): ReactElement => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, 250);
     return () => window.clearTimeout(timeoutId);
-  }, [kindFilter, searchText, sortField]);
+  }, [kindFilter, sortField, isSearching]);
 
   // A refetch whose result equals the last one keeps the same `data` object,
   // so the effect below never fires and the table would stay on its skeleton
@@ -123,13 +131,15 @@ const RecordsController = (): ReactElement => {
 
   const records = store.records.getVisible();
   const hasLoadedOnce = apiStatus === API_SUCCESS && !isFilterPending;
-  const isTrulyEmpty = hasLoadedOnce && records.length === 0 && !trimmedSearch;
-  const isNoMatch = hasLoadedOnce && records.length === 0 && trimmedSearch !== "";
-  const noun = kindFilter === "TASKS" ? "tasks" : "records";
+  const isTrulyEmpty = hasLoadedOnce && records.length === 0 && !isSearching;
 
   // The very first time this account has anything at all, on the All tab,
   // the whole tab bar is hidden too: there is nothing yet to filter.
   const showFirstEverEmpty = isTrulyEmpty && kindFilter === "ALL";
+
+  const handleToggleSearchSort = (): void => {
+    store.records.setSearchSortMode(searchSortMode === "BEST_MATCH" ? "DATE" : "BEST_MATCH");
+  };
 
   return (
     <div className={Styles.pageStyles}>
@@ -162,23 +172,24 @@ const RecordsController = (): ReactElement => {
                   type="text"
                   placeholder={isMemoriesTab ? "Search memories" : "Search records"}
                   value={searchText}
+                  maxLength={MAX_SEARCH_LENGTH}
                   onChange={handleSearchChange}
                 />
               </div>
+              {isSearching && (
+                <Button size="sm" onClick={handleToggleSearchSort}>
+                  <ArrowUpDown size={14} />
+                  {searchSortMode === "BEST_MATCH" ? "Sorted by best match" : "Sorted by date"}
+                </Button>
+              )}
             </div>
           </div>
-          {isRemindersTab ? (
+          {isSearching ? (
+            <RecordsSearchController />
+          ) : isRemindersTab ? (
             <RemindersController />
           ) : isMemoriesTab ? (
             <MemoriesController />
-          ) : isNoMatch ? (
-            <ReminderListNotice
-              icon={<SearchX size={24} />}
-              title={`No ${noun} match “${trimmedSearch}”`}
-              body="Search covers the title. Try another word, or clear the search."
-              actionLabel="Clear search"
-              onAction={() => store.records.setSearchText("")}
-            />
           ) : isTrulyEmpty ? (
             <ReminderListNotice
               icon={<ClipboardList size={24} />}

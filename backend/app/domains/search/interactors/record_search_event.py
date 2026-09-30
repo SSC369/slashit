@@ -1,4 +1,5 @@
-"""Record that a search result or a citation was opened (PRD section 8)."""
+"""Record that a search result, a citation or a related record was opened
+(PRD section 8)."""
 
 from app.domains.search.interactors.dtos import RecordSearchEventInputDTO
 from app.domains.search.interfaces.ports import SearchAnalyticsPort
@@ -7,6 +8,7 @@ from app.domains.search.interfaces.ports import SearchAnalyticsPort
 _POSITION_KEY = {
     "search_result_opened": "position",
     "answer_citation_opened": "citation",
+    "related_opened": "position",
 }
 
 

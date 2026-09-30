@@ -38,27 +38,23 @@ class ListTasksInteractor:
         self.memory_records = memory_records
 
     async def list_tasks(self, *, dto: ListTasksInputDTO) -> list[RecordItemDTO]:
-        """List the caller's records, filtered, searched and sorted."""
+        """List the caller's records, filtered and sorted. A search goes
+        through search's own query instead (epic 005, FR-22)."""
         tasks: list[TaskDTO] = []
         reminders: list[ReminderDTO] = []
         if dto.kind_filter != _REMINDERS_ONLY:
             tasks = await self.task_repository.list_for_user(
                 user_id=dto.user_id,
                 kind_filter=dto.kind_filter,
-                search=dto.search,
                 sort_by=dto.sort_by,
                 sort_desc=dto.sort_desc,
             )
         if dto.kind_filter != _TASKS_ONLY:
-            reminders = await self.reminder_records.list_reminders(
-                user_id=dto.user_id, search=dto.search
-            )
+            reminders = await self.reminder_records.list_reminders(user_id=dto.user_id)
         memories: list[MemoryDTO] = []
         # The All tab sends "ALL"; an omitted filter means the same.
         if dto.kind_filter in _ALL_KINDS:
-            memories = await self.memory_records.list_memories(
-                user_id=dto.user_id, search=dto.search
-            )
+            memories = await self.memory_records.list_memories(user_id=dto.user_id)
         if not reminders and not memories:
             return list(tasks)
         return self._merge_in_order(records=[*tasks, *reminders, *memories], dto=dto)

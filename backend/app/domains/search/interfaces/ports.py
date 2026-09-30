@@ -74,7 +74,7 @@ class UserTimezonePort(Protocol):
 SearchEventProperties = dict[str, int | float | bool]
 
 SearchEventType = Literal[
-    "search_run", "search_result_opened", "answer_citation_opened"
+    "search_run", "search_result_opened", "answer_citation_opened", "related_opened"
 ]
 
 

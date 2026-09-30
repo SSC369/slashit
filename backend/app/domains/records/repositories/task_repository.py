@@ -108,7 +108,6 @@ class SqlTaskRepository:
         *,
         user_id: uuid.UUID,
         kind_filter: str | None,
-        search: str | None,
         sort_by: str,
         sort_desc: bool,
     ) -> list[TaskDTO]:
@@ -120,9 +119,6 @@ class SqlTaskRepository:
         statement = select(Task).where(
             Task.user_id == user_id, Task.deleted_at.is_(None)
         )
-        if search:
-            statement = statement.where(Task.title.ilike(f"%{search}%"))
-
         sort_column = Task.due_at if sort_by == "DUE_AT" else Task.created_at
         direction = sort_column.desc() if sort_desc else sort_column.asc()
         statement = statement.order_by(sort_column.is_(None), direction)

@@ -18,12 +18,17 @@ from app.domains.search.constants import (
     GROUP_LIMIT,
     MEANING_MAX_DISTANCE,
     PORT_LIMIT,
+    RELATED_LIMIT,
+    RELATED_MAX_DISTANCE,
 )
 from app.domains.search.interfaces.dtos import (
     CandidatePageDTO,
     RecordType,
+    RelatedRecordDTO,
     SearchAnswerDTO,
     SearchCandidate,
+    SearchHitDTO,
+    SearchPageDTO,
     SearchResultsDTO,
 )
 from app.domains.search.interfaces.ports import (
@@ -83,23 +88,14 @@ class SearchService:
     async def search_for_capture(self, *, user_id: UUID, text: str) -> SearchResultsDTO:
         """`/search <text>`: every record type, by words and meaning, grouped.
 
-        The query's vector is fetched while the word pass runs (AD-4). With a
-        vector, one more pass matches by both and replaces the word-only
-        results; without one, the word matches stand, flagged (FR-20). A
+        Word matches stand, flagged, when the meaning call fails (FR-20). A
         question then gets a checked, cited answer from the top ten (FR-15 to
         FR-19); a word search never calls the model for one.
         """
-        terms = build_terms(text=text)
         started = time.monotonic()
-        query_vector, word_pages = await asyncio.gather(
-            self.query_embedding.embed_query(user_id=user_id, text=text),
-            self._search_every_type(user_id=user_id, terms=terms, query_vector=None),
+        pages, query_vector = await self._search_by_words_and_meaning(
+            user_id=user_id, text=text, limit=PORT_LIMIT
         )
-        pages = word_pages
-        if query_vector is not None:
-            pages = await self._search_every_type(
-                user_id=user_id, terms=terms, query_vector=query_vector
-            )
         searched = time.monotonic()
         candidates = [
             candidate for page in pages.values() for candidate in page.candidates
@@ -148,6 +144,106 @@ class SearchService:
             },
         )
         return results
+
+    async def search_page(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        record_type: RecordType | None,
+        offset: int,
+        limit: int,
+    ) -> SearchPageDTO:
+        """FR-22 to FR-24: the records view's search. The same passes and the
+        same ranking as `/search`, so the same text finds the same records;
+        never an answer. Each port returns enough to fill the page asked for."""
+        pages, query_vector = await self._search_by_words_and_meaning(
+            user_id=user_id, text=text, limit=offset + limit
+        )
+        ranked = sorted(
+            (
+                candidate
+                for page in pages.values()
+                for candidate in page.candidates
+                if record_type is None or candidate.record_type == record_type
+            ),
+            key=rank_key,
+        )
+        total = sum(
+            page.total
+            for page_type, page in pages.items()
+            if record_type is None or page_type == record_type
+        )
+        return SearchPageDTO(
+            query=text,
+            hits=[
+                SearchHitDTO(
+                    record_type=candidate.record_type,
+                    item=candidate.item,
+                    citation=None,
+                )
+                for candidate in ranked[offset : offset + limit]
+            ],
+            total=total,
+            other_types_total=sum(page.total for page in pages.values()) - total,
+            meaning_unavailable=query_vector is None,
+        )
+
+    async def related(
+        self, *, user_id: UUID, record_type: RecordType, record_id: UUID
+    ) -> list[RelatedRecordDTO]:
+        """FR-25 to FR-27, AD-6: the records nearest in meaning to this one,
+        across every type, from its stored vector. No model call. A record
+        with no vector yet, or one this user cannot see, has none."""
+        source_port = next(
+            port for port in self.search_ports if port.record_type == record_type
+        )
+        vector = await source_port.embedding_of(user_id=user_id, record_id=record_id)
+        if vector is None:
+            return []
+        candidates: list[SearchCandidate] = []
+        for port in self.search_ports:
+            page = await port.search_candidates(
+                user_id=user_id,
+                terms=[],
+                query_embedding=vector,
+                max_distance=RELATED_MAX_DISTANCE,
+                # One more than shown: the record itself is among them.
+                limit=RELATED_LIMIT + 1,
+            )
+            candidates.extend(page.candidates)
+        nearest = sorted(
+            (
+                candidate
+                for candidate in candidates
+                if candidate.record_id != record_id and candidate.distance is not None
+            ),
+            key=lambda candidate: candidate.distance or 0.0,
+        )
+        return [
+            RelatedRecordDTO(record_type=candidate.record_type, item=candidate.item)
+            for candidate in nearest[:RELATED_LIMIT]
+        ]
+
+    async def _search_by_words_and_meaning(
+        self, *, user_id: UUID, text: str, limit: int
+    ) -> tuple[dict[RecordType, CandidatePageDTO], tuple[float, ...] | None]:
+        """AD-4: the query's vector is fetched while the word pass runs. With
+        a vector, one more pass matches by both and replaces the word-only
+        results; without one, the word matches stand (FR-20)."""
+        terms = build_terms(text=text)
+        query_vector, word_pages = await asyncio.gather(
+            self.query_embedding.embed_query(user_id=user_id, text=text),
+            self._search_every_type(
+                user_id=user_id, terms=terms, query_vector=None, limit=limit
+            ),
+        )
+        if query_vector is None:
+            return word_pages, None
+        pages = await self._search_every_type(
+            user_id=user_id, terms=terms, query_vector=query_vector, limit=limit
+        )
+        return pages, query_vector
 
     async def _answer_question(
         self, *, user_id: UUID, question: str, candidates: list[SearchCandidate]
@@ -198,6 +294,7 @@ class SearchService:
         user_id: UUID,
         terms: Sequence[str],
         query_vector: Sequence[float] | None,
+        limit: int,
     ) -> dict[RecordType, CandidatePageDTO]:
         """One pass over every record type. Sequential on purpose: the ports
         share the request's database session, which runs one query at a time."""
@@ -208,6 +305,6 @@ class SearchService:
                 terms=terms,
                 query_embedding=query_vector,
                 max_distance=MEANING_MAX_DISTANCE,
-                limit=PORT_LIMIT,
+                limit=limit,
             )
         return pages

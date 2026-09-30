@@ -8,7 +8,8 @@ from app.domains.records.graphql.types import SortField, TaskStatus
 @strawberry.input
 class RecordsFilterInput:
     kind: str | None = None
-    search: str | None = None
+    # Epic 005, FR-22: no `search`. The records view calls search's own
+    # `search` query whenever the box holds text.
     sort_by: SortField = SortField.CREATED_AT
     sort_desc: bool = False
 
