@@ -31,9 +31,7 @@ class FakeAuthAttemptRepository:
             return _NOT_LOCKED
         return AuthAttemptOutcomeDTO(locked=True, locked_until=row.locked_until)
 
-    async def record_attempt(
-        self, *, email: str, valid: bool
-    ) -> AuthAttemptOutcomeDTO:
+    async def record_attempt(self, *, email: str, valid: bool) -> AuthAttemptOutcomeDTO:
         now = datetime.now(UTC)
         row = self.rows.setdefault(email, _Row(now=now))
 

@@ -25,7 +25,9 @@ Branch `claude/next-feature-planning-qbpxr3`, from `main` at `af6f4d3` (epic 004
 merged). Before any 005 code: local PostgreSQL 16 with pgvector and a stub
 Supabase `auth` schema, migrations to `0031` applied, **370 backend tests
 passing**, `mypy app` and `ruff check` clean. `ruff format --check` already
-listed 8 files; none is touched by this feature and they are left as found.
+listed 8 files; none is touched by this feature. They were left as found
+until PR #2, whose CI stopped at that same check. The user chose to format
+the 7 still listed there on 2026-09-30; each file's syntax tree is unchanged.
 
 ## Summary
 

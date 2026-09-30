@@ -202,8 +202,7 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.execute(
         sa.text(
-            "DROP FUNCTION IF EXISTS "
-            "public.hook_password_verification_attempt(jsonb)"
+            "DROP FUNCTION IF EXISTS public.hook_password_verification_attempt(jsonb)"
         )
     )
     op.execute(

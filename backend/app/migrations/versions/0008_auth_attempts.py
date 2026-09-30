@@ -71,9 +71,7 @@ def _lock_down() -> None:
     op.execute(sa.text("ALTER TABLE auth_attempts ENABLE ROW LEVEL SECURITY"))
     op.execute(sa.text("ALTER TABLE auth_attempts FORCE ROW LEVEL SECURITY"))
     op.execute(
-        sa.text(
-            "GRANT SELECT, INSERT, UPDATE ON auth_attempts TO supabase_auth_admin"
-        )
+        sa.text("GRANT SELECT, INSERT, UPDATE ON auth_attempts TO supabase_auth_admin")
     )
     op.execute(
         sa.text(

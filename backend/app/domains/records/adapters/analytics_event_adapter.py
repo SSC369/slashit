@@ -14,7 +14,5 @@ class RecordsAnalyticsAdapter:
 
     async def record_records_view_opened(self, *, user_id: UUID) -> None:
         await self.record_event_interactor.record_event(
-            dto=RecordEventInputDTO(
-                user_id=user_id, event_type="records_view_opened"
-            )
+            dto=RecordEventInputDTO(user_id=user_id, event_type="records_view_opened")
         )
