@@ -1,14 +1,23 @@
 """The only SQL in the records domain. Returns DTOs, never models."""
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, select, update
+from sqlalchemy import CursorResult, case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
-from app.domains.records.interfaces.dtos import RecordOrigin, TaskDTO, TaskStatus
+from app.core.text_search import build_search_expressions
+from app.domains.records.interfaces.dtos import (
+    RecordOrigin,
+    TaskDTO,
+    TaskEmbeddingTargetDTO,
+    TaskSearchMatchDTO,
+    TaskSearchPageDTO,
+    TaskStatus,
+)
 from app.domains.records.models import Task
 
 
@@ -147,6 +156,12 @@ class SqlTaskRepository:
         values: dict[str, object] = {"updated_at": now}
         if title is not None:
             values["title"] = title
+            # A changed title's old vector describes the old words. NULL until
+            # the embed job runs, so an old meaning never matches (005 FR-14).
+            # An unchanged title keeps its vector.
+            values["embedding"] = case(
+                (Task.title == title, Task.embedding), else_=None
+            )
         if status is not None:
             values["status"] = status
         if due_at_provided:
@@ -202,3 +217,143 @@ class SqlTaskRepository:
                 ),
             )
         return result.rowcount
+
+    async def search_tasks(
+        self,
+        *,
+        user_id: uuid.UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> TaskSearchPageDTO:
+        """Live tasks matching any term or within ``max_distance`` (005 §5).
+
+        Ordered for the database's own cut at ``limit`` only; search ranks.
+        """
+        expressions = build_search_expressions(
+            search_vector=Task.search_vector,
+            embedding=Task.embedding,
+            terms=terms,
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+        )
+        if expressions.matches is None:
+            return TaskSearchPageDTO(matches=[], total=0)
+        live_matches = (
+            Task.user_id == user_id,
+            Task.deleted_at.is_(None),
+            expressions.matches,
+        )
+        statement = (
+            select(
+                Task,
+                expressions.all_terms,
+                expressions.word_rank,
+                expressions.distance,
+            )
+            .where(*live_matches)
+            .order_by(*expressions.ordering)
+            .limit(limit)
+        )
+        now = datetime.now(UTC)
+        async with user_transaction(self.session, user_id) as scoped:
+            rows = (await scoped.execute(statement)).all()
+            total = await scoped.scalar(
+                select(func.count()).select_from(Task).where(*live_matches)
+            )
+        return TaskSearchPageDTO(
+            matches=[
+                TaskSearchMatchDTO(
+                    task=_task_to_dto(task=task, now=now),
+                    all_terms=bool(all_terms),
+                    word_rank=word_rank,
+                    distance=distance,
+                )
+                for task, all_terms, word_rank, distance in rows
+            ],
+            total=int(total or 0),
+        )
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, task_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            embedding = await scoped.scalar(
+                select(Task.embedding).where(
+                    Task.id == task_id,
+                    Task.user_id == user_id,
+                    Task.deleted_at.is_(None),
+                )
+            )
+        return None if embedding is None else tuple(float(item) for item in embedding)
+
+    async def get_title_needing_embedding(
+        self, *, user_id: uuid.UUID, task_id: uuid.UUID
+    ) -> str | None:
+        """The live task's title while it has no vector, else None: gone, or
+        already embedded, as after an edit that left the title unchanged."""
+        async with user_transaction(self.session, user_id) as scoped:
+            title = await scoped.scalar(
+                select(Task.title).where(
+                    Task.id == task_id,
+                    Task.user_id == user_id,
+                    Task.deleted_at.is_(None),
+                    Task.embedding.is_(None),
+                )
+            )
+        return None if title is None else str(title)
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: uuid.UUID,
+        task_id: uuid.UUID,
+        title: str,
+        embedding: Sequence[float],
+    ) -> bool:
+        """Store the vector only if the title is still the one embedded, so a
+        vector computed before a later edit is never written over it."""
+        async with user_transaction(self.session, user_id) as scoped:
+            result = cast(
+                CursorResult[Any],
+                await scoped.execute(
+                    update(Task)
+                    .where(
+                        Task.id == task_id,
+                        Task.user_id == user_id,
+                        Task.deleted_at.is_(None),
+                        Task.title == title,
+                    )
+                    .values(embedding=list(embedding))
+                ),
+            )
+        return result.rowcount > 0
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: uuid.UUID | None,
+        limit: int,
+    ) -> list[TaskEmbeddingTargetDTO]:
+        """Every user's live tasks with no vector. Cross-user by design: the
+        backfill job runs on the service-role connection (T3), never a request.
+        ``updated_since`` None means every such task, for the full sweep."""
+        statement = select(Task.user_id, Task.id).where(
+            Task.embedding.is_(None), Task.deleted_at.is_(None)
+        )
+        if updated_since is not None:
+            statement = statement.where(Task.updated_at >= updated_since)
+        if after_id is not None:
+            statement = statement.where(Task.id > after_id)
+        # No user_transaction: the sweep reads every user's rows on the
+        # service-role connection, as a background job may (T3).
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(statement.order_by(Task.id).limit(limit))
+            ).all()
+        return [
+            TaskEmbeddingTargetDTO(user_id=user_id, task_id=task_id)
+            for user_id, task_id in rows
+        ]

@@ -1,0 +1,27 @@
+#import "./TaskFields.graphql"
+#import "./ReminderFields.graphql"
+#import "./MemoryFields.graphql"
+
+fragment SearchResultsFields on SearchResults {
+  query
+  meaningUnavailable
+  groups {
+    recordType
+    total
+    hits {
+      citation
+      record {
+        __typename
+        ... on Task {
+          ...TaskFields
+        }
+        ... on Reminder {
+          ...ReminderFields
+        }
+        ... on Memory {
+          ...MemoryFields
+        }
+      }
+    }
+  }
+}

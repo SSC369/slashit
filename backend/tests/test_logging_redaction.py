@@ -86,3 +86,28 @@ def test_the_key_blanking_runs_in_the_configured_pipeline(
     structlog.get_logger("test").info("memories.saved", text="Locker PIN 4417")
 
     assert "Locker PIN 4417" not in capsys.readouterr().out
+
+
+def test_search_and_record_text_is_blanked_by_key() -> None:
+    """C-13 of epic 005's sub-plan 4.1, AD-10: search text, terms, record
+    titles and descriptions, and answer text never reach a log. Counts, ids
+    and timings still do."""
+    secret = "passport P1234567"
+    event = {
+        "event": "search.searched",
+        "query": secret,
+        "terms": ["passport", "p1234567"],
+        "total_ms": 812,
+        "group_count": 3,
+        "hit": {"title": secret, "task_id": "9f1a"},
+        "reminder": {"description": secret},
+        "turn": {"question_text": secret, "answer_text": secret},
+        "answer": {"sentences": [secret]},
+    }
+
+    result = blank_user_text(None, "info", event)
+
+    assert "P1234567" not in str(result)
+    assert result["total_ms"] == 812
+    assert result["group_count"] == 3
+    assert result["hit"] == {"title": REDACTED, "task_id": "9f1a"}

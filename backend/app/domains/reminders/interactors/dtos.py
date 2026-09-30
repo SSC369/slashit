@@ -51,3 +51,17 @@ class SnoozeReminderInputDTO:
     user_id: UUID
     reminder_id: UUID
     option: SnoozeOption
+
+
+@dataclass(frozen=True)
+class EmbedReminderInputDTO:
+    user_id: UUID
+    reminder_id: UUID
+
+
+@dataclass(frozen=True)
+class QueueMissingReminderEmbeddingsInputDTO:
+    """``full`` sweeps every reminder with no vector, once at deploy (005
+    FR-13); otherwise only reminders touched in the backfill window."""
+
+    full: bool

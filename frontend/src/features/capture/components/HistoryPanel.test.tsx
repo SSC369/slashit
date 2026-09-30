@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { API_FAILED, API_FETCHING, API_INITIAL, API_SUCCESS } from "@/constants/apiConstants";
@@ -26,7 +26,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    const { container } = render(<HistoryPanel isOpen={false} onClose={vi.fn()} />);
+    const { container } = render(<HistoryPanel isOpen={false} onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -39,7 +39,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("History")).toBeInTheDocument();
     expect(screen.queryByText("Nothing captured yet")).not.toBeInTheDocument();
@@ -53,7 +53,7 @@ describe("HistoryPanel", () => {
       apiError: new Error("network down"),
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("Couldn't load your history")).toBeInTheDocument();
     screen.getByText("Retry").click();
@@ -68,7 +68,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("Nothing captured yet")).toBeInTheDocument();
   });
@@ -97,7 +97,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("/add-task buy milk")).toBeInTheDocument();
     expect(screen.getByText("Task created")).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("Task created")).toBeInTheDocument();
     expect(screen.queryByText("Question asked")).not.toBeInTheDocument();
@@ -168,7 +168,7 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.getByText("Question asked")).toBeInTheDocument();
   });
@@ -199,10 +199,49 @@ describe("HistoryPanel", () => {
       apiError: null,
     });
 
-    render(<HistoryPanel isOpen onClose={vi.fn()} />);
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={vi.fn()} />);
 
     expect(screen.queryByText("A memory was saved here and later forgotten")).not.toBeInTheDocument();
     expect(screen.getByText("Forgot 2 memories")).toBeInTheDocument();
     expect(screen.getByText("/forget")).toBeInTheDocument();
+  });
+});
+
+describe("HistoryPanel, epic 005", () => {
+  it("C-17: a search row says results are not kept and reruns its line", () => {
+    const onRunAgain = vi.fn();
+    mockUseGetCaptureHistory.mockReturnValue({
+      triggerAPI: mockTriggerAPI,
+      data: {
+        captureHistory: {
+          items: [
+            {
+              id: "turn-9",
+              inputText: "/search passport",
+              outcome: "SEARCHED",
+              resultingTaskId: null,
+              resultingPendingCaptureId: null,
+              resultingReminderId: null,
+              resultingMemoryId: null,
+              forgotten: false,
+              affectedCount: null,
+              questionText: null,
+              answerText: null,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+          nextCursor: null,
+        },
+      },
+      apiStatus: API_SUCCESS,
+      apiError: null,
+    });
+
+    render(<HistoryPanel isOpen onClose={vi.fn()} onRunAgain={onRunAgain} />);
+
+    expect(screen.getByText("Searched")).toBeInTheDocument();
+    expect(screen.getByText("Results are not kept.")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Run again"));
+    expect(onRunAgain).toHaveBeenCalledWith("/search passport");
   });
 });

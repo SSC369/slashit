@@ -1,15 +1,17 @@
 """The only SQL in the reminders domain. Returns DTOs, never models."""
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import cast
+from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, select, update
+from sqlalchemy import CursorResult, case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
+from app.core.text_search import build_search_expressions
 from app.domains.reminders.interfaces.dtos import (
     DueReminderDTO,
     FiringDTO,
@@ -17,6 +19,9 @@ from app.domains.reminders.interfaces.dtos import (
     RecordOriginValue,
     ReminderActionValue,
     ReminderDTO,
+    ReminderEmbeddingTargetDTO,
+    ReminderSearchMatchDTO,
+    ReminderSearchPageDTO,
     ReminderStateValue,
     UserActionValue,
 )
@@ -124,7 +129,16 @@ class SqlReminderRepository:
                     Reminder.user_id == user_id,
                     Reminder.deleted_at.is_(None),
                 )
-                .values(updated_at=now, **_write_columns(write=write))
+                .values(
+                    updated_at=now,
+                    # A changed description's old vector describes the old
+                    # words. NULL until the embed job runs (005 FR-14).
+                    embedding=case(
+                        (Reminder.description == write.description, Reminder.embedding),
+                        else_=None,
+                    ),
+                    **_write_columns(write=write),
+                )
                 .returning(Reminder)
             )
             reminder = result.scalar_one_or_none()
@@ -320,6 +334,146 @@ class SqlReminderRepository:
         if reminder is None:
             return None
         return _reminder_to_dto(reminder=reminder, now=acted_at)
+
+    # Epic 005, sub-plan 4.1.
+    async def search_reminders(
+        self,
+        *,
+        user_id: uuid.UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> ReminderSearchPageDTO:
+        """Live reminders matching any term or within ``max_distance``.
+
+        Ordered for the database's own cut at ``limit`` only; search ranks.
+        """
+        expressions = build_search_expressions(
+            search_vector=Reminder.search_vector,
+            embedding=Reminder.embedding,
+            terms=terms,
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+        )
+        if expressions.matches is None:
+            return ReminderSearchPageDTO(matches=[], total=0)
+        live_matches = (
+            Reminder.user_id == user_id,
+            Reminder.deleted_at.is_(None),
+            expressions.matches,
+        )
+        statement = (
+            select(
+                Reminder,
+                expressions.all_terms,
+                expressions.word_rank,
+                expressions.distance,
+            )
+            .where(*live_matches)
+            .order_by(*expressions.ordering)
+            .limit(limit)
+        )
+        now = datetime.now(UTC)
+        async with user_transaction(self.session, user_id) as scoped:
+            rows = (await scoped.execute(statement)).all()
+            total = await scoped.scalar(
+                select(func.count()).select_from(Reminder).where(*live_matches)
+            )
+        return ReminderSearchPageDTO(
+            matches=[
+                ReminderSearchMatchDTO(
+                    reminder=_reminder_to_dto(reminder=reminder, now=now),
+                    all_terms=bool(all_terms),
+                    word_rank=word_rank,
+                    distance=distance,
+                )
+                for reminder, all_terms, word_rank, distance in rows
+            ],
+            total=int(total or 0),
+        )
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, reminder_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            embedding = await scoped.scalar(
+                select(Reminder.embedding).where(
+                    Reminder.id == reminder_id,
+                    Reminder.user_id == user_id,
+                    Reminder.deleted_at.is_(None),
+                )
+            )
+        return None if embedding is None else tuple(float(item) for item in embedding)
+
+    async def get_description_needing_embedding(
+        self, *, user_id: uuid.UUID, reminder_id: uuid.UUID
+    ) -> str | None:
+        """The live reminder's description while it has no vector, else None:
+        gone, or already embedded, as after an edit that kept the words."""
+        async with user_transaction(self.session, user_id) as scoped:
+            description = await scoped.scalar(
+                select(Reminder.description).where(
+                    Reminder.id == reminder_id,
+                    Reminder.user_id == user_id,
+                    Reminder.deleted_at.is_(None),
+                    Reminder.embedding.is_(None),
+                )
+            )
+        return None if description is None else str(description)
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: uuid.UUID,
+        reminder_id: uuid.UUID,
+        description: str,
+        embedding: Sequence[float],
+    ) -> bool:
+        """Store the vector only if the description is still the one embedded,
+        so a vector computed before a later edit is never written over it."""
+        async with user_transaction(self.session, user_id) as scoped:
+            result = cast(
+                CursorResult[Any],
+                await scoped.execute(
+                    update(Reminder)
+                    .where(
+                        Reminder.id == reminder_id,
+                        Reminder.user_id == user_id,
+                        Reminder.deleted_at.is_(None),
+                        Reminder.description == description,
+                    )
+                    .values(embedding=list(embedding))
+                ),
+            )
+        return result.rowcount > 0
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: uuid.UUID | None,
+        limit: int,
+    ) -> list[ReminderEmbeddingTargetDTO]:
+        """Every user's live reminders with no vector. ``updated_since`` None
+        means every such reminder, for the full sweep at deploy (FR-13)."""
+        statement = select(Reminder.user_id, Reminder.id).where(
+            Reminder.embedding.is_(None), Reminder.deleted_at.is_(None)
+        )
+        if updated_since is not None:
+            statement = statement.where(Reminder.updated_at >= updated_since)
+        if after_id is not None:
+            statement = statement.where(Reminder.id > after_id)
+        # No user_transaction: the sweep reads every user's rows on the
+        # service-role connection, as a background job may (T3).
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(statement.order_by(Reminder.id).limit(limit))
+            ).all()
+        return [
+            ReminderEmbeddingTargetDTO(user_id=user_id, reminder_id=reminder_id)
+            for user_id, reminder_id in rows
+        ]
 
 
 def _due_at(*, reminder: Reminder) -> datetime | None:

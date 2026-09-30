@@ -55,6 +55,24 @@ class MemoryDTO:
 
 
 @dataclass(frozen=True)
+class MemorySearchMatchDTO:
+    """One memory a search matched, with the scores search ranks by (005
+    AD-3). ``word_rank`` is None when no term is present; ``distance`` is None
+    when the memory has no vector yet or the search had none."""
+
+    memory: MemoryDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class MemorySearchPageDTO:
+    matches: list[MemorySearchMatchDTO]
+    total: int
+
+
+@dataclass(frozen=True)
 class MemorySavedDTO:
     """FR-7: the saved memory, and FR-8's caution when there is one."""
 

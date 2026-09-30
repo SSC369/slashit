@@ -27,6 +27,34 @@ class TaskDTO:
     updated_at: datetime
 
 
+@dataclass(frozen=True)
+class TaskSearchMatchDTO:
+    """One task a search matched, with the scores search ranks by (005 AD-3).
+
+    ``word_rank`` is None when no term is present; ``distance`` is None when
+    the task has no vector yet or the search had none.
+    """
+
+    task: TaskDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class TaskSearchPageDTO:
+    matches: list[TaskSearchMatchDTO]
+    total: int
+
+
+@dataclass(frozen=True)
+class TaskEmbeddingTargetDTO:
+    """A task the embed backfill should queue: owner, id, nothing readable."""
+
+    user_id: UUID
+    task_id: UUID
+
+
 @strawberry.type
 class Task:
     """The crossable GraphQL shape.

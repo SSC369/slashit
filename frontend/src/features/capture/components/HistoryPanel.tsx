@@ -1,4 +1,16 @@
-import { Bell, Bookmark, Check, Clock, Eraser, History, Scale, Search, Trash2, X } from "lucide-react";
+import {
+  Bell,
+  Bookmark,
+  Check,
+  Clock,
+  Eraser,
+  History,
+  RotateCw,
+  Scale,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 
 import useGetCaptureHistory from "../../../api/queries/GetCaptureHistory/useGetCaptureHistory";
@@ -12,6 +24,8 @@ import * as Styles from "./styles";
 interface HistoryPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Epic 005 FR-21: a search's results are not kept, so its row reruns it. */
+  onRunAgain: (inputText: string) => void;
 }
 
 const OUTCOME_PILL: Record<
@@ -31,6 +45,7 @@ const OUTCOME_PILL: Record<
     label: "Conflict answered",
     icon: <Scale size={12} />,
   },
+  SEARCHED: { className: Styles.pillMutedStyles, label: "Searched", icon: <Search size={12} /> },
 };
 
 /** FR-28: the `/forget` row names the count and nothing typed. */
@@ -41,8 +56,14 @@ const pillLabel = (turn: CaptureTurnFieldsFragment): string => {
   return OUTCOME_PILL[turn.outcome].label;
 };
 
-const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement => {
-  const { turn } = props;
+interface HistoryRowProps {
+  turn: CaptureTurnFieldsFragment;
+  onRunAgain: (inputText: string) => void;
+}
+
+const HistoryRow = (props: HistoryRowProps): ReactElement => {
+  const { turn, onRunAgain } = props;
+  const isSearch = turn.outcome === "SEARCHED";
   // Sub-plan 4.4: a forgotten memory's turns are deleted, so none reach here.
   const pill = OUTCOME_PILL[turn.outcome];
 
@@ -61,6 +82,14 @@ const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement =>
       {turn.answerText && (
         <div className={Styles.historyDetailStyles}>Answered: {turn.answerText}</div>
       )}
+      {isSearch && (
+        <div className={Styles.historySearchDetailStyles}>
+          <span>Results are not kept.</span>
+          <Button size="sm" onClick={() => onRunAgain(turn.inputText)}>
+            <RotateCw size={13} /> Run again
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
@@ -69,7 +98,7 @@ const HistoryRow = (props: { turn: CaptureTurnFieldsFragment }): ReactElement =>
  * else in the same tab writes back to this data (design's 04.4 addendum,
  * state management section). */
 export const HistoryPanel = (props: HistoryPanelProps): ReactElement | null => {
-  const { isOpen, onClose } = props;
+  const { isOpen, onClose, onRunAgain } = props;
   const [items, setItems] = useState<CaptureTurnFieldsFragment[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const { triggerAPI, data, apiStatus } = useGetCaptureHistory();
@@ -163,7 +192,7 @@ export const HistoryPanel = (props: HistoryPanelProps): ReactElement | null => {
           )}
 
           {visibleItems.map((turn) => (
-            <HistoryRow key={turn.id} turn={turn} />
+            <HistoryRow key={turn.id} turn={turn} onRunAgain={onRunAgain} />
           ))}
 
           {items.length > 0 && nextCursor && (

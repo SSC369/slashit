@@ -4,6 +4,7 @@ Capture calls it for `/remember`, `/add-memory` and `/memories`; records calls
 it for the All tab. Other domains reach it only through ``public.py``.
 """
 
+from collections.abc import Sequence
 from uuid import UUID
 
 import structlog
@@ -23,6 +24,7 @@ from app.domains.memories.interfaces.dtos import (
     MemoryDTO,
     MemoryListDTO,
     MemorySavedDTO,
+    MemorySearchPageDTO,
     MemoryTooLongDTO,
     ModelRefused,
 )
@@ -220,6 +222,33 @@ class MemoryService:
         )
         await self._record_event(user_id=user_id, event_type="memory_forgotten")
         return MemoriesForgottenDTO(count=forgotten_count)
+
+    async def search_candidates(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> MemorySearchPageDTO:
+        """Epic 005: the user's live memories a search matches, with the
+        scores the search domain ranks by. Ranking is not decided here (AD-1)."""
+        return await self.memory_repository.search_memories(
+            user_id=user_id,
+            terms=terms,
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+            limit=limit,
+        )
+
+    async def embedding_of(
+        self, *, user_id: UUID, memory_id: UUID
+    ) -> tuple[float, ...] | None:
+        """The live memory's stored vector, for related records (005 AD-6)."""
+        return await self.memory_repository.get_embedding(
+            user_id=user_id, memory_id=memory_id
+        )
 
     async def _record_event(
         self, *, user_id: UUID, event_type: MemoryEventType

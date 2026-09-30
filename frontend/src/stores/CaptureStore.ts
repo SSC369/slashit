@@ -3,6 +3,7 @@ import { makeAutoObservable } from "mobx";
 import type { MemoryCategory, SecretKind } from "../../types.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
+import type { SearchResultsFieldsFragment } from "../fragments/SearchResultsFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
 
 export type CaptureTurn =
@@ -47,6 +48,10 @@ export type CaptureTurn =
       searchText: string | null;
     }
   | { id: string; said: string; status: "memoryTooLong"; length: number; limit: number }
+  /** Epic 005, `SearchResults` and `SearchDegraded`. Held only while this
+   * page is open: results are never kept server-side (FR-21). */
+  | { id: string; said: string; status: "searchResults"; results: SearchResultsFieldsFragment }
+  | { id: string; said: string; status: "searchTooLong"; length: number; limit: number }
   | { id: string; said: string; status: "memoryModelDown" }
   | {
       id: string;

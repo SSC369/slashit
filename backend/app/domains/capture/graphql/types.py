@@ -126,6 +126,8 @@ class CaptureTurnOutcome(Enum):
     MEMORY_LISTED = "memory_listed"
     MEMORY_FORGOTTEN = "memory_forgotten"
     MEMORY_CONFLICT_RESOLVED = "memory_conflict_resolved"
+    # Epic 005, FR-21.
+    SEARCHED = "searched"
 
 
 @strawberry.type

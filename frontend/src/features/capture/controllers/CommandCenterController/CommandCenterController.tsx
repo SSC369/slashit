@@ -16,6 +16,7 @@ import {
   CAPTURE_COMMANDS,
   MEMORY_SAVE_COMMANDS,
 } from "../../../../constants/captureCommands";
+import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
 import { whenTextInSentence } from "../../../../utils/formatReminder";
@@ -26,9 +27,16 @@ import EmptyState from "../../components/EmptyState";
 import HistoryPanel from "../../components/HistoryPanel";
 import TurnCard from "../../components/TurnCard";
 import WaitingPill from "../../components/WaitingPill";
-import type { ConflictAnswer } from "../../../../../types.generated";
+import type { ConflictAnswer, RecordType } from "../../../../../types.generated";
+import type { SearchRecordFragment } from "../../components/SearchCards";
 import * as StreamStyles from "../../components/styles";
 import * as Styles from "./styles";
+
+const SEARCH_KIND_FILTER: Record<RecordType, RecordsKindFilter> = {
+  TASK: "TASKS",
+  REMINDER: "REMINDERS",
+  MEMORY: "MEMORIES",
+};
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
 
@@ -90,6 +98,11 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "memoryList", memories, searchText }),
     onMemoryTooLong: ({ length, limit }) => {
       captureStore.resolveTurn(turnId, { status: "memoryTooLong", length, limit });
+      restoreInput(said);
+    },
+    onSearchResults: (results) => captureStore.resolveTurn(turnId, { status: "searchResults", results }),
+    onSearchTooLong: ({ length, limit }) => {
+      captureStore.resolveTurn(turnId, { status: "searchTooLong", length, limit });
       restoreInput(said);
     },
     onMemoryConflictAsked: ({ pendingCaptureId, newText, category, conflicting }) => {
@@ -336,6 +349,34 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
+  // Epic 005, FR-9: a result opens its record's detail.
+  const handleOpenSearchRecord = (record: SearchRecordFragment): void => {
+    switch (record.__typename) {
+      case "Task":
+        navigate(`/records/${record.id}`);
+        return;
+      case "Reminder":
+        navigate(`/records/reminders/${record.id}`);
+        return;
+      case "Memory":
+        navigate(`/records/memories/${record.id}`);
+        return;
+    }
+  };
+
+  // FR-8: the records view, filtered to that type and this search.
+  const handleSeeAllSearch = (recordType: RecordType | null, query: string): void => {
+    store.records.setKindFilter(recordType === null ? "ALL" : SEARCH_KIND_FILTER[recordType]);
+    store.records.setSearchText(query);
+    navigate("/records");
+  };
+
+  // FR-21: history keeps the line, never the results, so a search is rerun.
+  const handleRunAgain = (inputText: string): void => {
+    setIsHistoryOpen(false);
+    submit(inputText);
+  };
+
   // Old memories are read live: an edit shows, a forgotten one drops out.
   const turns = store.capture.getAll().map((turn) =>
     turn.status === "memoryConflict"
@@ -372,7 +413,11 @@ const CommandCenterController = (): ReactElement => {
         }
       />
 
-      <HistoryPanel isOpen={isHistoryOpen} onClose={() => setIsHistoryOpen(false)} />
+      <HistoryPanel
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onRunAgain={handleRunAgain}
+      />
 
       {showEmpty ? (
         <EmptyState onFillCommand={handleFillCommand} />
@@ -399,6 +444,8 @@ const CommandCenterController = (): ReactElement => {
                 isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
                 onConflictAnswer={handleConflictAnswer}
                 onConflictDefer={handleConflictDefer}
+                onOpenSearchRecord={handleOpenSearchRecord}
+                onSeeAllSearch={handleSeeAllSearch}
               />
             ))}
           </div>

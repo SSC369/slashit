@@ -52,6 +52,7 @@ from app.domains.reminders.interfaces.dtos import ReminderDTO, ReminderFields
 from app.domains.reminders.repositories.reminder_repository import SqlReminderRepository
 from app.domains.reminders.services.schedule import RepeatKind
 from tests.fakes.fake_email import FakeEmailQueue
+from tests.fakes.fake_embed_queues import FakeReminderEmbedQueue
 
 KOLKATA = ZoneInfo("Asia/Kolkata")
 LONDON = ZoneInfo("Europe/London")
@@ -334,6 +335,7 @@ async def test_a_weekly_reminder_moved_to_monday_never_fires_on_tuesday(
                 )
             ),
             now_provider=_now,
+            embed_queue=FakeReminderEmbedQueue(),
         ).update_reminder(
             dto=UpdateReminderInputDTO(
                 user_id=user_a,

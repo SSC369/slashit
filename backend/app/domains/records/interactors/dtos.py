@@ -36,3 +36,17 @@ class UpdateTaskInputDTO:
 class DeleteTasksInputDTO:
     user_id: UUID
     task_ids: list[UUID]
+
+
+@dataclass(frozen=True)
+class EmbedTaskInputDTO:
+    user_id: UUID
+    task_id: UUID
+
+
+@dataclass(frozen=True)
+class QueueMissingTaskEmbeddingsInputDTO:
+    """``full`` sweeps every task with no vector, once at deploy (005 FR-13);
+    otherwise only tasks touched in the backfill window."""
+
+    full: bool

@@ -29,7 +29,9 @@ from app.domains.reminders.interfaces.dtos import (
     ReminderLimitReached,
     ReminderNeedsWhen,
 )
+from app.domains.reminders.services.reminder_service import ReminderService
 from app.domains.reminders.services.schedule import RepeatKind
+from tests.fakes.fake_embed_queues import FakeReminderEmbedQueue
 from tests.fakes.fake_notification_port import FakeNotificationPort
 from tests.fakes.fake_reminder_repository import FakeReminderRepository
 from tests.fakes.fake_user_clock_port import FakeUserClockPort
@@ -214,6 +216,7 @@ def _update(repository: FakeReminderRepository) -> UpdateReminderInteractor:
         reminder_repository=repository,
         user_clock=FakeUserClockPort(),
         now_provider=_now,
+        embed_queue=FakeReminderEmbedQueue(),
     )
 
 
@@ -396,3 +399,64 @@ async def test_list_puts_upcoming_soonest_first() -> None:
     assert [item.id for item in groups.upcoming] == [sooner.id, later.id]
     assert groups.needs_attention == []
     assert groups.done == []
+
+
+async def test_creating_through_the_service_queues_one_embed() -> None:
+    """Epic 005, sub-plan 4.1, C-9: a new reminder is queued for a vector."""
+    repository = FakeReminderRepository(now_provider=_now)
+    queue = FakeReminderEmbedQueue()
+    service = ReminderService(
+        reminder_repository=repository,
+        create_reminder_interactor=_create(repository),
+        embed_queue=queue,
+    )
+    user_id = uuid.uuid4()
+
+    outcome = await service.create_reminder(
+        user_id=user_id, fields=_fields(), origin="command", original_input=None
+    )
+
+    assert isinstance(outcome, ReminderDTO)
+    assert queue.queued == [(user_id, outcome.id, 0)]
+
+
+async def test_a_refused_create_queues_nothing() -> None:
+    """Epic 005, C-9: only a saved reminder gets a vector."""
+    repository = FakeReminderRepository(now_provider=_now)
+    queue = FakeReminderEmbedQueue()
+    service = ReminderService(
+        reminder_repository=repository,
+        create_reminder_interactor=_create(repository),
+        embed_queue=queue,
+    )
+
+    outcome = await service.create_reminder(
+        user_id=uuid.uuid4(),
+        fields=_fields(local_date=None, local_time=None),
+        origin="command",
+        original_input=None,
+    )
+
+    assert not isinstance(outcome, ReminderDTO)
+    assert queue.queued == []
+
+
+async def test_an_edit_queues_an_embed() -> None:
+    """Epic 005, C-9 (FR-14): the job re-embeds a changed description and
+    does nothing for an unchanged one."""
+    repository = FakeReminderRepository(now_provider=_now)
+    user_id = uuid.uuid4()
+    reminder = await _created(repository=repository, user_id=user_id, fields=_fields())
+    queue = FakeReminderEmbedQueue()
+    interactor = UpdateReminderInteractor(
+        reminder_repository=repository,
+        user_clock=FakeUserClockPort(),
+        now_provider=_now,
+        embed_queue=queue,
+    )
+
+    await interactor.update_reminder(
+        dto=_update_dto(user_id=user_id, reminder_id=reminder.id)
+    )
+
+    assert queue.queued == [(user_id, reminder.id, 0)]

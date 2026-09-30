@@ -36,3 +36,15 @@ RECONCILE_BATCH: Final = 1000
 REZONE_MAX_PASSES: Final = 3
 # A failed timezone_changed job retries; each run skips what already moved.
 REZONE_MAX_ATTEMPTS: Final = 5
+
+# Must equal the column in migration 0033 and the gateway's EMBEDDING_DIMENSIONS.
+REMINDER_EMBEDDING_DIMENSIONS: Final = 768
+
+# Epic 005 build plan §6 and AD-7, as for tasks in records/constants.py.
+EMBED_MAX_ATTEMPTS: Final = 3
+EMBEDDING_BACKFILL_BATCH: Final = 100
+EMBEDDING_BACKFILL_WINDOW_HOURS: Final = 24
+
+# Epic 005 index §6: the full sweep spaces its embed jobs so the provider sees
+# about this many calls a second, `estimate`.
+BACKFILL_CALLS_PER_SECOND: Final = 5

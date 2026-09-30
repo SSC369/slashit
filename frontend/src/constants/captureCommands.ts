@@ -10,6 +10,8 @@ export interface CaptureCommand {
  * even if this list is stale).
  */
 export const CAPTURE_COMMANDS: CaptureCommand[] = [
+  // Epic 005, FR-1: first, as `SearchDiscovery` draws it.
+  { name: "/search", description: "Search everything you have recorded" },
   { name: "/add-task", description: "Create a task" },
   { name: "/tasks", description: "List your open tasks" },
   { name: "/remind", description: "Set a reminder" },

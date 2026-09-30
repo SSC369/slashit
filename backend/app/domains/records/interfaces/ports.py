@@ -33,3 +33,21 @@ class MemoryRecordsPort(Protocol):
     async def list_memories(
         self, *, user_id: UUID, search: str | None
     ) -> list[MemoryDTO]: ...
+
+
+class TaskEmbeddingPort(Protocol):
+    """What records needs to give a task a meaning vector (epic 005 AD-7).
+    None when the model refused; the job then retries."""
+
+    async def embed_task_title(
+        self, *, user_id: UUID, title: str
+    ) -> tuple[float, ...] | None: ...
+
+
+class TaskEmbedQueue(Protocol):
+    """Queues a task's vector after a create or a title edit, so neither
+    waits on, or fails with, the model (005 build plan §7)."""
+
+    async def queue_task_embed(
+        self, *, user_id: UUID, task_id: UUID, delay_seconds: int
+    ) -> None: ...

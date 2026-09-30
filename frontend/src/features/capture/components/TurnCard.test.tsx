@@ -32,6 +32,8 @@ const baseProps = {
   onForgetCancel: vi.fn(),
   onConflictAnswer: vi.fn(),
   onConflictDefer: vi.fn(),
+  onOpenSearchRecord: vi.fn(),
+  onSeeAllSearch: vi.fn(),
 };
 
 describe("TurnCard", () => {

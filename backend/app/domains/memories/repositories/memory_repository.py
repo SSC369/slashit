@@ -1,16 +1,20 @@
 """The only SQL in the memories domain. Returns DTOs, never models."""
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
+from app.core.text_search import build_search_expressions
 from app.domains.memories.interfaces.dtos import (
     MemoryCategory,
     MemoryDTO,
     MemoryOriginValue,
+    MemorySearchMatchDTO,
+    MemorySearchPageDTO,
     MissingEmbeddingDTO,
 )
 from app.domains.memories.interfaces.repositories import CategoryFilter, MemoryWrite
@@ -194,6 +198,77 @@ class SqlMemoryRepository:
                 )
             ).all()
         return [MissingEmbeddingDTO(user_id=row[0], memory_id=row[1]) for row in rows]
+
+    # Epic 005, sub-plan 4.1.
+    async def search_memories(
+        self,
+        *,
+        user_id: uuid.UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> MemorySearchPageDTO:
+        """Live memories matching any term or within ``max_distance``.
+
+        A forgotten memory is deleted outright (004), so it can never match.
+        Ordered for the database's own cut at ``limit`` only; search ranks.
+        """
+        expressions = build_search_expressions(
+            search_vector=Memory.search_vector,
+            embedding=Memory.embedding,
+            terms=terms,
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+        )
+        if expressions.matches is None:
+            return MemorySearchPageDTO(matches=[], total=0)
+        live_matches = (
+            Memory.user_id == user_id,
+            Memory.deleted_at.is_(None),
+            expressions.matches,
+        )
+        statement = (
+            select(
+                Memory,
+                expressions.all_terms,
+                expressions.word_rank,
+                expressions.distance,
+            )
+            .where(*live_matches)
+            .order_by(*expressions.ordering)
+            .limit(limit)
+        )
+        async with user_transaction(self.session, user_id) as scoped:
+            rows = (await scoped.execute(statement)).all()
+            total = await scoped.scalar(
+                select(func.count()).select_from(Memory).where(*live_matches)
+            )
+        return MemorySearchPageDTO(
+            matches=[
+                MemorySearchMatchDTO(
+                    memory=_memory_to_dto(memory=memory),
+                    all_terms=bool(all_terms),
+                    word_rank=word_rank,
+                    distance=distance,
+                )
+                for memory, all_terms, word_rank, distance in rows
+            ],
+            total=int(total or 0),
+        )
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, memory_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            embedding = await scoped.scalar(
+                select(Memory.embedding).where(
+                    Memory.id == memory_id,
+                    Memory.user_id == user_id,
+                    Memory.deleted_at.is_(None),
+                )
+            )
+        return None if embedding is None else tuple(float(item) for item in embedding)
 
 
 def _live_for(*, user_id: uuid.UUID) -> Select[tuple[Memory]]:

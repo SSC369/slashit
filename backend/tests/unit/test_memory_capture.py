@@ -22,6 +22,7 @@ from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
 from tests.fakes.fake_reminder_port import FakeReminderPort, fake_reminder_capture
+from tests.fakes.fake_search_port import FakeSearchPort
 from tests.fakes.fake_task_port import FakeTaskPort
 
 USER = uuid.uuid4()
@@ -42,6 +43,7 @@ class Harness:
             reminder_port=FakeReminderPort(),
             reminder_capture=fake_reminder_capture(extraction=extraction),
             memory_port=self.memory_port,
+            search_port=FakeSearchPort(),
         )
         self.answer = AnswerPendingCaptureInteractor(
             pending_capture_repository=self.pending,
@@ -50,6 +52,7 @@ class Harness:
             extraction=extraction,
             reminder_capture=fake_reminder_capture(extraction=extraction),
             memory_port=self.memory_port,
+            search_port=FakeSearchPort(),
         )
 
 

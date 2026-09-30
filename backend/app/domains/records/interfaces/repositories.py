@@ -6,11 +6,18 @@ Protocol with list, detail, update, set-status and delete, rather than
 creating a second one.
 """
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
 
-from app.domains.records.interfaces.dtos import RecordOrigin, TaskDTO, TaskStatus
+from app.domains.records.interfaces.dtos import (
+    RecordOrigin,
+    TaskDTO,
+    TaskEmbeddingTargetDTO,
+    TaskSearchPageDTO,
+    TaskStatus,
+)
 
 
 class TaskRepository(Protocol):
@@ -54,3 +61,37 @@ class TaskRepository(Protocol):
     ) -> TaskDTO | None: ...
 
     async def delete_many(self, *, user_id: UUID, task_ids: list[UUID]) -> int: ...
+
+    # Epic 005, sub-plan 4.1.
+    async def search_tasks(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> TaskSearchPageDTO: ...
+
+    async def get_embedding(
+        self, *, user_id: UUID, task_id: UUID
+    ) -> tuple[float, ...] | None: ...
+
+    async def get_title_needing_embedding(
+        self, *, user_id: UUID, task_id: UUID
+    ) -> str | None: ...
+
+    async def set_embedding(
+        self, *, user_id: UUID, task_id: UUID, title: str, embedding: Sequence[float]
+    ) -> bool: ...
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: UUID | None,
+        limit: int,
+    ) -> list[TaskEmbeddingTargetDTO]:
+        """Live rows of every user with no vector, in id order after
+        ``after_id``. For the backfill job only: reads across users."""
+        ...

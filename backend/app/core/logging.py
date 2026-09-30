@@ -22,9 +22,25 @@ _MAX_REDACTION_DEPTH = 6
 # Epic 004, AD-9: memory text never reaches a log. A secret is found by value;
 # a user's text cannot be, since it is anything. So these keys are blanked by
 # name wherever they appear, at any depth, whatever they hold. A log call that
-# needs to mention a memory names its id.
+# needs to mention a memory names its id. Epic 005, AD-10, extends this to
+# every record's text, search text and written answers (tech stack T6).
 USER_TEXT_KEYS = frozenset(
-    {"text", "fact", "input_text", "original_input", "candidate_text", "prompt"}
+    {
+        "text",
+        "fact",
+        "input_text",
+        "original_input",
+        "candidate_text",
+        "prompt",
+        # Epic 005.
+        "query",
+        "terms",
+        "title",
+        "description",
+        "answer_text",
+        "question_text",
+        "sentences",
+    }
 )
 
 

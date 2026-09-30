@@ -14,6 +14,11 @@ EventType = Literal[
     "memory_forgotten",
     "memory_category_edited",
     "memory_secret_caution",
+    # Epic 005, migration 0035.
+    "search_run",
+    "search_result_opened",
+    "answer_citation_opened",
+    "related_opened",
 ]
 
 

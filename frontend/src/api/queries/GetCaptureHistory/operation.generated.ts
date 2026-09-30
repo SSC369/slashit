@@ -15,6 +15,7 @@ export type CaptureTurnOutcome =
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'REMINDER_CREATED'
+  | 'SEARCHED'
   | 'TASK_CREATED';
 
 export type GetCaptureHistoryQueryVariables = Exact<{

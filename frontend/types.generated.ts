@@ -35,7 +35,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -62,6 +62,7 @@ export type CaptureTurnOutcome =
   | 'QUESTION_ASKED'
   | 'REFUSED'
   | 'REMINDER_CREATED'
+  | 'SEARCHED'
   | 'TASK_CREATED';
 
 export type ConflictAnswer =
@@ -447,6 +448,11 @@ export type RecordNotFound = {
 
 export type RecordResult = RecordNotFound | Task;
 
+export type RecordType =
+  | 'MEMORY'
+  | 'REMINDER'
+  | 'TASK';
+
 export type RecordsFilterInput = {
   kind?: InputMaybe<Scalars['String']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
@@ -551,6 +557,34 @@ export type RemindersListed = {
 };
 
 export type ResolveMemoryConflictResult = MemoryDiscarded | MemorySaved | PendingCaptureNotFound;
+
+export type SearchGroup = {
+  __typename?: 'SearchGroup';
+  hits: Array<SearchHit>;
+  recordType: RecordType;
+  total: Scalars['Int']['output'];
+};
+
+export type SearchHit = {
+  __typename?: 'SearchHit';
+  citation?: Maybe<Scalars['Int']['output']>;
+  record: SearchRecord;
+};
+
+export type SearchRecord = Memory | Reminder | Task;
+
+export type SearchResults = {
+  __typename?: 'SearchResults';
+  groups: Array<SearchGroup>;
+  meaningUnavailable: Scalars['Boolean']['output'];
+  query: Scalars['String']['output'];
+};
+
+export type SearchTooLong = {
+  __typename?: 'SearchTooLong';
+  length: Scalars['Int']['output'];
+  limit: Scalars['Int']['output'];
+};
 
 export type SecretKind =
   | 'CARD'

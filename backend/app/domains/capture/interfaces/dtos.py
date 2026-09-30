@@ -8,7 +8,15 @@ from uuid import UUID
 from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
-MissingField = Literal["title", "due_at", "remind_at", "fact", "memory_conflict"]
+MissingField = Literal[
+    "title",
+    "due_at",
+    "remind_at",
+    "fact",
+    "memory_conflict",
+    # Epic 005, FR-2.
+    "search_text",
+]
 
 
 @dataclass(frozen=True)
@@ -70,6 +78,8 @@ CaptureTurnOutcome = Literal[
     "memory_listed",
     "memory_forgotten",
     "memory_conflict_resolved",
+    # Epic 005, migration 0034: the typed line only, never results (FR-21).
+    "searched",
 ]
 
 

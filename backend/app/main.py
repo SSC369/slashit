@@ -32,6 +32,7 @@ from app.domains.identity import jobs as identity_jobs  # noqa: F401
 from app.domains.memories import jobs as memories_jobs  # noqa: F401
 from app.domains.notifications import jobs as notifications_jobs  # noqa: F401
 from app.domains.notifications.services.live_signal import live_signal
+from app.domains.records import jobs as records_jobs  # noqa: F401
 from app.domains.reminders import jobs as reminders_jobs  # noqa: F401
 from app.graphql.schema import schema
 

@@ -8,7 +8,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-MISSING_FIELDS = ("title", "due_at", "remind_at", "fact", "memory_conflict")
+MISSING_FIELDS = (
+    "title",
+    "due_at",
+    "remind_at",
+    "fact",
+    "memory_conflict",
+    "search_text",
+)
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
     "question_asked",
@@ -19,6 +26,8 @@ CAPTURE_TURN_OUTCOMES = (
     "memory_listed",
     "memory_forgotten",
     "memory_conflict_resolved",
+    # Epic 005, migration 0034.
+    "searched",
 )
 MEMORY_CATEGORIES = ("personal", "people", "professional", "life")
 

@@ -1,6 +1,7 @@
 import type { MemoryFieldsFragment } from "../../../fragments/MemoryFields.generated";
 import type { MemoryConflictArgs } from "../../../constants/memoryConstants";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
+import type { SearchResultsFieldsFragment } from "../../../fragments/SearchResultsFields.generated";
 import type { SecretKind } from "../../../../types.generated";
 import type { TaskFieldsFragment } from "../../../fragments/TaskFields.generated";
 import type { SubmitCaptureMutation } from "./operation.generated";
@@ -15,6 +16,8 @@ export interface SubmitCaptureCallbacks {
   onMemoriesListed?: (args: { memories: MemoryFieldsFragment[]; searchText: string | null }) => void;
   onMemoryTooLong?: (args: { message: string; length: number; limit: number }) => void;
   onMemoryConflictAsked?: (args: MemoryConflictArgs) => void;
+  onSearchResults?: (results: SearchResultsFieldsFragment) => void;
+  onSearchTooLong?: (args: { length: number; limit: number }) => void;
   onPendingQuestionCreated?: (args: { pendingCaptureId: string; question: string }) => void;
   onNonCommandGuidance?: (originalInput: string) => void;
   onUnrecognisedCommand?: (args: { attemptedName: string; closestMatches: string[] }) => void;
@@ -75,6 +78,12 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
           category: result.category,
           conflicting: result.conflicting,
         });
+        return;
+      case "SearchResults":
+        callbacks.onSearchResults?.(result);
+        return;
+      case "SearchTooLong":
+        callbacks.onSearchTooLong?.({ length: result.length, limit: result.limit });
         return;
       case "PendingQuestionCreated":
         callbacks.onPendingQuestionCreated?.({

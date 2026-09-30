@@ -8,11 +8,17 @@ import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+import { SearchResultsFieldsFragmentDoc } from '../../../fragments/SearchResultsFields.generated';
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
   | 'PERSONAL'
   | 'PROFESSIONAL';
+
+export type RecordType =
+  | 'MEMORY'
+  | 'REMINDER'
+  | 'TASK';
 
 export type ReminderAction =
   | 'DONE'
@@ -56,6 +62,12 @@ export type AnswerPendingCaptureMutation = { answerPendingCapture:
     | { __typename: 'ReminderCreated', reminder: { id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null } }
     | { __typename: 'ReminderLimitReached', message: string, limit: number }
     | { __typename: 'RemindersListed', reminders: Array<{ id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }> }
+    | { __typename: 'SearchResults', query: string, meaningUnavailable: boolean, groups: Array<{ recordType: Types.RecordType, total: number, hits: Array<{ citation: number | null, record:
+            | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
+            | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
+            | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
+           }> }> }
+    | { __typename: 'SearchTooLong', length: number, limit: number }
     | { __typename: 'SharedQuotaExhausted', message: string }
     | { __typename: 'TaskCreated', task: { id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string } }
     | { __typename: 'TasksListed', tasks: Array<{ id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
@@ -118,6 +130,13 @@ export const AnswerPendingCaptureDocument = gql`
         ...MemoryFields
       }
     }
+    ... on SearchResults {
+      ...SearchResultsFields
+    }
+    ... on SearchTooLong {
+      length
+      limit
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question
@@ -152,4 +171,5 @@ export const AnswerPendingCaptureDocument = gql`
 }
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
-${MemoryFieldsFragmentDoc}`;
+${MemoryFieldsFragmentDoc}
+${SearchResultsFieldsFragmentDoc}`;

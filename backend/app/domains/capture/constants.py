@@ -31,7 +31,16 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     "/memories",
     # `/forget` is deliberately absent since sub-plan 4.5: forget is from a
     # memory's detail page only, and `/forget` falls to FR-12's reply.
+    # Epic 005, FR-1.
+    "/search",
 )
+
+# Epic 005. Like a memory save (AD-7 below), a search is measured on its text,
+# not the whole line, and an over-long one gets a drawn state (FR-3).
+SEARCH_COMMAND: Final = "/search"
+
+# Epic 005, FR-2: the one question an empty `/search` asks.
+SEARCH_QUESTION: Final = "What should Slashit search for?"
 
 # Epic 004, FR-1: two names for one action.
 MEMORY_SAVE_COMMANDS: Final[tuple[str, ...]] = ("/remember", "/add-memory")

@@ -16,7 +16,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -43,6 +43,7 @@ enum CaptureTurnOutcome {
   MEMORY_LISTED
   MEMORY_FORGOTTEN
   MEMORY_CONFLICT_RESOLVED
+  SEARCHED
 }
 
 enum ConflictAnswer {
@@ -274,6 +275,12 @@ type RecordNotFound {
 
 union RecordResult = Task | RecordNotFound
 
+enum RecordType {
+  TASK
+  REMINDER
+  MEMORY
+}
+
 input RecordsFilterInput {
   kind: String = null
   search: String = null
@@ -372,6 +379,30 @@ type RemindersListed {
 }
 
 union ResolveMemoryConflictResult = MemorySaved | MemoryDiscarded | PendingCaptureNotFound
+
+type SearchGroup {
+  recordType: RecordType!
+  total: Int!
+  hits: [SearchHit!]!
+}
+
+type SearchHit {
+  citation: Int
+  record: SearchRecord!
+}
+
+union SearchRecord = Task | Reminder | Memory
+
+type SearchResults {
+  query: String!
+  groups: [SearchGroup!]!
+  meaningUnavailable: Boolean!
+}
+
+type SearchTooLong {
+  length: Int!
+  limit: Int!
+}
 
 enum SecretKind {
   CARD

@@ -7,10 +7,21 @@ the reason ``records.models`` gives (AD-9, no mirror of Supabase's ``auth``).
 import uuid
 from datetime import date, datetime, time
 
-from sqlalchemy import Date, DateTime, Enum, SmallInteger, Text, Time, Uuid
-from sqlalchemy.dialects.postgresql import ARRAY
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    Computed,
+    Date,
+    DateTime,
+    Enum,
+    SmallInteger,
+    Text,
+    Time,
+    Uuid,
+)
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
+from app.domains.reminders.constants import REMINDER_EMBEDDING_DIMENSIONS
 from app.models import Base
 
 REPEAT_KINDS = ("none", "daily", "weekly", "monthly", "yearly")
@@ -55,6 +66,14 @@ class Reminder(Base):
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # A snooze is a one-off extra firing; the series stays in next_fire_at.
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Epic 005, migration 0033. NULL until reminders.embed_reminder fills it,
+    # and NULL again after a description edit (AD-7).
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(REMINDER_EMBEDDING_DIMENSIONS)
+    )
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('english', description)", persisted=True)
+    )
 
 
 FIRING_LATENESS = ("on_time", "late", "missed")

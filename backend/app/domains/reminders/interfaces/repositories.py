@@ -1,5 +1,6 @@
 """The contract for reminder storage. Storage reads and writes; it never decides."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
@@ -12,6 +13,8 @@ from app.domains.reminders.interfaces.dtos import (
     RecordOriginValue,
     ReminderActionValue,
     ReminderDTO,
+    ReminderEmbeddingTargetDTO,
+    ReminderSearchPageDTO,
     ReminderStateValue,
     UserActionValue,
 )
@@ -159,4 +162,43 @@ class ReminderRepository(Protocol):
     ) -> ReminderDTO | None:
         """Writes ``state`` on a live reminder and stamps the firing's action.
         None when the reminder is not live or not theirs."""
+        ...
+
+    # Epic 005, sub-plan 4.1.
+    async def search_reminders(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> ReminderSearchPageDTO: ...
+
+    async def get_embedding(
+        self, *, user_id: UUID, reminder_id: UUID
+    ) -> tuple[float, ...] | None: ...
+
+    async def get_description_needing_embedding(
+        self, *, user_id: UUID, reminder_id: UUID
+    ) -> str | None: ...
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: UUID,
+        reminder_id: UUID,
+        description: str,
+        embedding: Sequence[float],
+    ) -> bool: ...
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: UUID | None,
+        limit: int,
+    ) -> list[ReminderEmbeddingTargetDTO]:
+        """Live rows of every user with no vector, in id order after
+        ``after_id``. For the backfill job only: reads across users."""
         ...

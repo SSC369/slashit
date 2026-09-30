@@ -87,6 +87,8 @@ export const historyRowHeadStyles = "flex items-center justify-between gap-2.5";
 export const historyInputTextStyles = "font-mono text-[13px] text-foreground";
 export const historyTimeStyles = "shrink-0 text-[11.5px] text-foreground-tertiary";
 export const historyDetailStyles = "mt-1.5 text-[12.5px] text-foreground-secondary";
+export const historySearchDetailStyles =
+  "mt-1.5 flex items-center gap-2 text-[12.5px] text-foreground-secondary";
 export const historySkeletonRowStyles = "border-b border-border py-3.5 last:border-b-0";
 export const historyEmptyStyles =
   "flex flex-1 flex-col items-center justify-center px-6 text-center text-sm text-foreground-tertiary";
@@ -143,3 +145,22 @@ export const conflictActionsStyles =
   "flex flex-col-reverse gap-2.5 border-t border-border bg-background px-4 py-3 sm:flex-row sm:justify-end";
 export const conflictDeferredStyles = "flex items-center justify-between gap-3 px-4 py-3 text-[13px] text-foreground-secondary";
 export const waitingPillRowStyles = "mb-2 flex justify-center";
+
+// Search (005 design: Main, SearchPassport, SearchResults, SearchDegraded, SearchStates)
+export const pillPendingStyles = "border-command-wash bg-command-wash text-command";
+export const searchStripStyles =
+  "flex items-center gap-2 border-b border-border bg-command-wash px-4 py-2.5 text-[12.5px] text-command";
+export const searchGroupStyles = "pb-1.5";
+export const searchGroupSeparatorStyles = "border-t border-border";
+export const searchGroupHeadStyles = "flex items-center justify-between px-4 pb-1 pt-3";
+export const searchGroupLabelStyles = "inline-flex items-center gap-2 text-[13px] font-semibold text-foreground";
+export const searchGroupCountStyles = "text-xs text-foreground-tertiary";
+export const searchHitRowStyles =
+  "flex cursor-pointer items-center gap-3 px-4 py-2 hover:bg-background";
+export const searchHitTitleStyles = "min-w-0 flex-1 truncate font-medium text-foreground";
+export const searchHitDateStyles = "w-[140px] shrink-0 text-right text-[12.5px] text-foreground-tertiary";
+export const searchHitStatusStyles = "flex w-[120px] shrink-0 justify-end";
+export const searchNoMatchBodyStyles = "px-4 py-3.5 text-[13.5px] text-foreground-secondary";
+export const typeDotTaskStyles = "h-1.5 w-1.5 shrink-0 rounded-sm bg-command";
+export const typeDotReminderStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent";
+export const typeDotMemoryStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent ring-2 ring-accent-wash";
