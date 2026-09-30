@@ -47,7 +47,7 @@ class FakeReminderPort:
         )
 
     async def list_active(self, *, user_id: UUID) -> list[ReminderDTO]:
-        rows = await self.repository.list_for_user(user_id=user_id, search=None)
+        rows = await self.repository.list_for_user(user_id=user_id)
         return [row for row in rows if row.state != "done"]
 
 

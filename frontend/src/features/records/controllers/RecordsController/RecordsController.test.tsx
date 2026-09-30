@@ -321,7 +321,7 @@ describe("RecordsController", () => {
       openRemindersTab();
       fireEvent.click(screen.getByRole("button", { name: "Try again" }));
       expect(screen.getByText("Couldn't load your reminders")).toBeInTheDocument();
-      expect(triggerAPI).toHaveBeenCalledWith({ search: null });
+      expect(triggerAPI).toHaveBeenCalledWith({});
     });
 
     it("shows the session card when the session has ended", () => {

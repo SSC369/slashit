@@ -130,7 +130,6 @@ export type Me = {
 
 export type MemoriesFilterInput = {
   category?: InputMaybe<MemoryCategory>;
-  search?: InputMaybe<Scalars['String']['input']>;
   uncategorised?: Scalars['Boolean']['input'];
 };
 
@@ -447,11 +446,6 @@ export type QueryRelatedRecordsArgs = {
 
 export type QueryReminderArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type QueryRemindersArgs = {
-  search?: InputMaybe<Scalars['String']['input']>;
 };
 
 

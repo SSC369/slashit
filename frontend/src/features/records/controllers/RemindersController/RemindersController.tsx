@@ -1,4 +1,4 @@
-import { AlertCircle, LogIn, SearchX, WifiOff } from "lucide-react";
+import { AlertCircle, LogIn, WifiOff } from "lucide-react";
 import { observer } from "mobx-react-lite";
 import { useEffect, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
@@ -21,14 +21,13 @@ import ReminderTable from "../../components/ReminderTable";
 import * as RecordsStyles from "../../components/styles";
 import * as Styles from "./styles";
 
-const SEARCH_DEBOUNCE_MS = 250;
 
 const SYNC_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
   hour: "numeric",
   minute: "2-digit",
 });
 
-type ListStateType = "SESSION_ENDED" | "ERROR" | "LOADING" | "EMPTY" | "NO_MATCH" | "LIST";
+type ListStateType = "SESSION_ENDED" | "ERROR" | "LOADING" | "EMPTY" | "LIST";
 
 /**
  * The Reminders tab (FR-26): loads the three groups into the reminders store
@@ -81,17 +80,13 @@ const RemindersController = (): ReactElement => {
     });
   };
 
-  const { searchText } = store.records;
-  const trimmedSearch = searchText.trim();
-
+  // Epic 005, FR-22: a search on this tab goes through RecordsSearchController,
+  // so this tab only ever lists every reminder.
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      triggerAPI({ search: trimmedSearch || null });
-      // triggerAPI is left out on purpose, per repo-rules.md §13.4.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timeoutId);
-  }, [trimmedSearch]);
+    triggerAPI({});
+    // triggerAPI is left out on purpose, per repo-rules.md §13.4.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -110,10 +105,10 @@ const RemindersController = (): ReactElement => {
   if (isSessionEnded) listState = "SESSION_ENDED";
   else if (hasFailed && !isShowingSavedCopy) listState = "ERROR";
   else if (!hasSyncedOnce) listState = "LOADING";
-  else if (totalCount === 0) listState = trimmedSearch ? "NO_MATCH" : "EMPTY";
+  else if (totalCount === 0) listState = "EMPTY";
 
   const handleRetry = (): void => {
-    triggerAPI({ search: trimmedSearch || null });
+    triggerAPI({});
   };
 
   const handleOpenReminder = (id: string): void => {
@@ -148,16 +143,6 @@ const RemindersController = (): ReactElement => {
       );
     case "EMPTY":
       return <EmptyReminders onStartCapturing={() => navigate("/")} />;
-    case "NO_MATCH":
-      return (
-        <ReminderListNotice
-          icon={<SearchX size={24} />}
-          title={`No reminders match “${trimmedSearch}”`}
-          body="Search covers reminder text. Try another word, or clear the search."
-          actionLabel="Clear search"
-          onAction={() => store.records.setSearchText("")}
-        />
-      );
     case "LOADING":
     case "LIST":
       return (

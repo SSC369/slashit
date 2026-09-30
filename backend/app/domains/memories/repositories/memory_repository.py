@@ -57,15 +57,13 @@ class SqlMemoryRepository:
             return _memory_to_dto(memory=memory) if memory else None
 
     async def list_for_user(
-        self, *, user_id: uuid.UUID, category: CategoryFilter, search: str | None
+        self, *, user_id: uuid.UUID, category: CategoryFilter
     ) -> list[MemoryDTO]:
         query = _live_for(user_id=user_id)
         if category == "uncategorised":
             query = query.where(Memory.category.is_(None))
         elif category is not None:
             query = query.where(Memory.category == category.value)
-        if search:
-            query = query.where(Memory.text.ilike(f"%{_escape_like(text=search)}%"))
         query = query.order_by(Memory.created_at.desc(), Memory.id.desc())
         async with user_transaction(self.session, user_id) as scoped:
             memories = (await scoped.scalars(query)).all()
@@ -274,10 +272,6 @@ class SqlMemoryRepository:
 def _live_for(*, user_id: uuid.UUID) -> Select[tuple[Memory]]:
     """Live memories of one user. RLS is the second lock; this is the first."""
     return select(Memory).where(Memory.user_id == user_id, Memory.deleted_at.is_(None))
-
-
-def _escape_like(*, text: str) -> str:
-    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _memory_to_dto(*, memory: Memory) -> MemoryDTO:

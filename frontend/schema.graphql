@@ -110,7 +110,6 @@ type Me {
 input MemoriesFilterInput {
   category: MemoryCategory = null
   uncategorised: Boolean! = false
-  search: String = null
 }
 
 type MemoriesForgotten {
@@ -264,7 +263,7 @@ type Query {
   tasks: [Task!]!
   settings(detectedTimezone: String = null): Settings!
   me: Me!
-  reminders(search: String = null): ReminderGroups!
+  reminders: ReminderGroups!
   reminder(id: ID!): ReminderResult!
   notifications(cursor: String = null): NotificationPage!
   unreadNotificationCount: Int!

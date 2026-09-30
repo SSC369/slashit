@@ -394,7 +394,7 @@ async def test_list_puts_upcoming_soonest_first() -> None:
 
     groups = await ListRemindersInteractor(
         reminder_repository=repository
-    ).list_reminders(dto=ListRemindersInputDTO(user_id=user_id, search=None))
+    ).list_reminders(dto=ListRemindersInputDTO(user_id=user_id))
 
     assert [item.id for item in groups.upcoming] == [sooner.id, later.id]
     assert groups.needs_attention == []

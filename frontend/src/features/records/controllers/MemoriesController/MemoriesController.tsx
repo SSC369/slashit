@@ -15,14 +15,11 @@ import CategoryChips from "../../components/CategoryChips";
 import MemoryTable from "../../components/MemoryTable";
 import ReminderListNotice from "../../components/ReminderListNotice";
 
-const SEARCH_DEBOUNCE_MS = 250;
-
 type ListStateType = "SESSION_ENDED" | "ERROR" | "LOADING" | "EMPTY" | "NO_MATCH" | "LIST";
 
-const toFilterInput = (filter: MemoryCategoryFilterType, search: string): MemoriesFilterInput => ({
+const toFilterInput = (filter: MemoryCategoryFilterType): MemoriesFilterInput => ({
   category: filter === "ALL" || filter === "UNCATEGORISED" ? null : filter,
   uncategorised: filter === "UNCATEGORISED",
-  search: search || null,
 });
 
 const describeFilter = (filter: MemoryCategoryFilterType): string => {
@@ -43,16 +40,14 @@ const MemoriesController = (): ReactElement => {
   const { handleResponse } = useResponseHandler();
 
   const { categoryFilter } = store.memories;
-  const trimmedSearch = store.records.searchText.trim();
 
+  // Epic 005, FR-22: a search on this tab goes through RecordsSearchController,
+  // so this tab filters by category only.
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      triggerAPI({ filter: toFilterInput(categoryFilter, trimmedSearch) });
-      // triggerAPI is left out on purpose, per repo-rules.md §13.4.
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, SEARCH_DEBOUNCE_MS);
-    return () => window.clearTimeout(timeoutId);
-  }, [categoryFilter, trimmedSearch]);
+    triggerAPI({ filter: toFilterInput(categoryFilter) });
+    // triggerAPI is left out on purpose, per repo-rules.md §13.4.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryFilter]);
 
   useEffect(() => {
     if (!data) return;
@@ -63,7 +58,7 @@ const MemoriesController = (): ReactElement => {
   const memories = store.memories.getVisible();
   const hasSyncedOnce = store.memories.lastSyncedAt !== null;
   const hasFailed = apiStatus === API_FAILED;
-  const isFiltered = categoryFilter !== "ALL" || trimmedSearch !== "";
+  const isFiltered = categoryFilter !== "ALL";
 
   let listState: ListStateType = "LIST";
   if (hasFailed && isSessionEndedError(apiError)) listState = "SESSION_ENDED";
@@ -72,12 +67,11 @@ const MemoriesController = (): ReactElement => {
   else if (memories.length === 0) listState = isFiltered ? "NO_MATCH" : "EMPTY";
 
   const handleRetry = (): void => {
-    triggerAPI({ filter: toFilterInput(categoryFilter, trimmedSearch) });
+    triggerAPI({ filter: toFilterInput(categoryFilter) });
   };
 
   const handleClearFilters = (): void => {
     store.memories.setCategoryFilter("ALL");
-    store.records.setSearchText("");
   };
 
   const chips = (
@@ -121,11 +115,7 @@ const MemoriesController = (): ReactElement => {
           {chips}
           <ReminderListNotice
             icon={<SearchX size={24} />}
-            title={
-              trimmedSearch
-                ? `No memories match “${trimmedSearch}” ${describeFilter(categoryFilter)}`.trim()
-                : `No memories ${describeFilter(categoryFilter)}`
-            }
+            title={`No memories ${describeFilter(categoryFilter)}`}
             body="Choose All to see every memory."
             actionLabel="Show all"
             onAction={handleClearFilters}

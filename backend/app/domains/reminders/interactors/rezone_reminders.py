@@ -60,9 +60,7 @@ class RezoneRemindersInteractor:
         return moved_count
 
     async def _list_stale(self, *, user_id: UUID, timezone: str) -> list[ReminderDTO]:
-        reminders = await self.reminder_repository.list_for_user(
-            user_id=user_id, search=None
-        )
+        reminders = await self.reminder_repository.list_for_user(user_id=user_id)
         return [
             reminder
             for reminder in reminders

@@ -41,9 +41,9 @@ class MemoryRepository(Protocol):
         ...
 
     async def list_for_user(
-        self, *, user_id: UUID, category: CategoryFilter, search: str | None
+        self, *, user_id: UUID, category: CategoryFilter
     ) -> list[MemoryDTO]:
-        """Live memories, newest first, filtered by category and a substring."""
+        """Live memories, newest first, filtered by category."""
         ...
 
     async def find_by_terms(

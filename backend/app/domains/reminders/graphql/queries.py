@@ -26,12 +26,12 @@ ReminderResult = Annotated[
 @strawberry.type
 class ReminderQueries:
     @strawberry.field(permission_classes=[IsAuthenticated])  # type: ignore[untyped-decorator]
-    async def reminders(self, info: Info, search: str | None = None) -> ReminderGroups:
+    async def reminders(self, info: Info) -> ReminderGroups:
         context = cast(Context, info.context)
         user_id = cast(UUID, context.user_id)
         interactor = build_list_reminders_interactor(context)
         groups = await interactor.list_reminders(
-            dto=ListRemindersInputDTO(user_id=user_id, search=search)
+            dto=ListRemindersInputDTO(user_id=user_id)
         )
         return reminder_groups_to_type(groups=groups)
 

@@ -46,7 +46,6 @@ class MemoryQueries:
             dto=ListMemoriesInputDTO(
                 user_id=user_id,
                 category=_category_filter(memories_filter=memories_filter),
-                search=memories_filter.search,
             )
         )
         return [memory_dto_to_type(memory=memory) for memory in memories]

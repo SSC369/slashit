@@ -17,7 +17,6 @@ class GetReminderInputDTO:
 @dataclass(frozen=True)
 class ListRemindersInputDTO:
     user_id: UUID
-    search: str | None
 
 
 @dataclass(frozen=True)

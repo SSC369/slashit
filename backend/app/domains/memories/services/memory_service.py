@@ -178,7 +178,7 @@ class MemoryService:
     async def list_memories(self, *, user_id: UUID) -> MemoryListDTO:
         """FR-19: every live memory, newest first."""
         memories = await self.memory_repository.list_for_user(
-            user_id=user_id, category=None, search=None
+            user_id=user_id, category=None
         )
         return MemoryListDTO(memories=memories, search_text=None)
 
@@ -192,12 +192,10 @@ class MemoryService:
         await self._record_event(user_id=user_id, event_type="memory_lookup")
         return MemoryListDTO(memories=memories, search_text=text)
 
-    async def list_for_records(
-        self, *, user_id: UUID, search: str | None
-    ) -> list[MemoryDTO]:
+    async def list_for_records(self, *, user_id: UUID) -> list[MemoryDTO]:
         """Every live memory for the records All tab (FR-15)."""
         return await self.memory_repository.list_for_user(
-            user_id=user_id, category=None, search=search
+            user_id=user_id, category=None
         )
 
     async def forget_memories(

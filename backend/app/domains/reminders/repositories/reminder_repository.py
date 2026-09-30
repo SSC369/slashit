@@ -81,15 +81,11 @@ class SqlReminderRepository:
             )
         return int(count or 0)
 
-    async def list_for_user(
-        self, *, user_id: uuid.UUID, search: str | None
-    ) -> list[ReminderDTO]:
+    async def list_for_user(self, *, user_id: uuid.UUID) -> list[ReminderDTO]:
         now = datetime.now(UTC)
         statement = select(Reminder).where(
             Reminder.user_id == user_id, Reminder.deleted_at.is_(None)
         )
-        if search:
-            statement = statement.where(Reminder.description.ilike(f"%{search}%"))
         async with user_transaction(self.session, user_id) as scoped:
             reminders = (await scoped.scalars(statement)).all()
         return [_reminder_to_dto(reminder=reminder, now=now) for reminder in reminders]

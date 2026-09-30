@@ -1,7 +1,7 @@
 #import "../../../fragments/ReminderFields.graphql"
 
-query GetReminders($search: String) {
-  reminders(search: $search) {
+query GetReminders {
+  reminders {
     needsAttention {
       ...ReminderFields
     }
