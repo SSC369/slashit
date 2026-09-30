@@ -134,7 +134,7 @@ Done tasks and past reminders are included, marked by their status (Q2).
 |---|---|---|---|
 | NFR-1 | Only the searching user's records are matched, shown, or placed in a model prompt | Zero incidents | Authorisation tests on every search, answer and related path |
 | NFR-2 | Search input and record text never appear in application logs or analytics events | Zero occurrences | Log and event review, and a test asserting it |
-| NFR-3 | A search without a written answer responds promptly | Under 1 s at p95 for a user with 3,000 records | Server timing from submit to response |
+| NFR-3 | A search without a written answer responds promptly | Under 3 s at p95 for a user with 3,000 records. Revised 2026-09-30 from 1 s: every search makes one meaning call, measured at 2.5 s live (004 dev log, T-1.1). Re-measured from the deployed API, as 004's NFR-5 is | Server timing from submit to response |
 | NFR-4 | A search with a written answer responds promptly | Under 8 s at p95 for a user with 3,000 records, matching 001 and 004 | Server timing from submit to response |
 | NFR-5 | The related list appears promptly | Under 1 s at p95, without delaying the rest of the detail | Server timing |
 | NFR-6 | Exact-word hits rank high | The expected record in the top three for over 95% of word queries | Labelled evaluation set, built before build plan approval |
@@ -178,7 +178,7 @@ Events carry counts, types and positions. Never the search text.
 |---|---|---|---|
 | An answer states something no record supports | medium | high | FR-17, FR-18, NFR-8 |
 | Meaning matches bury the obvious exact hit | medium | medium | FR-6, NFR-6 |
-| Matching by meaning cannot fit inside 1 s. 004 estimated one meaning step at about 1 s | medium | medium | NFR-3 is tested in the build plan. If it cannot hold, the build plan brings it back as a question |
+| Matching by meaning cannot fit inside 1 s. 004 measured one meaning call at 2.5 s | high | medium | Resolved 2026-09-30: NFR-3 relaxed to 3 s, re-measured after deploy |
 | A later record type is not added to search | medium | medium | FR-11, and a test that fails when a type exists that search does not cover |
 | An answer quotes a record deleted or forgotten moments before | low | high | FR-12, FR-21: answers are never kept |
 | Answer cost grows with record count | medium over time | medium | NFR-4 at 3,000 records. The build plan states cost per answer |
@@ -207,3 +207,4 @@ Events carry counts, types and positions. Never the search text.
 | 2026-09-30 | Created. Four questions answered before drafting, all recommended: a word rule decides what is a question, 1 s lookups, 8 s answers, 500-character input | Epic approved, user asked to go on | pending |
 | 2026-09-30 | Q1 and Q2 answered, both recommended | User answered the open questions | user |
 | 2026-09-30 | Approved | User: "Approved, commit and push" | user |
+| 2026-09-30 | NFR-3 relaxed from 1 s to 3 s, and its risk row closed. Stale downstream: none; the design already draws the loading state, and no copy names a time | Build plan question 1: one live meaning call measured 2.5 s in 004 | user, 2026-09-30 |
