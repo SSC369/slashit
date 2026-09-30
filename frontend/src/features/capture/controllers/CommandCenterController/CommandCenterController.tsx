@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import type { SubmitCaptureCallbacks } from "../../../../api/mutations/SubmitCapture/responseHandler";
 import useAnswerPendingCapture from "../../../../api/mutations/AnswerPendingCapture/useAnswerPendingCapture";
 import useDiscardPendingCapture from "../../../../api/mutations/DiscardPendingCapture/useDiscardPendingCapture";
+import useRecordSearchEvent from "../../../../api/mutations/RecordSearchEvent/useRecordSearchEvent";
 import useResolveMemoryConflict from "../../../../api/mutations/ResolveMemoryConflict/useResolveMemoryConflict";
 import useSubmitCapture from "../../../../api/mutations/SubmitCapture/useSubmitCapture";
 import { clearOfflineReadCache } from "../../../../api/lib/offlineReadCache";
@@ -28,7 +29,7 @@ import HistoryPanel from "../../components/HistoryPanel";
 import TurnCard from "../../components/TurnCard";
 import WaitingPill from "../../components/WaitingPill";
 import type { ConflictAnswer, RecordType } from "../../../../../types.generated";
-import type { SearchRecordFragment } from "../../components/SearchCards";
+import type { SearchOpenEvent, SearchRecordFragment } from "../../components/SearchCards";
 import * as StreamStyles from "../../components/styles";
 import * as Styles from "./styles";
 
@@ -152,6 +153,7 @@ const CommandCenterController = (): ReactElement => {
     triggerAPI: triggerAnswerPendingCapture,
     apiStatus: answerApiStatus,
   } = useAnswerPendingCapture();
+  const { triggerAPI: recordSearchEvent } = useRecordSearchEvent();
   const { triggerAPI: triggerDiscardPendingCapture } = useDiscardPendingCapture();
   const { triggerAPI: triggerResolveMemoryConflict, apiStatus: resolveApiStatus } =
     useResolveMemoryConflict();
@@ -349,8 +351,10 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
-  // Epic 005, FR-9: a result opens its record's detail.
-  const handleOpenSearchRecord = (record: SearchRecordFragment): void => {
+  // Epic 005, FR-9 and FR-17: a row or a citation opens its record's detail.
+  // PRD §8: the open is recorded with its position, and never waited on.
+  const handleOpenSearchRecord = (record: SearchRecordFragment, opened: SearchOpenEvent): void => {
+    recordSearchEvent({ kind: opened.kind, position: opened.position });
     switch (record.__typename) {
       case "Task":
         navigate(`/records/${record.id}`);

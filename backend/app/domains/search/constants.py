@@ -1,6 +1,6 @@
 """Limits, thresholds and words for search. No magic values elsewhere."""
 
-from typing import Final
+from typing import Any, Final
 
 # FR-3: a search's text, after the command, is at most this long.
 MAX_SEARCH_LENGTH: Final = 500
@@ -26,4 +26,60 @@ SEARCH_EMBED_TIMEOUT_SECONDS: Final = 2.5
 # the same way (index §3).
 PRODUCT_STOP_WORDS: Final = frozenset(
     {"remember", "remembered", "memory", "memories", "know", "told", "recall"}
+)
+
+# FR-15: input is a question when it ends in "?" or starts with one of these.
+QUESTION_WORDS: Final = frozenset(
+    {
+        "what",
+        "when",
+        "where",
+        "who",
+        "why",
+        "how",
+        "which",
+        "do",
+        "does",
+        "did",
+        "is",
+        "are",
+        "am",
+        "have",
+        "has",
+    }
+)
+
+# Build plan Q4 and AD-5: the answer reads only the top ranked records, and
+# keeps at most this many sentences (FR-16).
+ANSWER_RECORD_LIMIT: Final = 10
+ANSWER_SENTENCE_LIMIT: Final = 4
+
+# Build plan §5. Descriptions kept terse: 001's dev log I-1 measured a verbose
+# schema description doubling generation latency.
+ANSWER_SCHEMA: Final[dict[str, Any]] = {
+    "type": "object",
+    "properties": {
+        "sentences": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string"},
+                    "sources": {"type": "array", "items": {"type": "integer"}},
+                },
+                "required": ["text", "sources"],
+            },
+        },
+        "supported": {"type": "boolean"},
+    },
+    "required": ["sentences", "supported"],
+}
+
+ANSWER_INSTRUCTION: Final = (
+    "Answer the question using only the numbered records. "
+    "Write at most four short sentences. "
+    "Every sentence lists in sources the numbers of the records it rests on. "
+    "Never write a record's number in the text. "
+    "If the records do not answer the question, return no sentences and "
+    "supported false. Do not guess."
 )

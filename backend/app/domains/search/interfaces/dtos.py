@@ -55,7 +55,7 @@ class CandidatePageDTO:
 class SearchHitDTO:
     record_type: RecordType
     item: RecordDTO
-    # Always None until slice 2's written answer cites records.
+    # The [n] the written answer cites this record as; None when uncited.
     citation: int | None
 
 
@@ -67,13 +67,48 @@ class SearchGroupDTO:
 
 
 @dataclass(frozen=True)
+class AnswerSentenceDTO:
+    """FR-17: every sentence cites at least one record, as 1 to n."""
+
+    text: str
+    citations: list[int]
+
+
+@dataclass(frozen=True)
+class SearchAnswerDTO:
+    sentences: list[AnswerSentenceDTO]
+
+
+@dataclass(frozen=True)
+class AnswerRecordDTO:
+    """One ranked record as the model sees it (FR-16): a number, never an id."""
+
+    number: int
+    record_type: RecordType
+    text: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class AnswerDraftDTO:
+    """What the model returned, before AD-5's check."""
+
+    sentences: list[tuple[str, list[int]]]
+    supported: bool
+
+
+@dataclass(frozen=True)
 class SearchResultsDTO:
     """FR-7: groups ordered by each group's best hit; empty when nothing
-    matched (FR-10)."""
+    matched (FR-10). Slice 2: a question adds the checked answer, or says no
+    record supports one (FR-18), or that none could be written (FR-19)."""
 
     query: str
     groups: list[SearchGroupDTO]
     meaning_unavailable: bool
+    answer: SearchAnswerDTO | None = None
+    no_support: bool = False
+    answer_unavailable: bool = False
 
 
 @dataclass(frozen=True)
@@ -101,10 +136,24 @@ class SearchGroup:
 
 
 @strawberry.type
+class AnswerSentence:
+    text: str
+    citations: list[int]
+
+
+@strawberry.type
+class SearchAnswer:
+    sentences: list[AnswerSentence]
+
+
+@strawberry.type
 class SearchResults:
     query: str
     groups: list[SearchGroup]
     meaning_unavailable: bool
+    answer: SearchAnswer | None
+    no_support: bool
+    answer_unavailable: bool
 
 
 @strawberry.type
@@ -130,6 +179,18 @@ def search_results_to_type(*, results: SearchResultsDTO) -> SearchResults:
             for group in results.groups
         ],
         meaning_unavailable=results.meaning_unavailable,
+        answer=(
+            None
+            if results.answer is None
+            else SearchAnswer(
+                sentences=[
+                    AnswerSentence(text=sentence.text, citations=sentence.citations)
+                    for sentence in results.answer.sentences
+                ]
+            )
+        ),
+        no_support=results.no_support,
+        answer_unavailable=results.answer_unavailable,
     )
 
 

@@ -6,10 +6,16 @@ type, each implemented by an adapter over that domain's ``public.py`` (AD-1).
 """
 
 from collections.abc import Sequence
-from typing import Protocol
+from datetime import date
+from typing import Literal, Protocol
 from uuid import UUID
 
-from app.domains.search.interfaces.dtos import CandidatePageDTO, RecordType
+from app.domains.search.interfaces.dtos import (
+    AnswerDraftDTO,
+    AnswerRecordDTO,
+    CandidatePageDTO,
+    RecordType,
+)
 
 
 class SearchPort(Protocol):
@@ -44,7 +50,41 @@ class QueryEmbeddingPort(Protocol):
     ) -> tuple[float, ...] | None: ...
 
 
+class AnswerPort(Protocol):
+    """FR-16: a written answer from the numbered records and nothing else.
+    None on any gateway failure, the per-user cap included (FR-19)."""
+
+    async def write_answer(
+        self,
+        *,
+        user_id: UUID,
+        question: str,
+        today: date,
+        records: Sequence[AnswerRecordDTO],
+    ) -> AnswerDraftDTO | None: ...
+
+
+class UserTimezonePort(Protocol):
+    """Where the user is, so "today" and a record's dates read in their zone."""
+
+    async def get_user_timezone(self, *, user_id: UUID) -> str: ...
+
+
+# PRD section 8. Numbers and booleans only, never text (AD-10, migration 0036).
+SearchEventProperties = dict[str, int | float | bool]
+
+SearchEventType = Literal[
+    "search_run", "search_result_opened", "answer_citation_opened"
+]
+
+
 class SearchAnalyticsPort(Protocol):
     """PRD section 8's events. Never the search text (AD-10)."""
 
-    async def record_search_run(self, *, user_id: UUID) -> None: ...
+    async def record_search_event(
+        self,
+        *,
+        user_id: UUID,
+        event_type: SearchEventType,
+        properties: SearchEventProperties,
+    ) -> None: ...

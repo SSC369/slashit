@@ -19,7 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core import auth as auth_module
 from app.core import deps as deps_module
 from app.core.settings import Settings
-from app.domains.gateway.interfaces.dtos import ProviderEmbedding
+from app.domains.gateway.errors import ProviderUnavailableError
+from app.domains.gateway.interfaces.dtos import (
+    ExtractionRequest,
+    ProviderEmbedding,
+    ProviderResult,
+)
 from app.domains.gateway.services.langchain_provider import LangChainGeminiProvider
 from app.domains.memories.interfaces.repositories import MemoryWrite
 from app.domains.memories.repositories.memory_repository import SqlMemoryRepository
@@ -39,6 +44,9 @@ mutation($rawInput: String!) {
     ... on SearchResults {
       query
       meaningUnavailable
+      noSupport
+      answerUnavailable
+      answer { sentences { text citations } }
       groups {
         recordType
         total
@@ -205,3 +213,43 @@ async def seed(
         "passport_task": passport_task.id,
         "backend_task": backend_task.id,
     }
+
+
+@pytest.fixture
+def answering_model(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    """Answers from record [1] whenever the prompt has records; says nothing
+    supports it when a question mentions "blood". Returns every prompt."""
+    prompts: list[str] = []
+
+    async def generate(
+        self: LangChainGeminiProvider, request: ExtractionRequest
+    ) -> ProviderResult:
+        prompts.append(request.prompt)
+        if "blood" in request.prompt.lower():
+            data: dict[str, Any] = {"sentences": [], "supported": False}
+        else:
+            data = {
+                "sentences": [
+                    {"text": "Your passport expires in 2030.", "sources": [1]},
+                    {"text": "An uncited guess.", "sources": []},
+                ],
+                "supported": True,
+            }
+        return ProviderResult(
+            data=data, input_tokens=300, output_tokens=40, model="fake-flash"
+        )
+
+    monkeypatch.setattr(LangChainGeminiProvider, "generate", generate)
+    return prompts
+
+
+@pytest.fixture
+def refusing_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The provider is down for generation (FR-19)."""
+
+    async def generate(
+        self: LangChainGeminiProvider, request: ExtractionRequest
+    ) -> ProviderResult:
+        raise ProviderUnavailableError()
+
+    monkeypatch.setattr(LangChainGeminiProvider, "generate", generate)

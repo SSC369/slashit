@@ -168,7 +168,7 @@ No one-off styles outstanding.
 | Palette | "/search · Search everything you have recorded" | |
 | Answer label | "Answer from your records" | Always shown over the answer |
 | Loading, question | "Reading your records to answer…" | Explains the longer wait of NFR-4 |
-| No support | "Nothing you have saved says {what was asked}. Save it with /remember and Slashit can answer next time." | FR-18. States nothing else |
+| No support | "Nothing you have saved answers “{the question as typed}”. Save it with /remember and Slashit can answer next time." | FR-18. States nothing else. Changed 2026-09-30, see change log |
 | Answer unavailable | "No answer this time: Slashit's AI model is unavailable right now. Your matching records are below. This is temporary." | FR-19. Covers the model and the shared quota alike, as 001's FR-35 does |
 | Meaning unavailable | "Showing word matches only. Matching by meaning is unavailable right now, so results may be incomplete." | FR-20 |
 | Group overflow | "See all {n} in Records" | FR-8 |
@@ -191,3 +191,4 @@ No one-off styles outstanding.
 | 2026-09-30 | Created. 16 artboards across Capture, Records and Dark theme pages, generated from 004's artboards. Four direction questions answered first, all recommended | PRD approved, user asked for design | pending |
 | 2026-09-30 | Q1 and Q2 answered, both as drawn. Offline states added to `SearchStates` and `RecordsSearchStates`. Canvas published | User answered the open questions | user |
 | 2026-09-30 | Approved | User: "Approved, commit and push" | user |
+| 2026-09-30 | No-support copy quotes the question as typed instead of rephrasing it. The `SearchNoSupport` artboard still shows the rephrased line | The server has no rephrasing, and writing one would be uncited model text, against FR-18. Dev log D-15 and Q2. No downstream doc is stale: 4.2 names the state, not its words | user |

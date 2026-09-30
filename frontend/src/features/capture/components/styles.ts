@@ -161,6 +161,16 @@ export const searchHitTitleStyles = "min-w-0 flex-1 truncate font-medium text-fo
 export const searchHitDateStyles = "w-[140px] shrink-0 text-right text-[12.5px] text-foreground-tertiary";
 export const searchHitStatusStyles = "flex w-[120px] shrink-0 justify-end";
 export const searchNoMatchBodyStyles = "px-4 py-3.5 text-[13.5px] text-foreground-secondary";
+// Design deltas `.answer`, `.alabel` and `.cite` (slice 2: Main, SearchNoSupport)
+export const answerBlockStyles =
+  "border-b border-border px-4 pb-[15px] pt-3.5 text-[14.5px] leading-[1.65] text-foreground";
+export const answerLabelStyles =
+  "mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-accent";
+export const answerNoSupportStyles = "text-foreground-tertiary";
+export const answerCommandStyles = "font-mono text-foreground";
+export const citeMarkerStyles =
+  "ml-[3px] inline-flex h-[18px] min-w-[18px] cursor-pointer items-center justify-center rounded-[5px] border-0 bg-accent-wash px-1 align-[1px] font-mono text-[11px] font-semibold text-accent";
+export const citeMarkerRowStyles = "ml-0 shrink-0";
 export const typeDotTaskStyles = "h-1.5 w-1.5 shrink-0 rounded-sm bg-command";
 export const typeDotReminderStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent";
 export const typeDotMemoryStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent ring-2 ring-accent-wash";

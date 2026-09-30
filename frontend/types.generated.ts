@@ -24,6 +24,12 @@ export type AccountNotVerified = {
   message: Scalars['String']['output'];
 };
 
+export type AnswerSentence = {
+  __typename?: 'AnswerSentence';
+  citations: Array<Scalars['Int']['output']>;
+  text: Scalars['String']['output'];
+};
+
 export type AuthProviderUnavailable = {
   __typename?: 'AuthProviderUnavailable';
   message: Scalars['String']['output'];
@@ -201,6 +207,7 @@ export type Mutation = {
   markAllNotificationsRead: MarkAllNotificationsReadSucceeded;
   markNotificationRead: MarkNotificationReadResult;
   markReminderDone: ReminderActionResult;
+  recordSearchEvent: Scalars['Boolean']['output'];
   recordsViewOpened: Scalars['Boolean']['output'];
   resolveMemoryConflict: ResolveMemoryConflictResult;
   signIn: SignInResult;
@@ -252,6 +259,11 @@ export type MutationMarkNotificationReadArgs = {
 
 export type MutationMarkReminderDoneArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type MutationRecordSearchEventArgs = {
+  input: RecordSearchEventInput;
 };
 
 
@@ -448,6 +460,11 @@ export type RecordNotFound = {
 
 export type RecordResult = RecordNotFound | Task;
 
+export type RecordSearchEventInput = {
+  kind: SearchEventKind;
+  position: Scalars['Int']['input'];
+};
+
 export type RecordType =
   | 'MEMORY'
   | 'REMINDER'
@@ -558,6 +575,15 @@ export type RemindersListed = {
 
 export type ResolveMemoryConflictResult = MemoryDiscarded | MemorySaved | PendingCaptureNotFound;
 
+export type SearchAnswer = {
+  __typename?: 'SearchAnswer';
+  sentences: Array<AnswerSentence>;
+};
+
+export type SearchEventKind =
+  | 'ANSWER_CITATION_OPENED'
+  | 'SEARCH_RESULT_OPENED';
+
 export type SearchGroup = {
   __typename?: 'SearchGroup';
   hits: Array<SearchHit>;
@@ -575,8 +601,11 @@ export type SearchRecord = Memory | Reminder | Task;
 
 export type SearchResults = {
   __typename?: 'SearchResults';
+  answer?: Maybe<SearchAnswer>;
+  answerUnavailable: Scalars['Boolean']['output'];
   groups: Array<SearchGroup>;
   meaningUnavailable: Scalars['Boolean']['output'];
+  noSupport: Scalars['Boolean']['output'];
   query: Scalars['String']['output'];
 };
 

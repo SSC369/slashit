@@ -21,6 +21,9 @@ export const buildSearchResults = (
 ): SearchResultsFieldsFragment => ({
   query: "passport",
   meaningUnavailable: false,
+  noSupport: false,
+  answerUnavailable: false,
+  answer: null,
   groups: [
     {
       recordType: "MEMORY",
@@ -35,3 +38,30 @@ export const buildSearchResults = (
   ],
   ...overrides,
 });
+
+/** `Main`: the passport question, answered from the memory [1] and the task [2]. */
+export const buildAnsweredResults = (
+  overrides: Partial<SearchResultsFieldsFragment> = {},
+): SearchResultsFieldsFragment =>
+  buildSearchResults({
+    query: "when does my passport expire?",
+    answer: {
+      sentences: [
+        { text: "Your passport expires in 2030.", citations: [1] },
+        { text: "You also have a pending task to renew it.", citations: [2] },
+      ],
+    },
+    groups: [
+      {
+        recordType: "MEMORY",
+        total: 1,
+        hits: [{ citation: 1, record: { __typename: "Memory", ...buildMemory() } }],
+      },
+      {
+        recordType: "TASK",
+        total: 1,
+        hits: [{ citation: 2, record: { __typename: "Task", ...buildTask() } }],
+      },
+    ],
+    ...overrides,
+  });

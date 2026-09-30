@@ -6,6 +6,8 @@ every searched word therefore always outranks one matched by meaning alone,
 however close (FR-6).
 """
 
+from uuid import UUID
+
 from app.domains.search.interfaces.dtos import (
     RecordType,
     SearchCandidate,
@@ -34,25 +36,49 @@ def group_hits(
     candidates: list[SearchCandidate],
     totals: dict[RecordType, int],
     limit: int,
+    citations: dict[UUID, int] | None = None,
 ) -> list[SearchGroupDTO]:
     """FR-7 and FR-8: one group per record type with matches, at most
-    ``limit`` hits each, best first; groups ordered by their best hit."""
+    ``limit`` hits each, best first; groups ordered by their best hit.
+
+    ``citations`` maps a cited record to its [n] (slice 2). A cited record is
+    always shown: if it ranks below its group's cut, it replaces the lowest
+    uncited hit there, so every citation has a row to point at (FR-17, AD-5).
+    """
+    cited = citations or {}
     by_type: dict[RecordType, list[SearchCandidate]] = {}
     for candidate in sorted(candidates, key=rank_key):
         by_type.setdefault(candidate.record_type, []).append(candidate)
-    groups = [
+    # dict preserves insertion order, and insertion followed the global rank,
+    # so each group already sits where its best hit ranks.
+    return [
         SearchGroupDTO(
             record_type=record_type,
             hits=[
                 SearchHitDTO(
-                    record_type=record_type, item=candidate.item, citation=None
+                    record_type=record_type,
+                    item=candidate.item,
+                    citation=cited.get(candidate.record_id),
                 )
-                for candidate in ranked[:limit]
+                for candidate in _shown(ranked=ranked, limit=limit, cited=cited)
             ],
             total=max(totals.get(record_type, 0), len(ranked)),
         )
         for record_type, ranked in by_type.items()
     ]
-    # dict preserves insertion order, and insertion followed the global rank,
-    # so each group already sits where its best hit ranks.
-    return groups
+
+
+def _shown(
+    *, ranked: list[SearchCandidate], limit: int, cited: dict[UUID, int]
+) -> list[SearchCandidate]:
+    """The first ``limit``, with any cited record below the cut pinned in
+    place of the lowest uncited ones, then kept in rank order."""
+    shown = ranked[:limit]
+    pinned = [candidate for candidate in ranked[limit:] if candidate.record_id in cited]
+    for candidate in pinned:
+        uncited = [item for item in shown if item.record_id not in cited]
+        if not uncited:
+            break
+        shown.remove(uncited[-1])
+        shown.append(candidate)
+    return sorted(shown, key=rank_key)

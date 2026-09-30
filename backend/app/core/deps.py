@@ -179,10 +179,15 @@ from app.domains.reminders.services.firing_queue import ProcrastinateFiringQueue
 from app.domains.reminders.services.reminder_service import ReminderService
 from app.domains.search.adapters.analytics_adapter import SearchAnalyticsAdapter
 from app.domains.search.adapters.gateway_adapter import GatewayQueryEmbeddingAdapter
+from app.domains.search.adapters.gateway_answer_adapter import GatewayAnswerAdapter
+from app.domains.search.adapters.identity_adapter import IdentityTimezoneAdapter
 from app.domains.search.adapters.memories_adapter import MemorySearchAdapter
 from app.domains.search.adapters.reminders_adapter import ReminderSearchAdapter
 from app.domains.search.adapters.tasks_adapter import TaskSearchAdapter
 from app.domains.search.constants import SEARCH_EMBED_TIMEOUT_SECONDS
+from app.domains.search.interactors.record_search_event import (
+    RecordSearchEventInteractor,
+)
 from app.domains.search.services.search_service import SearchService
 
 
@@ -851,9 +856,30 @@ def build_search_service(context: Context) -> SearchService:
             ),
             timeout_seconds=SEARCH_EMBED_TIMEOUT_SECONDS,
         ),
-        analytics=SearchAnalyticsAdapter(
-            record_event_interactor=RecordEventInteractor(
-                event_repository=SqlEventRepository(context.session)
+        answer=GatewayAnswerAdapter(
+            extract_interactor=build_extract_interactor(
+                session_factory=context.session_factory, settings=get_settings()
             )
         ),
+        user_timezone=IdentityTimezoneAdapter(
+            identity_service=_build_identity_service(context=context)
+        ),
+        analytics=_build_search_analytics_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def _build_search_analytics_port(*, context: Context) -> SearchAnalyticsAdapter:
+    return SearchAnalyticsAdapter(
+        record_event_interactor=RecordEventInteractor(
+            event_repository=SqlEventRepository(context.session)
+        )
+    )
+
+
+def build_record_search_event_interactor(
+    context: Context,
+) -> RecordSearchEventInteractor:
+    return RecordSearchEventInteractor(
+        analytics=_build_search_analytics_port(context=context)
     )

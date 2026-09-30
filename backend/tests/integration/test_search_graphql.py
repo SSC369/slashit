@@ -17,17 +17,26 @@ from app.core.settings import Settings
 from tests.integration.search_harness import (
     ANSWER,
     HISTORY,
+    answering_model,
     auth_headers,
     graphql,
     keyword_embedder,
     patched_jwks,
+    refusing_model,
     seed,
     signing_key,
     slow_embedder,
     submit,
 )
 
-__all__ = ["keyword_embedder", "patched_jwks", "signing_key", "slow_embedder"]
+__all__ = [
+    "answering_model",
+    "keyword_embedder",
+    "patched_jwks",
+    "refusing_model",
+    "signing_key",
+    "slow_embedder",
+]
 
 
 def hit_ids(result: dict[str, Any]) -> dict[str, list[str]]:
@@ -200,3 +209,94 @@ async def test_a_search_is_logged_as_an_event_with_no_text(
             .where(Event.user_id == user_id, Event.event_type == "search_run")
         )
     assert count == 1
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder")
+async def test_a_question_gets_a_cited_answer_and_its_row_is_marked(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+    answering_model: list[str],
+) -> None:
+    """C-2.9, FR-15 to FR-17: the uncited sentence is dropped, and the one
+    cited record carries [1] on its row."""
+    user_id, _ = two_users
+    await seed(session_factory=session_factory, user_id=user_id)
+    headers = auth_headers(signing_key, settings, user_id=user_id)
+
+    result = await submit(client, headers, "/search when does my passport expire?")
+
+    assert result["answer"] == {
+        "sentences": [{"text": "Your passport expires in 2030.", "citations": [1]}]
+    }
+    cited = [
+        hit
+        for group in result["groups"]
+        for hit in group["hits"]
+        if hit["citation"] is not None
+    ]
+    assert [hit["citation"] for hit in cited] == [1]
+    assert len(answering_model) == 1
+    assert "Records:" in answering_model[0]
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder")
+async def test_a_word_search_writes_no_answer(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+    answering_model: list[str],
+) -> None:
+    """FR-15: no question, no model call."""
+    user_id, _ = two_users
+    await seed(session_factory=session_factory, user_id=user_id)
+    headers = auth_headers(signing_key, settings, user_id=user_id)
+
+    result = await submit(client, headers, "/search passport")
+
+    assert result["answer"] is None
+    assert answering_model == []
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder", "answering_model")
+async def test_a_question_nothing_answers_says_so(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+) -> None:
+    """C-2.9, FR-18."""
+    user_id, _ = two_users
+    await seed(session_factory=session_factory, user_id=user_id)
+    headers = auth_headers(signing_key, settings, user_id=user_id)
+
+    result = await submit(
+        client, headers, "/search what is my blood type and passport?"
+    )
+
+    assert result["noSupport"] is True
+    assert result["answer"] is None
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder", "refusing_model")
+async def test_a_failed_answer_still_shows_the_records(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+) -> None:
+    """C-2.9, FR-19."""
+    user_id, _ = two_users
+    seeded = await seed(session_factory=session_factory, user_id=user_id)
+    headers = auth_headers(signing_key, settings, user_id=user_id)
+
+    result = await submit(client, headers, "/search when does my passport expire?")
+
+    assert result["answerUnavailable"] is True
+    assert str(seeded["passport_task"]) in hit_ids(result)["TASK"]

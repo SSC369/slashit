@@ -113,3 +113,26 @@ def test_groups_cap_at_five_count_every_match_and_follow_the_best_hit() -> None:
 def test_no_candidates_gives_no_groups() -> None:
     """FR-10: the capture card shows the no-match state."""
     assert group_hits(candidates=[], totals={}, limit=5) == []
+
+
+def test_a_cited_record_below_the_cut_is_pinned_in() -> None:
+    """C-2.5, FR-17: every citation has a row to point at; the total stays."""
+    tasks = [
+        _candidate(title=f"Task {index}", distance=0.1 + index / 100)
+        for index in range(7)
+    ]
+    cited = tasks[6]
+
+    groups = group_hits(
+        candidates=tasks,
+        totals={RecordType.TASK: 7},
+        limit=5,
+        citations={cited.record_id: 1},
+    )
+
+    shown = [hit.item for hit in groups[0].hits]
+    assert len(shown) == 5
+    assert cited.item in shown
+    assert tasks[4].item not in shown
+    assert groups[0].total == 7
+    assert [hit.citation for hit in groups[0].hits if hit.item == cited.item] == [1]

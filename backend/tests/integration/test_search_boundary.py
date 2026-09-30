@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.settings import Settings
 from tests.integration.search_harness import (
+    answering_model,
     auth_headers,
     keyword_embedder,
     patched_jwks,
@@ -20,7 +21,7 @@ from tests.integration.search_harness import (
     submit,
 )
 
-__all__ = ["keyword_embedder", "patched_jwks", "signing_key"]
+__all__ = ["answering_model", "keyword_embedder", "patched_jwks", "signing_key"]
 
 
 def _all_ids(result: dict[str, Any]) -> set[str]:
@@ -64,3 +65,24 @@ async def test_user_a_still_finds_their_own_records(
     result = await submit(client, headers_a, "/search Renew passport")
 
     assert str(seeded["passport_task"]) in _all_ids(result)
+
+
+@pytest.mark.usefixtures("patched_jwks", "keyword_embedder")
+async def test_user_b_question_never_puts_user_a_records_in_the_prompt(
+    client: AsyncClient,
+    settings: Settings,
+    signing_key: ec.EllipticCurvePrivateKey,
+    session_factory: async_sessionmaker[AsyncSession],
+    two_users: tuple[uuid.UUID, uuid.UUID],
+    answering_model: list[str],
+) -> None:
+    """C-2.10, NFR-1, T7: B asks about A's passport. A's words never reach a
+    model prompt, and with no records of B's own there is no model call."""
+    user_a, user_b = two_users
+    await seed(session_factory=session_factory, user_id=user_a)
+    headers_b = auth_headers(signing_key, settings, user_id=user_b)
+
+    result = await submit(client, headers_b, "/search when does my passport expire?")
+
+    assert result["noSupport"] is True
+    assert not any("passport" in prompt.lower() for prompt in answering_model)

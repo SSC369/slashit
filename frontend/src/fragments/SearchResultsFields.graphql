@@ -5,6 +5,14 @@
 fragment SearchResultsFields on SearchResults {
   query
   meaningUnavailable
+  noSupport
+  answerUnavailable
+  answer {
+    sentences {
+      text
+      citations
+    }
+  }
   groups {
     recordType
     total

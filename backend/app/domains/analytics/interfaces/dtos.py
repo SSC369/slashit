@@ -22,7 +22,12 @@ EventType = Literal[
 ]
 
 
+# Epic 005: counts and positions, never text (T6, migration 0036's check).
+EventProperties = dict[str, int | float | bool]
+
+
 @dataclass(frozen=True)
 class RecordEventInputDTO:
     user_id: UUID
     event_type: EventType
+    properties: EventProperties | None = None

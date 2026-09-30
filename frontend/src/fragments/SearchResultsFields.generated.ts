@@ -31,7 +31,7 @@ export type ReminderState =
   | 'FIRED'
   | 'UPCOMING';
 
-export type SearchResultsFieldsFragment = { query: string, meaningUnavailable: boolean, groups: Array<{ recordType: Types.RecordType, total: number, hits: Array<{ citation: number | null, record:
+export type SearchResultsFieldsFragment = { query: string, meaningUnavailable: boolean, noSupport: boolean, answerUnavailable: boolean, answer: { sentences: Array<{ text: string, citations: Array<number> }> } | null, groups: Array<{ recordType: Types.RecordType, total: number, hits: Array<{ citation: number | null, record:
         | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
         | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
         | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
@@ -41,6 +41,14 @@ export const SearchResultsFieldsFragmentDoc = gql`
     fragment SearchResultsFields on SearchResults {
   query
   meaningUnavailable
+  noSupport
+  answerUnavailable
+  answer {
+    sentences {
+      text
+      citations
+    }
+  }
   groups {
     recordType
     total
