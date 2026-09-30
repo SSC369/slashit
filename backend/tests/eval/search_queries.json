@@ -1,6 +1,6 @@
 {
   "_about": "Epic 005, sub-plan 4.1, T-1.1, for NFR-6 and NFR-7 and to tune MEANING_MAX_DISTANCE (AD-3). Drafted by Claude on 2026-09-30 for the user to correct. `records` seed one account. Each word query shares a word with its expected record and must rank it in the top three (NFR-6, over 95%). Each meaning query shares no word, not even a five-letter stem, with its expected record and must rank it in the top five (NFR-7, over 80%). Scored live by tests/integration/test_search_eval_live.py.",
-  "status": "draft: awaiting the user's corrections",
+  "status": "corrected: accepted by the user as drafted, 2026-09-30",
   "records": [
     {
       "key": "m-passport",

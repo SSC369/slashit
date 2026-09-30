@@ -29,9 +29,10 @@ Tables this feature touches, by migration:
 | `capture_turns` | changed: outcome `searched` | `0034_search_capture` | 1 |
 | `pending_captures` | changed: `missing_field` value `search_text` | `0034_search_capture` | 1 |
 | `events` | changed: `search_run`, `search_result_opened`, `answer_citation_opened`, `related_opened` | `0035_search_events` | 1 |
+| `events` | changed: `properties jsonb`, numbers only | `0036_event_properties` | 2 |
 
-All five in slice 1, so slices 2 and 3 need no migration. The last two event
-types stay unused until their slice.
+The first four migrations are slice 1's. The last two event types stay unused until
+their slice. `0036` was added by change record on 2026-09-30.
 
 ## 1. Scope recap
 
@@ -63,7 +64,7 @@ before each lands, as 003 and 004 did.
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
 | 1 | [04.1-search-by-words-and-meaning.md](./04.1-search-by-words-and-meaning.md) | `/search` returns grouped, ranked records by word and meaning; no argument, too long, no match and meaning-unavailable states; history Run again; existing records backfilled; new and edited records embedded | — | approved 2026-09-30 |
-| 2 | `04.2-written-answer.md` | A question gets a cited answer, the no-support sentence, or the answer-unavailable strip; citations open records | 1 | not drafted |
+| 2 | [04.2-written-answer.md](./04.2-written-answer.md) | A question gets a cited answer, the no-support sentence, or the answer-unavailable strip; citations open records | 1 | approved 2026-09-30 |
 | 3 | `04.3-records-search-and-related.md` | The records view search uses slice 1's ranking; a record's detail lists related records with every drawn state | 1 | not drafted |
 
 Slices 2 and 3 are independent of each other. 2 goes first because FR-15 is a
@@ -240,3 +241,5 @@ live in `backend/tests/eval/` as JSON and run as live tests, never in CI.
 | 2026-09-30 | Created as the index, with sub-plan 4.1 drafted | Build plan approved; user asked to proceed | pending |
 | 2026-09-30 | Evaluation sets built during slice 1, not before this plan's approval; build plan risk row amended to match | User chose it over waiting on about 125 corrected examples | user |
 | 2026-09-30 | Approved | User: "Approved, commit and push" | user |
+
+| 2026-09-30 | `0036_event_properties` added to slice 2: `events` gains a numbers-only `properties` column, so search events carry counts and positions (build plan §3). Re-opens: none; 4.2 is not yet drafted | Dev log Q1: the table held only a type and a time. User chose the column over dropping the metrics | user, 2026-09-30 |

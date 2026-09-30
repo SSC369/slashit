@@ -1,0 +1,172 @@
+{
+  "_about": "Epic 005, sub-plan 4.2, T-2.1, for NFR-8. Drafted by Claude on 2026-09-30 for the user to correct. Asked over the account seeded from search_queries.json. `cites` lists the records a correct answer rests on; an empty list means nothing recorded answers the question, and the right reply is FR-18's no-support sentence. Scored live by tests/integration/test_search_answer_eval_live.py: zero sentences without a citation, and every citation supporting its sentence, judged by hand over 95%.",
+  "status": "corrected: accepted by the user as drafted, 2026-09-30",
+  "cases": [
+    {
+      "question": "When does my passport expire?",
+      "cites": [
+        "m-passport"
+      ]
+    },
+    {
+      "question": "What do I need to do about my passport?",
+      "cites": [
+        "t-renew-passport",
+        "r-passport-req"
+      ]
+    },
+    {
+      "question": "Which airline do I prefer?",
+      "cites": [
+        "m-airline"
+      ]
+    },
+    {
+      "question": "When is Mom's birthday?",
+      "cites": [
+        "m-mom-bday"
+      ]
+    },
+    {
+      "question": "What am I working toward in my career?",
+      "cites": [
+        "m-career"
+      ]
+    },
+    {
+      "question": "What am I learning at the moment?",
+      "cites": [
+        "m-springboot",
+        "m-language"
+      ]
+    },
+    {
+      "question": "Who is my landlord and when is rent due?",
+      "cites": [
+        "m-landlord"
+      ]
+    },
+    {
+      "question": "Which bank is my salary account with?",
+      "cites": [
+        "m-bank"
+      ]
+    },
+    {
+      "question": "Where does my sister live?",
+      "cites": [
+        "m-sister"
+      ]
+    },
+    {
+      "question": "Where does Arjun work?",
+      "cites": [
+        "m-friend-job"
+      ]
+    },
+    {
+      "question": "Who is my family doctor?",
+      "cites": [
+        "m-doctor"
+      ]
+    },
+    {
+      "question": "Am I allergic to anything?",
+      "cites": [
+        "m-allergy"
+      ]
+    },
+    {
+      "question": "What is my shoe size?",
+      "cites": [
+        "m-shoe"
+      ]
+    },
+    {
+      "question": "When does my car insurance renew?",
+      "cites": [
+        "m-car"
+      ]
+    },
+    {
+      "question": "When does the fixed deposit mature?",
+      "cites": [
+        "m-fd"
+      ]
+    },
+    {
+      "question": "How much is my SIP and when does it go out?",
+      "cites": [
+        "m-mutual"
+      ]
+    },
+    {
+      "question": "When is Rahul's wedding?",
+      "cites": [
+        "m-wedding"
+      ]
+    },
+    {
+      "question": "What is my glasses prescription?",
+      "cites": [
+        "m-glasses"
+      ]
+    },
+    {
+      "question": "What is my best 5k time?",
+      "cites": [
+        "m-running"
+      ]
+    },
+    {
+      "question": "When did I last have a tetanus shot?",
+      "cites": [
+        "m-vaccine"
+      ]
+    },
+    {
+      "question": "Is my education loan paid off?",
+      "cites": [
+        "m-loan"
+      ]
+    },
+    {
+      "question": "What do I need to do for the Japan trip?",
+      "cites": [
+        "t-visa"
+      ]
+    },
+    {
+      "question": "What is my blood type?",
+      "cites": []
+    },
+    {
+      "question": "What is my passport number?",
+      "cites": []
+    },
+    {
+      "question": "When is my sister's birthday?",
+      "cites": []
+    },
+    {
+      "question": "What is Priya's phone number?",
+      "cites": []
+    },
+    {
+      "question": "How much rent do I pay?",
+      "cites": []
+    },
+    {
+      "question": "What car do I drive?",
+      "cites": []
+    },
+    {
+      "question": "What is my employee ID at work?",
+      "cites": []
+    },
+    {
+      "question": "Which city was I born in?",
+      "cites": []
+    }
+  ]
+}
