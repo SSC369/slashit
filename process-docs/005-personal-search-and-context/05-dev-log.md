@@ -229,10 +229,34 @@ All recorded 2026-09-30. All four approved by the user on 2026-09-30.
 | 2026-09-30 | `errorLink.test.ts` fails as a suite, in slice 2's run and this one | Pre-existing: its mock loads the real `sessionExpiry`, which needs `VITE_SUPABASE_*` set, and this environment has none. It fails the same on a clean checkout of `736b124`, whose frontend is `4455b4d`'s | Not changed here. Slice 2's summary counted tests, not suites, so it was missed there |
 | 2026-09-30 | `ruff format` on the records adapters folder rewrote `analytics_event_adapter.py`, one of the files left as found | Formatted a folder, not the changed files | Reverted before any commit |
 
+## Merge to main
+
+Merged through PR #2 on 2026-09-30, at the user's request, with every check
+green on the last head.
+
+| Item | Detail |
+|---|---|
+| Pull request | https://github.com/SSC369/slashit/pull/2 |
+| Commits | 12 stage and slice commits, plus the two CI fixes below |
+| CI on the last head | Backend lint, types, tests; Secret scan; GitGuardian: all pass |
+| Review comments | none |
+
+CI had been red on `main` since before 005, and it stopped at the first
+failing step, so each fix exposed the next:
+
+| Commit | What CI hit | Fix |
+|---|---|---|
+| `45d9125` | `ruff format --check`: the 7 files the Base section lists as unformatted | Formatted, at the user's choice. Each file's syntax tree is unchanged |
+| `9c099c6` | The unit tests could not load `Settings`: `SUPABASE_PUBLISHABLE_KEY`, required since 002's `b7efa24`, was never set in CI | A placeholder in `ci.yml`. The key is not a secret. 369 CI tests pass without `backend/.env` |
+
+005 stays **in progress** after the merge. It is not shipped until the owed
+live runs and browser passes below are recorded (index §8).
+
 ## Remaining work
 
 | Item | Needs | Owner |
 |---|---|---|
+| Live runs | The user runs them locally and sends the output (user, 2026-09-30); Claude then tunes both thresholds and records the numbers | user, then Claude |
 | T-1.13 | A provider key: run `pytest -m live tests/integration/test_search_eval_live.py tests/integration/test_search_latency_live.py`, then set `MEANING_MAX_DISTANCE` from the misses | Claude, with the key |
 | T-1.14 | A real project: every slice 1 artboard compared in the running app | Claude, with project access |
 | Deploy steps | Index §6: migrations, worker restart, and the one-off `full=True` backfill for both record types | Claude, at deploy |
