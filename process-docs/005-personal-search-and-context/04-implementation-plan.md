@@ -65,7 +65,7 @@ before each lands, as 003 and 004 did.
 |---|---|---|---|---|
 | 1 | [04.1-search-by-words-and-meaning.md](./04.1-search-by-words-and-meaning.md) | `/search` returns grouped, ranked records by word and meaning; no argument, too long, no match and meaning-unavailable states; history Run again; existing records backfilled; new and edited records embedded | — | approved 2026-09-30 |
 | 2 | [04.2-written-answer.md](./04.2-written-answer.md) | A question gets a cited answer, the no-support sentence, or the answer-unavailable strip; citations open records | 1 | approved 2026-09-30 |
-| 3 | `04.3-records-search-and-related.md` | The records view search uses slice 1's ranking; a record's detail lists related records with every drawn state | 1 | not drafted |
+| 3 | [04.3-records-search-and-related.md](./04.3-records-search-and-related.md) | The records view search uses slice 1's ranking; a record's detail lists related records with every drawn state | 1 | approved 2026-09-30 |
 
 Slices 2 and 3 are independent of each other. 2 goes first because FR-15 is a
 must and 001's Q14 was closed on it.
@@ -243,3 +243,4 @@ live in `backend/tests/eval/` as JSON and run as live tests, never in CI.
 | 2026-09-30 | Approved | User: "Approved, commit and push" | user |
 
 | 2026-09-30 | `0036_event_properties` added to slice 2: `events` gains a numbers-only `properties` column, so search events carry counts and positions (build plan §3). Re-opens: none; 4.2 is not yet drafted | Dev log Q1: the table held only a type and a time. User chose the column over dropping the metrics | user, 2026-09-30 |
+| 2026-09-30 | Slice 3 contracts: `search` returns `SearchPage \| SearchTooLong`, and `SearchPage` gains `query` and `otherTypesTotal` for the drawn "filtered, no match" state. §7: `RELATED_MAX_DISTANCE` is tuned on the related set during slice 3, not before 4.3's approval, as slice 1 did for search. Re-opens: none; 4.3 is the only dependant and is in review | User answered 4.3's question 4; the "{n} other records match" copy needs the count | user, 2026-09-30, with 4.3 |
