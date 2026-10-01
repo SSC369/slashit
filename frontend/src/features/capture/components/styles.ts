@@ -12,14 +12,14 @@ export const streamColumnStyles = "mx-auto flex w-full max-w-[760px] flex-col ga
 export const turnStyles = "flex flex-col gap-2.5";
 export const saidRowStyles = "flex justify-end";
 export const saidBoxStyles =
-  "max-w-[560px] rounded-[10px] rounded-br-[3px] border border-border bg-card px-3.5 py-2.5 font-mono text-[13.5px] text-foreground";
+  "max-w-[560px] rounded-[10px] rounded-br-[3px] border border-border bg-card px-3.5 py-2.5 font-mono text-[13.5px] text-foreground wrap-anywhere";
 
 export const cardStyles = "overflow-hidden rounded-lg border border-border bg-card";
 export const cardHeadStyles = "flex items-center gap-2.5 border-b border-border px-4 py-3";
 export const cardFootStyles =
   "flex items-center justify-between border-t border-border bg-card px-4 py-2.5 text-xs text-foreground-tertiary";
 
-export const pillBaseStyles = "inline-flex h-[23px] items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium";
+export const pillBaseStyles = "inline-flex min-w-0 max-w-full h-[23px] items-center gap-1.5 rounded-full border px-2.5 text-[11.5px] font-medium";
 export const pillWaitStyles = "border-accent-wash bg-accent-wash text-accent";
 export const pillDoneStyles = "border-success-wash bg-success-wash text-success";
 export const pillMutedStyles = "border-border-strong bg-background text-foreground-tertiary";
@@ -49,7 +49,7 @@ export const noteErrStyles = "border-destructive-wash bg-destructive-wash";
 export const noteTitleStyles = "text-[14.5px] font-semibold text-foreground";
 export const noteBodyStyles = "mt-1 text-[13.5px] text-foreground-secondary";
 export const noteInputEchoStyles =
-  "mt-3 rounded-lg border border-border bg-card px-3.5 py-2.5 font-mono text-[13.5px] text-foreground";
+  "mt-3 rounded-lg border border-border bg-card px-3.5 py-2.5 font-mono text-[13.5px] text-foreground wrap-anywhere";
 export const noteActionsRowStyles = "mt-3 flex items-center gap-2";
 
 // Command palette

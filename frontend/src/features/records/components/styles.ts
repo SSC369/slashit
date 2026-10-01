@@ -40,7 +40,7 @@ export const pillDoneStyles = "border-success-wash bg-success-wash text-success"
 export const emptyContainerStyles = "flex flex-1 flex-col items-center justify-center px-10 text-center";
 export const emptyIconStyles =
   "mx-auto mb-[18px] flex h-[52px] w-[52px] items-center justify-center rounded-xl bg-background text-foreground-tertiary";
-export const emptyTitleStyles = "text-[19px] font-semibold text-foreground";
+export const emptyTitleStyles = "max-w-full text-[19px] font-semibold text-foreground wrap-anywhere";
 export const emptyBodyStyles = "mt-2 max-w-[420px] text-sm text-foreground-secondary";
 export const emptyActionStyles = "mt-5";
 

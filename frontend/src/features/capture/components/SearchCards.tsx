@@ -70,7 +70,8 @@ export const SearchResultsCard = (props: SearchResultsCardProps): ReactElement =
             <NoAnswerPill />
           ) : (
             <span className={cn(Styles.pillBaseStyles, Styles.pillMutedStyles)}>
-              <Search size={12} /> No records match “{results.query}”
+              <Search size={12} className="shrink-0" />
+              <span className="truncate">No records match “{results.query}”</span>
             </span>
           )}
         </div>
