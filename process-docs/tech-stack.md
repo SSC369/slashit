@@ -4,7 +4,7 @@ title: Slashit Technical Stack
 status: current
 owner: user
 created: 2026-09-09
-updated: 2026-09-30
+updated: 2026-10-02
 ---
 
 # Slashit — Technical Stack
@@ -354,10 +354,11 @@ explicitly and argues for it.
 | T3 | The service-role key never reaches the browser, and never serves a request made on behalf of a user unless the resolver has already established ownership. It is for migrations and background jobs |
 | T4 | The model provider stays behind a boundary. Nothing above it knows which provider is in use, so a tier or vendor change is configuration, not a rewrite |
 | T5 | DataLoader from the first resolver, not retrofitted after the N+1 appears |
-| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half. Extended by epic 005 AD-10 to all record text, search queries and written answers |
+| T6 | Prompt content never reaches the usage or analytics tables. Passports and finances do not belong in an observability store. Extended by epic 004 AD-9: memory text never reaches logs, events, usage rows or tracing either, and a structlog processor enforces the log half. Extended by epic 005 AD-10 to all record text, search queries and written answers, and by epic 006 AD-9 to spend amounts |
 | T7 | Every feature touching user data tests the boundary: a case where user A requests user B's record and receives nothing |
 | T8 | Every number in a build plan carries its source. A benchmark, a vendor page, a measurement, or the label `estimate` |
 | T9 | The gateway's per-user request cap counts generations only. Embedding calls are attributed per user in `ai_usage` with `operation = embed`, and never counted against the cap (epic 004 AD-11) |
+| T10 | Money is stored and summed as `bigint` minor units, paise for rupees. No float or decimal crosses any layer; the API carries minor units and the client formats them (epic 006 AD-2) |
 
 ---
 
@@ -452,6 +453,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 
 | Date | Change | Why | Approved by |
 |---|---|---|---|
+| 2026-10-02 | T10 added: money as `bigint` minor units (006 AD-2). T6 extended to spend amounts (006 AD-9). Stale downstream: none; no built code stores money | Epic 006's build plan approved | user |
 | 2026-09-30 | Search row added and a Search section in §3: each record type answers search over its own rows, search columns on each record table (005 AD-1, AD-2). T-Q7 closed: one graph (005 AD-8). T6 extended to all record text, search queries and answers (005 AD-10). Stale downstream: none; epics 006 to 009 are not yet opened, and each inherits `SearchPort` | Epic 005's build plan approved | user |
 | 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
 | 2026-09-23 | Subscription backplane set to PostgreSQL `LISTEN/NOTIFY`, closing T-Q3. Background jobs run in a separate worker container. One backend domain per record type. Stale downstream: none; epic 003 is the first consumer | Decisions AD-1, AD-4 and AD-9 of epic 003's approved build plan, graduated per rule 8 of the process | user |

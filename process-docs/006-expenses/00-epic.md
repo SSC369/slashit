@@ -64,7 +64,7 @@ arithmetic, not a budgeting tool.
 | Other currencies | Text with a clearly different currency, such as `$20`, is refused with a one-line reason saying rupees only for now | Saving $20 as ₹20 silently corrupts every total | Per Q7. Conversion to ₹ is pending and tracked as a sub-plan of epic 012. It needs an exchange-rate source the user configures later |
 | Missing amount | `/add-expense dinner` asks "How much was it?" | The confirmation model asks when a required field is missing | Uses 001's non-blocking pending question (FR-36) |
 | Missing description | `/add-expense 500` asks "What was the expense for?" | Source §35 gives this exact example | Same mechanism |
-| Date | Defaults to today. Relative dates ("yesterday", "last Friday") resolve in the user's timezone | Source §3.2. Expenses are mostly logged after the fact | Reuses 001 FR-5. A future date gets a question asking for today or a past date, per Q5 |
+| Date | Defaults to today. Relative dates ("yesterday", "last Friday") resolve in the user's timezone | Source §3.2. Expenses are mostly logged after the fact | Reuses 001 FR-5. A future date is shown as read and the user confirms it or picks another from a calendar, per Q5 revised |
 | Category | One category per expense, chosen by Slashit from a fixed set and editable afterwards | Source §14 and §19 show a category on every expense | Per Q2 and Q4: Food, Transport, Shopping, Bills, Health, Entertainment, Travel, Other. A failed or unsure classification saves as Other and never blocks creation |
 | Expenses view | A list under Records showing date, description, category and amount, newest first | Principle 1. Source §11, §14 | Built on 001's records view. Filter by category and by period, and search by words |
 | All view | Expenses appear in the All records view with the amount in the status column | Source §12 draws exactly this | |
@@ -147,7 +147,7 @@ arithmetic, not a budgeting tool.
 | ~~Q3~~ | Edit or delete by command? | Detail view only · add `/delete-expense` | **Detail view only**, user 2026-10-02 |
 | ~~Q8~~ | How much do summaries do? | Category totals per period · command only · totals plus trends | **Category totals per period, in the command and the view**, user 2026-10-02 |
 | ~~Q4~~ | Which fixed categories? | Eight · ten, adding Rent and Education · four | **Eight: Food, Transport, Shopping, Bills, Health, Entertainment, Travel, Other**, user 2026-10-02 |
-| ~~Q5~~ | Can an expense be dated in the future? | No, ask again · allow it | **No. Slashit asks for today or a past date**, user 2026-10-02 |
+| ~~Q5~~ | Can an expense be dated in the future? | No, ask again · allow it | **Revised 2026-10-02: yes, after confirming.** Slashit names the date it read, such as "next Saturday" as Sat 10 Oct, and the user confirms it or picks another date from a calendar. Only future dates ask; past ones save at once. Was "no, ask again" |
 | ~~Q6~~ | Text holding a quantity and an amount, such as "2 coffees 180"? | Larger number is the amount · ask which · let the model decide | **Ask which number is the amount**, user 2026-10-02. Not the recommended option |
 | ~~Q7~~ | Text in another currency, such as `$20 lunch`? | Refuse · ask for the rupee amount · convert · save as rupees | **Convert to ₹ and store the ₹ value only, but later.** The user will configure an exchange-rate source; until then such text is refused with a reason. Tracked as a sub-plan of epic 012, user 2026-10-02 |
 | ~~Q9~~ | What does `/expenses` with no period show? | This month's totals · latest ten · ask | **This month's totals**, user 2026-10-02 |
@@ -173,3 +173,4 @@ arithmetic, not a budgeting tool.
 | 2026-10-02 | Created. Q1, Q2, Q3 and Q8 answered before drafting, each with the recommended option | User asked to start the epic | pending |
 | 2026-10-02 | Q4 to Q7 and Q9 to Q11 answered. Q6 departs from the recommendation: ask which number is the amount. Q7 adds currency conversion as pending work in epic 012. Requirements, cons, alternatives and risks updated | User answered the open questions | user |
 | 2026-10-02 | Approved | User: "commit and proceed with next" | user |
+| 2026-10-02 | Q5 revised: a future date is allowed once the user confirms the date Slashit read or picks another from a calendar. Only future dates ask. Stale: PRD FR-8 and FR-21, design `ExpenseAsk`, `DetailStates` | User asked for the resolved date to be confirmed with a custom date picker | user, 2026-10-02 |
