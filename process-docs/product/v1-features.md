@@ -4,7 +4,7 @@ title: V1 Features
 status: approved
 owner: user
 created: 2026-09-08
-updated: 2026-09-14
+updated: 2026-10-02
 ---
 
 # V1 Features
@@ -63,6 +63,7 @@ independently.
 | 009 | Notes | P1 | Notes and Ideas §25 | 001, 002 |
 | 010 | Daily Control | P1 | Today's view §29, Upcoming view §30, Home dashboard §32, Navigation §33 | 001, 002, 003, 006, 007, 008 |
 | 011 | Proactive Slashit | P2 | Proactive Slashit §31, advanced contextual intelligence | 005, 010 |
+| 012 | Production Readiness | P0 | Not in the source. Real email sending through Resend, closing 003's T-3.10; ₹ conversion of foreign-currency expenses, from 006's Q7. Rest of scope argued at its own stage 0 | all shipped epics |
 
 ---
 
@@ -182,3 +183,4 @@ Pricing is the other post-V1 question. It is open as Q5 in
 | 2026-09-09 | Epic 000, AI Gateway and Usage, added ahead of 001. Recorded as a deliberate exception to the vertical-slice rule. | User supplied the AI API key architecture | user |
 | 2026-09-14 | Epic 002, Authentication, inserted after 001. Epics 002 to 010 renumbered to 003 to 011, and 002 added to the `Depends on` column of every epic after it, since none can be used by a real user without it. Not in the original source: 001 shipped so far against a dev-only console workaround. | User asked to plan real signup, login and email verification as the immediate next feature | user |
 | 2026-09-09 | Superseded `v1-epic-map.md`. Absorbed the V1 capability priorities from the product brief and added a Later versions section. Epic folders are now direct children of `process-docs/`. | User asked for one V1 features document | user |
+| 2026-10-02 | Epic 012, Production Readiness, added to the epic table to match the registry, where it has been planned since 2026-09-26. Opens last. No feature made stale. | Registry and this doc disagreed | user |

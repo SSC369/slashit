@@ -3,7 +3,7 @@ doc: dev-log
 feature: 005-personal-search-and-context
 title: Personal Search and Context
 stage: 5
-status: draft
+status: shipped
 owner: claude
 created: 2026-09-30
 updated: 2026-10-02
@@ -132,7 +132,7 @@ plan left open or stated wrongly. All eleven approved by the user on
 | T-2.6 | 4.2 | Boundary case | done | C-2.10 |
 | T-2.7 | 4.2 | Frontend answer block, markers, states, loading | done | C-2.14. D-15, D-16. Result rows are now reachable by Tab and open on Enter, which the design's keyboard path asks for and slice 1 missed. Not yet compared against the canvas in a running app: T-2.10 |
 | T-2.8 | 4.2 | Frontend events | done | C-2.15. D-17 |
-| T-2.9 | 4.2 | Live answer quality and latency runs | **partial** | Run 2026-10-01. Answer quality passes. NFR-4 misses and is accepted for V1 (Q5). Citation judgement by hand owed from the user. See Live runs |
+| T-2.9 | 4.2 | Live answer quality and latency runs | done | Run 2026-10-01. Answer quality passes. NFR-4 misses and is accepted for V1 (Q5). Citations judged by the user 2026-10-02; D-23 |
 | T-2.10 | 4.2 | Live browser pass | done | Compared 2026-10-02. See Live runs |
 
 ### Test cases
@@ -328,13 +328,13 @@ past any usable cutoff, so the eval file may be over-labelled. Q4.
 
 ### Answer citations to judge
 
-Judged by Claude; the user makes the call for NFR-8.
+Flagged by Claude; judged by the user for NFR-8 on 2026-10-02.
 
-| Answer | Concern |
-|---|---|
-| "Rahul's wedding is in February 2027." | The record says only "February". The year is the model's. Seen in one of two runs |
-| Passport reminder "on Tuesday 1 December at 9:00 AM"; fixed deposit "the week of Tuesday, December 1" | Taken from the reminder's stored time, not its text. Support if a reminder's time counts as its content |
-| "Scan PAN card and passport" cited for "What do I need to do about my passport?" | Supported, but not in the expected citations |
+| Answer | Concern | Verdict |
+|---|---|---|
+| "Rahul's wedding is in February 2027." | The record says only "February". The year is the model's. Seen in one of two runs | Unsupported. D-23 |
+| Passport reminder "on Tuesday 1 December at 9:00 AM"; fixed deposit "the week of Tuesday, December 1" | Taken from the reminder's stored time, not its text | Supported: a reminder's time is part of the record |
+| "Scan PAN card and passport" cited for "What do I need to do about my passport?" | Not in the expected citations | Supported |
 
 ### Browser pass
 
@@ -415,9 +415,16 @@ Related cutoff sweep. Two documents sit closer than a query and a document, so 0
 | 004 memory tests on document vectors | pass: 100% of 14 conflicts caught, 0.3% of 386 other pairs flagged; NFR-6 categorisation 87% |
 | Re-embed | Every live record in the Supabase project re-embedded as a document by a one-off script: 19 tasks, 2 reminders, 5 memories, none failed after one retry. A production database needs the same re-embed at deploy |
 | Q7, limit strip | The answer port returns `AnswerRefusedDTO(limit_reached)`; `SearchResults.answerLimitReached` is new; the card says "You have used today’s AI answers. Your matching records are below." Unit tests for the adapter, the service and `SearchCards`. Design change record 2026-10-02 |
-| Tests | Backend unit tests pass. Frontend 328 pass, `tsc` and `oxlint` clean. **The backend integration suite was not rerun after D-22 and Q7**: the user stopped that run |
+| Tests | Backend 540 pass with `REMINDER_EMAIL_ENABLED=false` and no worker, after applying 007's migrations 0037 and 0038 to Supabase and deleting two leftover `@rls-test.invalid` users. `test_lists_and_lookup_stay_fast_at_a_thousand_memories` missed once at 1.18s and passed on rerun: network to Supabase. Frontend 328 pass, `tsc` and `oxlint` clean |
+| Browser | API and worker restarted on D-22 and Q7. `/search passport`: 4 records, the visa task by meaning alone. "kayak": the no-match state. The limit strip needs the day's answers spent, so it rests on its unit tests |
 
 The 14 records seeded for the artboard comparison are still in the user's account.
+
+| # | Planned | Actual | Why | Approved by |
+|---|---|---|---|---|
+| D-23 | Build plan §5: `ANSWER_INSTRUCTION` | One sentence added: "State only what the records say; never add a year, date or detail they do not contain." | The wedding answer added a year its record lacks (Answer citations to judge) | user, 2026-10-02 |
+
+After D-23, `test_search_answer_eval_live.py` passed 4 of 5 runs; the wedding answer said "February" with no year in every run printed. The one failure printed no assertion detail.
 
 ### Questions for the user
 
@@ -432,11 +439,8 @@ The 14 records seeded for the artboard comparison are still in the user's accoun
 
 ## Remaining work
 
+Shipped 2026-10-02 on the user's approval. Open after shipping:
+
 | Item | Needs | Owner |
 |---|---|---|
-| Backend integration suite | Rerun after D-22 and Q7, with `REMINDER_EMAIL_ENABLED=false` and no worker running | Claude |
-| Local API and worker | Restart so they run D-22 and Q7 | Claude |
-| Browser check | The limit strip, and `/search passport` and "kayak" at 0.40 against `SearchPassport` and the no-match state | Claude |
-| T-2.9 | Judge the citations in Answer citations to judge | user |
 | Q8 | The user's answer | user |
-| Ship 005 | Every row above closed, then the user's approval to mark 005 `shipped` in the index | user |

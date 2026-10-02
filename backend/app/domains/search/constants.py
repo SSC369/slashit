@@ -95,6 +95,8 @@ ANSWER_INSTRUCTION: Final = (
     "Write at most four short sentences. "
     "Every sentence lists in sources the numbers of the records it rests on. "
     "Never write a record's number in the text. "
+    "State only what the records say; never add a year, date or detail "
+    "they do not contain. "
     "If the records do not answer the question, return no sentences and "
     "supported false. Do not guess."
 )
