@@ -6,7 +6,7 @@ stage: 5
 status: draft
 owner: claude
 created: 2026-09-30
-updated: 2026-09-30
+updated: 2026-10-02
 approved_on: null
 supersedes: null
 ---
@@ -40,9 +40,10 @@ the 7 still listed there on 2026-09-30; each file's syntax tree is unchanged.
 
 Built and verified against a real local PostgreSQL 16 with pgvector, and in
 unit and component tests. The model is faked at `LangChainGeminiProvider` in
-integration tests. **Not yet verified against the real model, a real project,
-or live in a browser**: T-1.13, T-1.14, T-2.9, T-2.10, T-3.9's quality run,
-T-3.10 and the deploy steps are owed.
+integration tests. The live runs and a first browser pass followed on
+2026-10-01, against the real model and the Supabase project: see
+[Live runs and browser pass](#live-runs-and-browser-pass-2026-10-01). Two
+targets fail there and are parked by the user, so the feature is not shipped.
 
 ## Slice 1 — Search by words and meaning
 
@@ -62,8 +63,8 @@ T-3.10 and the deploy steps are owed.
 | T-1.10 | 4.1 | Boundary tests | done | C-11 |
 | T-1.11 | 4.1 | Frontend card, palette, TurnCard routing, styles | done | C-16. Not yet compared against the canvas in a running app: T-1.14 |
 | T-1.12 | 4.1 | Frontend history Run again | done | C-17 |
-| T-1.13 | 4.1 | Latency and evaluation runs, thresholds tuned | **owed** | `test_search_latency_live.py` (C-14) and `test_search_eval_live.py` (C-15) written and collected; they call the real model, and this environment has no provider key. `MEANING_MAX_DISTANCE` stays 0.35, `estimate`, until they run |
-| T-1.14 | 4.1 | Live browser pass against a real project | **owed** | No Supabase project credentials reachable from this environment, as 003 and 004 recorded |
+| T-1.13 | 4.1 | Latency and evaluation runs, thresholds tuned | done | NFR-3, NFR-6 and NFR-7 pass, with `MEANING_MAX_DISTANCE` at 0.48 from 2026-10-02 (Q3). See Live runs |
+| T-1.14 | 4.1 | Live browser pass against a real project | done | Artboards compared 2026-10-02. `SearchPassport` and the no-match state differ, Q6. See Live runs |
 
 ### Test cases
 
@@ -78,7 +79,8 @@ T-3.10 and the deploy steps are owed.
 | C-10 | `integration/test_search_backfill_db.py` | pass, 4 |
 | C-11 | `integration/test_search_boundary.py` | pass, 2: user B searches user A's exact title and its meaning, and gets nothing |
 | C-13 | `test_logging_redaction.py` | pass |
-| C-14, C-15 | `integration/test_search_latency_live.py`, `integration/test_search_eval_live.py` | owed, T-1.13 |
+| C-14 | `integration/test_search_latency_live.py` | pass, 2026-10-02: p95 2.69 s. The 2026-10-01 run's seed timed out |
+| C-15 | `integration/test_search_eval_live.py` | pass at 0.48: word 98%, meaning 87%. At 0.35 it failed, meaning 10% |
 | C-16 | `SearchCards.test.tsx`; response handler cases for both new union members | pass |
 | C-17 | `HistoryPanel.test.tsx` | pass |
 
@@ -130,8 +132,8 @@ plan left open or stated wrongly. All eleven approved by the user on
 | T-2.6 | 4.2 | Boundary case | done | C-2.10 |
 | T-2.7 | 4.2 | Frontend answer block, markers, states, loading | done | C-2.14. D-15, D-16. Result rows are now reachable by Tab and open on Enter, which the design's keyboard path asks for and slice 1 missed. Not yet compared against the canvas in a running app: T-2.10 |
 | T-2.8 | 4.2 | Frontend events | done | C-2.15. D-17 |
-| T-2.9 | 4.2 | Live answer quality and latency runs | **owed** | `test_search_answer_eval_live.py` (C-2.13) and a question case in `test_search_latency_live.py` (C-2.12) written and collected. No provider key here. C-2.13 also asserts at most two of the eight unanswerable questions get an answer, `estimate`: the PRD sets no rate for FR-18 |
-| T-2.10 | 4.2 | Live browser pass | **owed** | No project credentials reachable, as T-1.14 |
+| T-2.9 | 4.2 | Live answer quality and latency runs | **partial** | Run 2026-10-01. Answer quality passes. NFR-4 misses and is accepted for V1 (Q5). Citation judgement by hand owed from the user. See Live runs |
+| T-2.10 | 4.2 | Live browser pass | done | Compared 2026-10-02. See Live runs |
 
 ### Test cases
 
@@ -145,7 +147,8 @@ plan left open or stated wrongly. All eleven approved by the user on
 | C-2.9 | `integration/test_search_graphql.py` | pass, 4 new: answered with a marked row, word search writes no answer, no support, answer unavailable |
 | C-2.10 | `integration/test_search_boundary.py` | pass: user B's question never puts user A's record in the prompt |
 | C-2.11 | `integration/test_search_events_db.py` | pass, 7: a string, a nested object, an array inside a value and a top-level array are refused; numbers and booleans accepted; an event without properties stores SQL `NULL`; `recordSearchEvent` stores a position and a citation |
-| C-2.12, C-2.13 | `integration/test_search_latency_live.py`, `integration/test_search_answer_eval_live.py` | owed, T-2.9 |
+| C-2.12 | `integration/test_search_latency_live.py` | **fail**: p95 10.80 s against 8.0 s. Accepted for V1, Q5 |
+| C-2.13 | `integration/test_search_answer_eval_live.py` | pass |
 | C-2.14 | `SearchCards.test.tsx`; `utils/isSearchQuestion.test.ts` | pass, 8 new and 9 |
 | C-2.15 | `RecordSearchEvent/responseHandler.test.ts`; `CommandCenterController.test.tsx` | pass, 2 and 2 |
 
@@ -194,8 +197,8 @@ six approved by the user on 2026-09-30.
 | T-3.6 | 4.3 | Boundary cases | done | C-3.8 |
 | T-3.7 | 4.3 | Frontend records view search | done | C-3.10. D-19, D-20. Not yet compared against the canvas in a running app: T-3.10 |
 | T-3.8 | 4.3 | Frontend related section on three details | done | C-3.11 |
-| T-3.9 | 4.3 | Related latency run; quality run and tuning | **partial** | C-3.12 run here, no key needed: at 3,000 records, median 0.063 s, p95 0.075 s over 20 lists, against the local database. C-3.13 written and collected; it needs real vectors and no provider key is reachable. `RELATED_MAX_DISTANCE` stays 0.30, `estimate` |
-| T-3.10 | 4.3 | Live browser pass | **owed** | No project credentials reachable, as T-1.14 |
+| T-3.9 | 4.3 | Related latency run; quality run and tuning | done | C-3.12 run here, no key needed: at 3,000 records, median 0.063 s, p95 0.075 s over 20 lists, against the local database. C-3.13 run 2026-10-01 and passes. `RELATED_MAX_DISTANCE` stays 0.30 (Q4). See Live runs |
+| T-3.10 | 4.3 | Live browser pass | done | Compared 2026-10-02. See Live runs |
 
 ### Test cases
 
@@ -209,7 +212,7 @@ six approved by the user on 2026-09-30.
 | C-3.10 | `RecordsController.test.tsx`; `RecordsStore.test.ts`; both new query handlers | pass, 8, 3 and 4 |
 | C-3.11 | `RelatedRecords.test.tsx`; `MemoryDetailController.test.tsx` | pass, 5 and 1 |
 | C-3.12 | `integration/test_search_related_latency.py` | pass, numbers above |
-| C-3.13 | `integration/test_search_related_eval_live.py` | owed, T-3.9 |
+| C-3.13 | `integration/test_search_related_eval_live.py` | pass: 29 listed at 0.30, all labelled related |
 
 ### Deviations from the plan
 
@@ -265,15 +268,138 @@ Two cleanups the user asked for on 2026-09-30, on this branch, restarted from
 The local database had to be rebuilt first: the container had been reset, and
 the stub needed `supabase_auth_admin` as well as the roles listed in Base.
 
+## Live runs and browser pass, 2026-10-01
+
+Run from the user's machine against the real model (`gemini-embedding-001`
+and the chat model in `backend/.env`) and the Supabase project, at the user's
+direction. Migrations `0032` to `0036` were applied to that project first; it
+is now at `0036`. The three runs after T-1.13 ran in parallel, sharing the key
+and the database.
+
+### Results
+
+| Case | Target | Measured | Result |
+|---|---|---|---|
+| C-15, NFR-6 word queries in the top three | > 95% | 98%. The one miss, "passport", ranks the reminder fourth behind two other passport records | pass |
+| C-15, NFR-7 meaning queries in the top five | > 80% | 10% at `MEANING_MAX_DISTANCE` 0.35; 87% at 0.48, rerun 2026-10-02 | pass at 0.48 |
+| C-14, NFR-3 search at 3,000 records | p95 < 3.0 s | Median 1.94 s, p95 2.69 s over 20, rerun alone 2026-10-02. The 2026-10-01 seed insert timed out under the parallel runs. A first 2026-10-02 rerun stopped when one query embed passed its 2.5 s limit and the search fell back to words | pass |
+| C-2.12, NFR-4 question at 3,000 records | p95 < 8.0 s | Median 7.06 s, p95 10.80 s over 20. Search 2.1 to 6.4 s, answer 2.4 to 6.6 s | **fail**, accepted for V1 (Q5) |
+| C-2.13, NFR-8 grounded answers | No uncited sentence; refusals as set | 0 uncited sentences. Every unanswerable question refused, every answerable one answered | pass |
+| C-3.13, NFR-9 related lists | ≥ 70% labelled related | 100% of 29 listed at 0.30. Five records get an empty list | pass |
+
+### Why NFR-7 fails
+
+Every miss is the cutoff, not the model call: the query vector arrives, and the
+target is further than 0.35. Measured with the cutoff lifted:
+
+| Distance | Min | Median | Max |
+|---|---|---|---|
+| Meaning query to its target | 0.33 | 0.42 | 0.48 |
+| Meaning query to the nearest other record | 0.33 | 0.42 | — |
+
+| `MEANING_MAX_DISTANCE` | Meaning hit rate |
+|---|---|
+| 0.35 | 10% |
+| 0.45 | 73% |
+| 0.48 | 87% |
+
+At 0.48 almost every record matches almost any query, so `/search` would list
+noise below the real hits. The alternative is to embed records and queries
+with separate task types, which `gemini-embedding-001` supports; that needs a
+model call change, a full re-embed and a rerun. The user chose 0.48 on
+2026-10-02 (Q3). The rerun's four misses are vacation, streaming, marriage and
+programming, each at 0.46 to 0.48. Its top fives carry the predicted noise:
+"streaming" lists the milk task and the bin reminder.
+
+### Related cutoff sweep
+
+From the eval file's labels, with the cutoff lifted, top five per record:
+
+| `RELATED_MAX_DISTANCE` | Labelled related | Labelled pairs found | Empty lists |
+|---|---|---|---|
+| 0.30 | 100% | 48% | 5 |
+| 0.35 | 83% | 72% | 0 |
+| 0.36 | 71% | 74% | 0 |
+
+0.35 is recommended. At 0.35 the new unlabelled pairs are family dates
+together, SIP with the fixed deposit, passport with car insurance, and the
+landlord with the electricity bill. Four labelled pairs sit at 0.43 to 0.54,
+past any usable cutoff, so the eval file may be over-labelled. Q4.
+
+### Answer citations to judge
+
+Judged by Claude; the user makes the call for NFR-8.
+
+| Answer | Concern |
+|---|---|
+| "Rahul's wedding is in February 2027." | The record says only "February". The year is the model's. Seen in one of two runs |
+| Passport reminder "on Tuesday 1 December at 9:00 AM"; fixed deposit "the week of Tuesday, December 1" | Taken from the reminder's stored time, not its text. Support if a reminder's time counts as its content |
+| "Scan PAN card and passport" cited for "What do I need to do about my passport?" | Supported, but not in the expected citations |
+
+### Browser pass
+
+In the running app, signed in as the user, over their three records. Each state
+behaved as designed; the artboard-by-artboard comparison is still owed.
+
+| Surface | Checked |
+|---|---|
+| Capture `/search` | No-argument question; a word search; a cited one-sentence answer with its marker on the row; the no-support state quoting the question |
+| Records view search | Word match with count and best-match order; no match; a tab with matches only elsewhere ("Show all"); date sort; the box stopping at 500 characters |
+| Memory detail | Related section's empty state |
+
+"vehicle" does not find "I love cars", as the NFR-7 numbers predict. No console
+errors.
+
+### Artboard comparison, 2026-10-02
+
+The artboards' records were seeded into the user's account through Capture: the
+passport set and the career set, 14 records. Each artboard was opened from
+`assets/canvas/` beside the running app, dark theme.
+
+| Artboard | Result |
+|---|---|
+| `Main` / `DarkMain` | Matches: count pill, answer with marker, three groups, footer. The model cited only the memory where the canvas also cites the task |
+| `SearchPassport` | **Differs.** 9 records where the canvas has 3: "I love cars", the dentist memory and "capture moon" match by meaning at 0.48 |
+| `SearchResults` | Layout matches. 5 records where the canvas has 9: the Spring Boot tasks sit past 0.48. Overflow not reached |
+| `SearchStates` | Question loading, no argument and too long match. **No match is barely reachable:** "kayak" returns "Renew passport" and "capture moon". The no-argument card lacks the canvas's example line; §4 names 001's card, which has none |
+| `SearchNoSupport` | Matches, with D-15's copy |
+| `SearchDiscovery`, `SearchHistory` | Match |
+| `RecordsSearch` | Matches, and lists what `/search career` lists (FR-23) |
+| `RecordsSearchStates` | No match, filtered no match, date sort match |
+| `RelatedDetail` / `RelatedStates` | Match. Two related rows where the canvas has three: the visa task sits past 0.30. Empty state matches |
+| `SearchDegraded`, error, offline, no permission | Not reachable without breaking the model or the session; covered by C-16, C-2.14 and C-3.10 |
+
+| Finding | Severity | Owner |
+|---|---|---|
+| At `MEANING_MAX_DISTANCE` 0.48 a one-word search lists unrelated records, and the no-match state rarely shows. The cost Q3 named, now seen on real data | High: the canvas and FR-10's no-match state no longer hold | user, Q6 |
+| The Capture feed does not scroll when a loading card grows into its result, so a long result sits under the input | Medium | Fixed 2026-10-02, see Incidents |
+| An answer refused for the daily model allowance shows the "model is unavailable right now… temporary" strip. Reached after seeding spent the user's allowance | Low: the copy is wrong for a limit | user, Q7 |
+
+### Incidents and defects
+
+| Date | What broke | Cause | Fix |
+|---|---|---|---|
+| 2026-10-01 | A search text with no spaces ran out of its card: the records view's no-match title, the Capture typed-line bubble and input echo, and the Capture no-match pill | No wrap rule on those elements | 2026-10-02: the titles and bubbles wrap anywhere; the pill truncates. `records/components/styles.ts`, `capture/components/styles.ts`, `SearchCards.tsx`. 274 frontend tests pass, `tsc` and `oxlint` clean |
+| 2026-10-02 | The Capture feed stayed put when the newest turn's loading card became its result | It scrolled only when a turn was added | `CommandCenterController` also scrolls when the newest turn's status changes. Checked in the running app |
+| 2026-10-02 | Scroll containers styled their own overflow, with the browser's default scrollbar | No shared rule | A `scroll` utility in `design-system/tokens.css`, applied to all eight scroll containers; `frontend/rules/repo-rules.md` §11.5 makes it the rule, at the user's direction. 274 frontend tests pass |
+| 2026-10-01 | 7 failures and 1 error in 003's `test_firing_and_notifications.py` and `test_timezone_and_hardening.py` | This machine, not the code: `REMINDER_EMAIL_ENABLED=true` in `backend/.env` defers email jobs the tests never open a queue for, and a running worker shared the database | All 11 pass with email off and the worker stopped. The full suite, rerun that way on 2026-10-02, passes 501 |
+| 2026-10-01 | The one-off `full=True` backfill was not queued | Claude Code's permission check blocked deferring jobs against the shared project | Queued 2026-10-02 at the user's request. 10 tasks embedded; the reminder and both memories already had vectors |
+| 2026-10-02 | `test_forgetting_a_kept_memory_deletes_its_whole_thread` failed: "Qatar" found in `memories.text` | 12 `@rls-test.invalid` users and their eval records were left by live and suite runs cut off before teardown. The test searches every user's rows | The leftover test users deleted; the test passes |
+
+### Questions for the user
+
+| # | Question | Blocks | Answer |
+|---|---|---|---|
+| ~~Q3~~ | NFR-7: (a) embed records and queries with separate task types, then rerun (Recommended); (b) set `MEANING_MAX_DISTANCE` to 0.48 and accept noise; (c) lower NFR-7's target | T-1.13 | **Answered 2026-10-02.** (b), 0.48. Set in `search/constants.py`; C-15 passes |
+| ~~Q4~~ | Set `RELATED_MAX_DISTANCE` to 0.35? (a) yes, accepting the pairs above (Recommended); (b) keep 0.30 | T-3.9 | **Answered 2026-10-02.** (b), keep 0.30 |
+| ~~Q5~~ | NFR-4's question latency: (a) rerun alone against Supabase, then profile the slower half (Recommended); (b) accept the miss for V1 | T-2.9 | **Answered 2026-10-02.** (b), accepted for V1 |
+| Q6 | The 0.48 noise: (a) embed records and queries with separate task types, re-embed, rerun C-15 and pick a tighter cutoff (Recommended); (b) keep 0.48 and change the design to match; (c) lower NFR-7's target and go back toward 0.35 | `SearchPassport`, FR-10 | Open |
+| Q7 | The daily-limit refusal copy: (a) give the limit its own strip, "You have used today's AI answers. Your matching records are below." (Recommended); (b) keep the unavailable strip for both | `SearchDegraded` | Open |
+
 ## Remaining work
 
 | Item | Needs | Owner |
 |---|---|---|
-| Live runs | The user runs them locally and sends the output (user, 2026-09-30); Claude then tunes both thresholds and records the numbers | user, then Claude |
-| T-1.13 | A provider key: run `pytest -m live tests/integration/test_search_eval_live.py tests/integration/test_search_latency_live.py`, then set `MEANING_MAX_DISTANCE` from the misses | Claude, with the key |
-| T-1.14 | A real project: every slice 1 artboard compared in the running app | Claude, with project access |
-| Deploy steps | Index §6: migrations, worker restart, and the one-off `full=True` backfill for both record types | Claude, at deploy |
-| T-2.9 | A provider key: run `pytest -m live tests/integration/test_search_answer_eval_live.py tests/integration/test_search_latency_live.py`, then judge each printed citation by hand for NFR-8 | Claude with the key, then the user |
-| T-2.10 | A real project: `Main`, `SearchNoSupport`, `SearchDegraded` and `SearchStates` compared in the running app | Claude, with project access |
-| T-3.9, quality | A provider key: run `pytest -m live tests/integration/test_search_related_eval_live.py`, judge each `?` row by hand, then set `RELATED_MAX_DISTANCE` | Claude with the key, then the user |
-| T-3.10 | A real project: `RecordsSearch`, `RecordsSearchStates`, `RelatedDetail` and `RelatedStates` compared in the running app | Claude, with project access |
+| T-2.9 | Judge the citations above | user |
+| Q6 | The user's answer | user |
+| Q7 | The user's answer | user |

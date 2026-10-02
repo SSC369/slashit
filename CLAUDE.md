@@ -50,6 +50,10 @@ standing product context. Before drafting a build plan, also read
    commit. This binds even where a rule reads "in the same commit": that says
    what belongs together, not that you may create it. The same applies to
    branching, pushing and opening pull requests.
+8. **Every question to the user is multiple choice.** In chat as well as in
+   documents. List the defensible options, each with a one-line consequence,
+   and put your recommendation first, marked `(Recommended)`. Never leave an
+   open question as a bare list of topics for the user to answer in prose.
 
 ## Layout
 
