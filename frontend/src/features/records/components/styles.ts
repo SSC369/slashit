@@ -86,7 +86,7 @@ export const modalActionsStyles = "flex justify-end gap-2.5 border-t border-bord
 // Reminders tab (003 design: Main, RecordsLoading, RemindersOffline)
 export const groupHeadCellStyles = "p-0";
 export const groupHeadStyles =
-  "flex items-center justify-between border-b border-border-strong bg-background px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
+  "flex items-center justify-between border-b border-border-strong bg-group-head px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
 export const groupCountStyles = "font-mono font-medium normal-case tracking-normal";
 export const secondaryCellStyles = "whitespace-nowrap text-foreground-secondary";
 export const showMoreCellStyles = "px-4 py-2.5 text-[13px] font-medium text-accent";
@@ -165,3 +165,21 @@ export const relatedStatusStyles = "flex w-[110px] shrink-0 justify-end";
 export const relatedEmptyStyles = "py-3 text-sm text-foreground-secondary";
 export const relatedEmptyBodyStyles = "mt-0.5 text-[13px] text-foreground-tertiary";
 export const relatedErrorStyles = "flex items-center gap-3 py-3 text-sm text-foreground-secondary";
+
+// Events (007 design: RecordsEvents, RecordsAllEvents, EventDetail*, RecordsEventsStates)
+export const eventRowStyles = "cursor-pointer border-b border-divider last:border-b-0 hover:bg-background";
+export const eventTitleCellStyles = "py-2.5 font-medium text-foreground";
+export const eventPastTitleCellStyles = "py-2.5 font-medium text-foreground-tertiary";
+export const eventAlertIconStyles = "ml-1.5 inline-flex align-[-2px] text-accent";
+export const eventMetaStyles = "mt-0.5 flex items-center gap-1 text-[12.5px] font-normal text-foreground-secondary";
+export const eventFootLegendStyles = "inline-flex items-center gap-1";
+export const eventFieldsGridStyles = "grid grid-cols-3 gap-px bg-border";
+export const eventFieldCellStyles = "flex min-w-0 flex-col gap-1 bg-card px-4 py-3.5";
+export const eventFieldValueStyles = "text-[14.5px] font-medium text-foreground wrap-anywhere";
+export const eventFieldNoneStyles = "font-normal text-foreground-tertiary";
+export const eventFieldSubStyles = "text-[12.5px] text-foreground-tertiary";
+export const eventDetailFootStyles =
+  "border-t border-border bg-background px-4 py-2.5 text-xs text-foreground-tertiary wrap-anywhere";
+export const eventDetailInputStyles = "font-mono";
+export const pillAlertStyles = "border-accent-wash bg-accent-wash text-accent";
+export const eventNoteStyles = "mt-[18px] flex gap-2.5 rounded-[10px] border border-accent-wash bg-accent-wash px-4 py-3.5 text-[13px] text-foreground";

@@ -10,12 +10,14 @@ import { API_SUCCESS } from "../../../../constants/apiConstants";
 import Button from "../../../../design-system/components/Button";
 import { cn } from "../../../../utils/cn";
 import { useStore } from "../../../../stores/StoreProvider";
+import { recordPath } from "../../../../utils/recordPath";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
 import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
+import EventsController from "../EventsController/EventsController";
 import MemoriesController from "../MemoriesController/MemoriesController";
 import RecordsSearchController from "../RecordsSearchController/RecordsSearchController";
 import RemindersController from "../RemindersController/RemindersController";
@@ -29,9 +31,16 @@ const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "TASKS", label: "Tasks" },
   { filter: "REMINDERS", label: "Reminders" },
   { filter: "MEMORIES", label: "Memories" },
+  { filter: "EVENTS", label: "Events" },
 ];
 
-const RecordsController = (): ReactElement => {
+interface RecordsControllerProps {
+  /** `/records/events` opens on the Events tab. */
+  initialKindFilter?: RecordsKindFilter;
+}
+
+const RecordsController = (props: RecordsControllerProps): ReactElement => {
+  const { initialKindFilter } = props;
   const store = useStore();
   const navigate = useNavigate();
   const { triggerAPI, data, apiStatus } = useGetRecords();
@@ -40,9 +49,16 @@ const RecordsController = (): ReactElement => {
 
   const { kindFilter, searchText, sortField, searchSortMode } = store.records;
   const trimmedSearch = searchText.trim();
+  const isEventsTab = kindFilter === "EVENTS";
   // Epic 005, FR-22: any text in the box moves every tab onto search's own
-  // matching; the tab lists below serve only the unsearched view.
-  const isSearching = trimmedSearch !== "";
+  // matching; the tab lists below serve only the unsearched view. Events are
+  // not searchable until epic 007's slice 2 (FR-30), so their tab ignores it.
+  const isSearching = trimmedSearch !== "" && !isEventsTab;
+
+  useEffect(() => {
+    if (initialKindFilter !== undefined) store.records.setKindFilter(initialKindFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialKindFilter]);
 
   useEffect(() => {
     // PRD section 8's "weekly actives opening a records view" metric. Fired
@@ -54,8 +70,8 @@ const RecordsController = (): ReactElement => {
 
   const isRemindersTab = kindFilter === "REMINDERS";
   const isMemoriesTab = kindFilter === "MEMORIES";
-  // Both tabs load their own queries; the records query serves All and Tasks.
-  const hasOwnQuery = isRemindersTab || isMemoriesTab;
+  // These tabs load their own queries; the records query serves All and Tasks.
+  const hasOwnQuery = isRemindersTab || isMemoriesTab || isEventsTab;
 
   // A tab, search or sort change makes the current `apiStatus` stale until a
   // response for the new filter lands. Without this, switching tabs shows a
@@ -118,15 +134,7 @@ const RecordsController = (): ReactElement => {
   };
 
   const handleOpenRecord = (row: RecordRow): void => {
-    if (row.kind === "REMINDER") {
-      navigate(`/records/reminders/${row.reminder.id}`);
-      return;
-    }
-    if (row.kind === "MEMORY") {
-      navigate(`/records/memories/${row.memory.id}`);
-      return;
-    }
-    navigate(`/records/${row.task.id}`);
+    navigate(recordPath(row));
   };
 
   const records = store.records.getVisible();
@@ -166,16 +174,18 @@ const RecordsController = (): ReactElement => {
               ))}
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
-              <div className={RecordsStyles.searchBoxStyles}>
-                <input
-                  className={RecordsStyles.searchInputStyles}
-                  type="text"
-                  placeholder={isMemoriesTab ? "Search memories" : "Search records"}
-                  value={searchText}
-                  maxLength={MAX_SEARCH_LENGTH}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              {!isEventsTab && (
+                <div className={RecordsStyles.searchBoxStyles}>
+                  <input
+                    className={RecordsStyles.searchInputStyles}
+                    type="text"
+                    placeholder={isMemoriesTab ? "Search memories" : "Search records"}
+                    value={searchText}
+                    maxLength={MAX_SEARCH_LENGTH}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+              )}
               {isSearching && (
                 <Button size="sm" onClick={handleToggleSearchSort}>
                   <ArrowUpDown size={14} />
@@ -190,6 +200,8 @@ const RecordsController = (): ReactElement => {
             <RemindersController />
           ) : isMemoriesTab ? (
             <MemoriesController />
+          ) : isEventsTab ? (
+            <EventsController />
           ) : isTrulyEmpty ? (
             <ReminderListNotice
               icon={<ClipboardList size={24} />}

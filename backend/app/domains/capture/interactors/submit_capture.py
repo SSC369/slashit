@@ -19,7 +19,10 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    ADD_EVENT_COMMAND,
     CONFLICT_QUESTION,
+    EVENT_ALERT_QUESTION,
+    EVENTS_COMMAND,
     FACT_QUESTION,
     KNOWN_COMMANDS,
     MAX_INPUT_LENGTH,
@@ -32,6 +35,8 @@ from app.domains.capture.constants import (
 )
 from app.domains.capture.interfaces.dtos import (
     CaptureTurnOutcome,
+    EventAlertChoiceAskedDTO,
+    EventListDTO,
     MemoryConflictAskedDTO,
     MissingField,
     NonCommandGuidanceDTO,
@@ -41,6 +46,7 @@ from app.domains.capture.interfaces.dtos import (
 )
 from app.domains.capture.interfaces.ports import (
     AnalyticsPort,
+    EventPort,
     ExtractionPort,
     MemoryPort,
     ReminderPort,
@@ -51,9 +57,19 @@ from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
 )
+from app.domains.capture.services.event_capture import (
+    EventCaptureService,
+    EventNeedsTitle,
+)
 from app.domains.capture.services.reminder_capture import (
     ReminderCaptureService,
     ReminderNeedsDescription,
+)
+from app.domains.events.public import (
+    EventDTO,
+    EventLimitReached,
+    EventNeedsAlertChoice,
+    EventNeedsDate,
 )
 from app.domains.gateway.public import (
     Extraction,
@@ -90,6 +106,10 @@ CaptureOutcome = (
     | ReminderDTO
     | ReminderListDTO
     | ReminderLimitReached
+    | EventDTO
+    | EventListDTO
+    | EventLimitReached
+    | EventAlertChoiceAskedDTO
     | MemorySavedDTO
     | MemoryListDTO
     | MemoryTooLongDTO
@@ -120,6 +140,8 @@ class SubmitCaptureInteractor:
         reminder_capture: ReminderCaptureService,
         memory_port: MemoryPort,
         search_port: SearchPort,
+        event_port: EventPort,
+        event_capture: EventCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -130,6 +152,8 @@ class SubmitCaptureInteractor:
         self.reminder_capture = reminder_capture
         self.memory_port = memory_port
         self.search_port = search_port
+        self.event_port = event_port
+        self.event_capture = event_capture
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
@@ -167,6 +191,14 @@ class SubmitCaptureInteractor:
 
         if command_name == "/remind":
             return await self._submit_remind(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name == EVENTS_COMMAND:
+            return await self._list_events(user_id=user_id, original_input=text)
+
+        if command_name == ADD_EVENT_COMMAND:
+            return await self._submit_add_event(
                 user_id=user_id, argument_text=argument_text, original_input=text
             )
 
@@ -322,6 +354,85 @@ class SubmitCaptureInteractor:
             user_id=user_id, input_text=original_input, outcome="refused"
         )
         return outcome
+
+    async def _submit_add_event(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> CaptureOutcome:
+        """Epic 007, FR-1, FR-2, FR-16, FR-31. Reading and creating is the
+        shared EventCaptureService's; turning its outcome into a question, a
+        turn and a result is this interactor's."""
+        outcome = await self.event_capture.capture_event(
+            user_id=user_id, argument_text=argument_text, original_input=original_input
+        )
+        if isinstance(outcome, EventNeedsTitle):
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name=ADD_EVENT_COMMAND,
+                known_title=None,
+                missing_field="title",
+                question_text="What is the event?",
+                original_input=original_input,
+            )
+        if isinstance(outcome, EventNeedsDate):
+            return await self._ask_pending_question(
+                user_id=user_id,
+                command_name=ADD_EVENT_COMMAND,
+                known_title=argument_text,
+                missing_field="event_date",
+                question_text=event_date_question(title=outcome.title),
+                original_input=original_input,
+            )
+        if isinstance(outcome, EventNeedsAlertChoice):
+            return await self._ask_alert_choice(
+                user_id=user_id,
+                argument_text=argument_text,
+                choice=outcome,
+                original_input=original_input,
+            )
+        if isinstance(outcome, EventDTO):
+            await self._record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="event_created",
+                resulting_event_id=outcome.id,
+            )
+            return outcome
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="refused"
+        )
+        return outcome
+
+    async def _ask_alert_choice(
+        self,
+        *,
+        user_id: UUID,
+        argument_text: str,
+        choice: EventNeedsAlertChoice,
+        original_input: str,
+    ) -> EventAlertChoiceAskedDTO:
+        """FR-16: nothing saved. The sentence waits as the question's known
+        text; the answer re-reads it with one lead kept."""
+        pending = await self._ask_pending_question(
+            user_id=user_id,
+            command_name=ADD_EVENT_COMMAND,
+            known_title=argument_text,
+            missing_field="event_alert_choice",
+            question_text=EVENT_ALERT_QUESTION,
+            original_input=original_input,
+        )
+        return EventAlertChoiceAskedDTO(
+            pending_capture_id=pending.id,
+            question=EVENT_ALERT_QUESTION,
+            choices=choice.choices,
+        )
+
+    async def _list_events(self, *, user_id: UUID, original_input: str) -> EventListDTO:
+        """Epic 007, FR-24: upcoming events, soonest first."""
+        events = await self.event_port.list_upcoming(user_id=user_id)
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="events_listed"
+        )
+        return EventListDTO(events=events)
 
     async def _submit_memory(
         self,
@@ -494,6 +605,7 @@ class SubmitCaptureInteractor:
         question_text: str | None = None,
         resulting_reminder_id: UUID | None = None,
         resulting_memory_id: UUID | None = None,
+        resulting_event_id: UUID | None = None,
     ) -> None:
         """FR-44. A capture-turn write failure never undoes an otherwise
         successful capture: NFR-9's "no capture is lost" binds the task or
@@ -509,6 +621,7 @@ class SubmitCaptureInteractor:
                 answer_text=None,
                 resulting_reminder_id=resulting_reminder_id,
                 resulting_memory_id=resulting_memory_id,
+                resulting_event_id=resulting_event_id,
             )
         except Exception:
             logger.exception(
@@ -521,3 +634,8 @@ def when_question(*, description: str) -> str:
     description lowercased to sit mid-sentence."""
     phrase = description[:1].lower() + description[1:]
     return f"When should I remind you to {phrase}?"
+
+
+def event_date_question(*, title: str) -> str:
+    """FR-2's one question for an event, as the design's `EventAsk` draws it."""
+    return f"When is \u201c{title}\u201d?"

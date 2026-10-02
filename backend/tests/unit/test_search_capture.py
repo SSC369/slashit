@@ -11,6 +11,7 @@ from app.domains.capture.interfaces.dtos import PendingCaptureDTO
 from app.domains.search.public import SearchResultsDTO, SearchTooLongDTO
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
+from tests.fakes.fake_event_ports import FakeEventPort, fake_event_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -28,6 +29,8 @@ class Harness:
         self.search_port = FakeSearchPort()
         extraction_port = FakeExtractionPort(result=extraction())
         self.submit = SubmitCaptureInteractor(
+            event_port=FakeEventPort(),
+            event_capture=fake_event_capture(extraction=FakeExtractionPort()),
             pending_capture_repository=self.pending,
             capture_turn_repository=self.turns,
             task_port=FakeTaskPort(),
@@ -39,6 +42,7 @@ class Harness:
             search_port=self.search_port,
         )
         self.answer = AnswerPendingCaptureInteractor(
+            event_capture=fake_event_capture(extraction=FakeExtractionPort()),
             pending_capture_repository=self.pending,
             capture_turn_repository=self.turns,
             task_port=FakeTaskPort(),

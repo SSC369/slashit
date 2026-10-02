@@ -19,6 +19,8 @@ EventType = Literal[
     "search_result_opened",
     "answer_citation_opened",
     "related_opened",
+    # Epic 007, migration 0038.
+    "event_created",
 ]
 
 

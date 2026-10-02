@@ -8,6 +8,8 @@ import { gql } from '@apollo/client';
 import { CaptureTurnFieldsFragmentDoc } from '../../../fragments/CaptureTurnFields.generated';
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'EVENTS_LISTED'
+  | 'EVENT_CREATED'
   | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'

@@ -15,6 +15,9 @@ MISSING_FIELDS = (
     "fact",
     "memory_conflict",
     "search_text",
+    # Epic 007, migration 0038.
+    "event_date",
+    "event_alert_choice",
 )
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
@@ -28,6 +31,9 @@ CAPTURE_TURN_OUTCOMES = (
     "memory_conflict_resolved",
     # Epic 005, migration 0034.
     "searched",
+    # Epic 007, migration 0038.
+    "event_created",
+    "events_listed",
 )
 MEMORY_CATEGORIES = ("personal", "people", "professional", "life")
 
@@ -74,6 +80,8 @@ class CaptureTurn(Base):
     resulting_reminder_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 004, migration 0025. No foreign key, as for resulting_task_id.
     resulting_memory_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 007, migration 0038. No foreign key, as for resulting_task_id.
+    resulting_event_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 004, migration 0028. Set by the forget scrub, the one UPDATE this
     # table permits (AD-3); a check constraint keeps a scrubbed row wordless.
     forgotten_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

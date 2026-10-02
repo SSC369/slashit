@@ -9,6 +9,7 @@ import strawberry
 
 from app.domains.capture.graphql.mutations import CaptureMutations
 from app.domains.capture.graphql.queries import CaptureQueries
+from app.domains.events.graphql.queries import EventQueries
 from app.domains.identity.graphql.mutations import IdentityMutations
 from app.domains.identity.graphql.queries import IdentityQueries
 from app.domains.memories.graphql.mutations import MemoryMutations
@@ -33,6 +34,7 @@ class Query(
     NotificationQueries,
     MemoryQueries,
     SearchQueries,
+    EventQueries,
 ):
     """Root query. Each domain's queries class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""

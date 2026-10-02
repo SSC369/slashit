@@ -8,6 +8,7 @@ import useGetRelatedRecords from "../../../../api/queries/GetRelatedRecords/useG
 import { API_FAILED } from "../../../../constants/apiConstants";
 import type { RecordRow } from "../../../../stores/RecordsStore";
 import { useStore } from "../../../../stores/StoreProvider";
+import { recordPath } from "../../../../utils/recordPath";
 import type { RecordType } from "../../../../../types.generated";
 import RelatedRecords, { type RelatedStateType } from "../../components/RelatedRecords";
 
@@ -50,9 +51,7 @@ const RelatedRecordsController = (props: RelatedRecordsControllerProps): ReactEl
 
   const handleOpenRow = (row: RecordRow, position: number): void => {
     recordSearchEvent({ kind: "RELATED_OPENED", position });
-    if (row.kind === "REMINDER") navigate(`/records/reminders/${row.reminder.id}`);
-    else if (row.kind === "MEMORY") navigate(`/records/memories/${row.memory.id}`);
-    else navigate(`/records/${row.task.id}`);
+    navigate(recordPath(row));
   };
 
   return (

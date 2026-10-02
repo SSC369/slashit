@@ -1,3 +1,5 @@
+import type { EventAlertChoiceArgs } from "../../../constants/eventConstants";
+import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
 import type { MemoryFieldsFragment } from "../../../fragments/MemoryFields.generated";
 import type { MemoryConflictArgs } from "../../../constants/memoryConstants";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
@@ -12,6 +14,10 @@ export interface SubmitCaptureCallbacks {
   onReminderCreated?: (reminder: ReminderFieldsFragment) => void;
   onRemindersListed?: (reminders: ReminderFieldsFragment[]) => void;
   onReminderLimitReached?: (args: { message: string; limit: number }) => void;
+  onEventCreated?: (event: EventFieldsFragment) => void;
+  onEventsListed?: (events: EventFieldsFragment[]) => void;
+  onEventLimitReached?: (args: { message: string; limit: number }) => void;
+  onEventAlertChoiceAsked?: (args: EventAlertChoiceArgs) => void;
   onMemorySaved?: (args: { memory: MemoryFieldsFragment; secretCaution: SecretKind | null }) => void;
   onMemoriesListed?: (args: { memories: MemoryFieldsFragment[]; searchText: string | null }) => void;
   onMemoryTooLong?: (args: { message: string; length: number; limit: number }) => void;
@@ -57,6 +63,22 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
         return;
       case "ReminderLimitReached":
         callbacks.onReminderLimitReached?.({ message: result.message, limit: result.limit });
+        return;
+      case "EventCreated":
+        callbacks.onEventCreated?.(result.event);
+        return;
+      case "EventsListed":
+        callbacks.onEventsListed?.(result.events);
+        return;
+      case "EventLimitReached":
+        callbacks.onEventLimitReached?.({ message: result.message, limit: result.limit });
+        return;
+      case "EventAlertChoiceAsked":
+        callbacks.onEventAlertChoiceAsked?.({
+          pendingCaptureId: result.pendingCaptureId,
+          question: result.question,
+          choices: result.choices,
+        });
         return;
       case "MemorySaved":
         callbacks.onMemorySaved?.({ memory: result.memory, secretCaution: result.secretCaution });

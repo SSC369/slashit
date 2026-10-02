@@ -29,6 +29,7 @@ class FakeCaptureTurnRepository:
         answer_text: str | None,
         resulting_reminder_id: uuid.UUID | None = None,
         resulting_memory_id: uuid.UUID | None = None,
+        resulting_event_id: uuid.UUID | None = None,
         affected_count: int | None = None,
     ) -> None:
         turn = CaptureTurnDTO(
@@ -42,6 +43,7 @@ class FakeCaptureTurnRepository:
             created_at=datetime.now(UTC),
             resulting_reminder_id=resulting_reminder_id,
             resulting_memory_id=resulting_memory_id,
+            resulting_event_id=resulting_event_id,
             affected_count=affected_count,
         )
         self.rows.append(turn)

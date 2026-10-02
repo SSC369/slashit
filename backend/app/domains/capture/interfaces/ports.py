@@ -9,6 +9,13 @@ from datetime import datetime
 from typing import Any, Protocol
 from uuid import UUID
 
+from app.domains.events.public import (
+    EventDTO,
+    EventFields,
+    EventLimitReached,
+    EventNeedsAlertChoice,
+    EventNeedsDate,
+)
 from app.domains.gateway.public import (
     ExtractionResult,
     MalformedResult,
@@ -80,6 +87,17 @@ class ReminderPort(Protocol):
     ) -> ReminderDTO | ReminderLimitReached | ReminderNeedsWhen: ...
 
     async def list_active(self, *, user_id: UUID) -> list[ReminderDTO]: ...
+
+
+class EventPort(Protocol):
+    """What capture needs from events: create one from what a sentence said,
+    and list the upcoming ones for `/events` (epic 007, FR-1, FR-24)."""
+
+    async def create_event(
+        self, *, user_id: UUID, fields: EventFields, original_input: str
+    ) -> EventDTO | EventLimitReached | EventNeedsDate | EventNeedsAlertChoice: ...
+
+    async def list_upcoming(self, *, user_id: UUID) -> list[EventDTO]: ...
 
 
 class LocalClockPort(Protocol):

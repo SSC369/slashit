@@ -41,7 +41,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = EventAlertChoiceAsked | EventCreated | EventLimitReached | EventsListed | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -53,6 +53,7 @@ export type CaptureTurn = {
   inputText: Scalars['String']['output'];
   outcome: CaptureTurnOutcome;
   questionText?: Maybe<Scalars['String']['output']>;
+  resultingEventId?: Maybe<Scalars['ID']['output']>;
   resultingMemoryId?: Maybe<Scalars['ID']['output']>;
   resultingPendingCaptureId?: Maybe<Scalars['ID']['output']>;
   resultingReminderId?: Maybe<Scalars['ID']['output']>;
@@ -61,6 +62,8 @@ export type CaptureTurn = {
 
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'EVENTS_LISTED'
+  | 'EVENT_CREATED'
   | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
@@ -77,6 +80,81 @@ export type ConflictAnswer =
   | 'KEEP_OLD';
 
 export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
+
+export type Event = {
+  __typename?: 'Event';
+  alertFiresAt?: Maybe<Scalars['DateTime']['output']>;
+  alertLeadMinutes?: Maybe<Scalars['Int']['output']>;
+  alertText?: Maybe<Scalars['String']['output']>;
+  allDay: Scalars['Boolean']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  endDate?: Maybe<Scalars['Date']['output']>;
+  endTime?: Maybe<Scalars['String']['output']>;
+  endsAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  location?: Maybe<Scalars['String']['output']>;
+  occurrenceDate: Scalars['Date']['output'];
+  occurrenceEndDate: Scalars['Date']['output'];
+  origin: Scalars['String']['output'];
+  originalInput?: Maybe<Scalars['String']['output']>;
+  repeatYearly: Scalars['Boolean']['output'];
+  scheduleTimezone: Scalars['String']['output'];
+  startDate: Scalars['Date']['output'];
+  startTime?: Maybe<Scalars['String']['output']>;
+  startsAt: Scalars['DateTime']['output'];
+  status: EventStatusType;
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+  /** Why the schedule reads as it does. Only on create. */
+  whenNotes: Array<Scalars['String']['output']>;
+  whenText: Scalars['String']['output'];
+};
+
+export type EventAlertChoice = {
+  __typename?: 'EventAlertChoice';
+  label: Scalars['String']['output'];
+  leadMinutes: Scalars['Int']['output'];
+};
+
+export type EventAlertChoiceAsked = {
+  __typename?: 'EventAlertChoiceAsked';
+  choices: Array<EventAlertChoice>;
+  pendingCaptureId: Scalars['ID']['output'];
+  question: Scalars['String']['output'];
+};
+
+export type EventCreated = {
+  __typename?: 'EventCreated';
+  event: Event;
+};
+
+export type EventLimitReached = {
+  __typename?: 'EventLimitReached';
+  limit: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
+export type EventNotFound = {
+  __typename?: 'EventNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type EventResult = Event | EventNotFound;
+
+export type EventScope =
+  | 'ALL'
+  | 'UPCOMING';
+
+export type EventStatusType =
+  | 'HAPPENING_NOW'
+  | 'PAST'
+  | 'UPCOMING';
+
+export type EventsListed = {
+  __typename?: 'EventsListed';
+  events: Array<Event>;
+};
 
 export type ForgetMemoryResult = MemoriesForgotten | MemoryNotFound;
 
@@ -391,6 +469,8 @@ export type Query = {
   __typename?: 'Query';
   apiVersion: Scalars['String']['output'];
   captureHistory: CaptureHistoryPage;
+  event: EventResult;
+  events: Array<Event>;
   me: Me;
   memories: Array<Memory>;
   memory: MemoryResult;
@@ -410,6 +490,16 @@ export type Query = {
 export type QueryCaptureHistoryArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryEventArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryEventsArgs = {
+  scope?: EventScope;
 };
 
 
@@ -461,7 +551,7 @@ export type QuerySettingsArgs = {
   detectedTimezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type RecordItem = Memory | Reminder | Task;
+export type RecordItem = Event | Memory | Reminder | Task;
 
 export type RecordNotFound = {
   __typename?: 'RecordNotFound';

@@ -1,10 +1,13 @@
 import type { ReactElement, ReactNode } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
+import EventMarker from "../../../components/EventMarker";
+import EventStatusPill from "../../../components/EventStatusPill";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import type { RecordRow } from "../../../stores/RecordsStore";
 import { cn } from "../../../utils/cn";
 import { formatShortDate } from "../../../utils/formatDate";
+import { formatEventStart } from "../../../utils/formatEvent";
 import * as Styles from "./styles";
 
 interface RecordTableProps {
@@ -66,6 +69,7 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
 
   const hasReminders = records.some((row) => row.kind === "REMINDER");
   const hasMemories = records.some((row) => row.kind === "MEMORY");
+  const hasEvents = records.some((row) => row.kind === "EVENT");
 
   return (
     <div className={Styles.cardStyles}>
@@ -92,6 +96,9 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
             if (row.kind === "MEMORY") {
               return <MemoryRow key={row.memory.id} row={row} onOpenRecord={onOpenRecord} />;
             }
+            if (row.kind === "EVENT") {
+              return <EventRow key={row.event.id} row={row} onOpenRecord={onOpenRecord} />;
+            }
             return <ReminderRow key={row.reminder.id} row={row} onOpenRecord={onOpenRecord} />;
           })}
         </tbody>
@@ -103,7 +110,9 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
         </span>
         <span>
           {footRight ??
-            (hasMemories
+            (hasEvents
+              ? "Events carry a diamond marker"
+              : hasMemories
               ? "A memory shows its category where a task shows its status"
               : hasReminders
                 ? "Reminders carry a round marker, tasks a square one"
@@ -197,6 +206,36 @@ const MemoryRow = (props: MemoryRowProps): ReactElement => {
       <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{formatShortDate(memory.createdAt)}</td>
       <td className={Styles.tdStyles}>
         <CategoryTag category={memory.category} />
+      </td>
+    </tr>
+  );
+};
+
+interface EventRowProps {
+  row: Extract<RecordRow, { kind: "EVENT" }>;
+  onOpenRecord: (row: RecordRow) => void;
+}
+
+/** 007 `RecordsAllEvents`: an event among the other types, dated by its
+ * next or only start, told apart by its diamond. */
+const EventRow = (props: EventRowProps): ReactElement => {
+  const { row, onOpenRecord } = props;
+  const { event } = row;
+  const isPast = event.eventStatus === "PAST";
+  return (
+    <tr className={Styles.rowStyles} onClick={() => onOpenRecord(row)}>
+      <td className={Styles.tdStyles}>
+        <span className={Styles.typeTagStyles}>
+          <EventMarker />
+          Event
+        </span>
+      </td>
+      <td className={cn(Styles.tdStyles, isPast ? Styles.titleDoneCellStyles : Styles.titleCellStyles)}>
+        {event.title}
+      </td>
+      <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{formatEventStart(event)}</td>
+      <td className={Styles.tdStyles}>
+        <EventStatusPill status={event.eventStatus} />
       </td>
     </tr>
   );

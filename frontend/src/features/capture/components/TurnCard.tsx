@@ -1,8 +1,9 @@
 import { AlertCircle, Check, Clock } from "lucide-react";
-import type { ReactElement } from "react";
+import { useRef, type ReactElement } from "react";
 
 import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
+import { EVENT_DATE_HINT, EVENT_DATE_QUICK_ANSWERS } from "../../../constants/eventConstants";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
 import type { ConflictAnswer, RecordType } from "../../../../types.generated";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
@@ -14,6 +15,15 @@ import {
   MemoryTooLongNote,
 } from "./MemoryCards";
 import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
+import {
+  EventAlertChoiceCard,
+  EventLimitNote,
+  EventListCard,
+  EventListFailedNote,
+  EventListLoadingCard,
+  EventSavedCard,
+  EventSavingCard,
+} from "./EventCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import {
   SearchLoadingCard,
@@ -44,6 +54,10 @@ interface TurnCardProps {
   onConflictDefer: (id: string, deferred: boolean) => void;
   onOpenSearchRecord: (record: SearchRecordFragment, opened: SearchOpenEvent) => void;
   onSeeAllSearch: (recordType: RecordType | null, query: string) => void;
+  onOpenEvent: (id: string) => void;
+  onOpenEvents: () => void;
+  isChoosingAlert?: boolean;
+  onAlertChoice: (id: string, answer: string) => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
@@ -58,6 +72,10 @@ const MEMORY_SAVE_COMMANDS = new Set(["/remember", "/add-memory"]);
 
 /** A memory lookup: nothing to fill in, so no fields. */
 const MEMORY_READ_COMMANDS = new Set(["/memories"]);
+
+/** Epic 007: an event save and the upcoming list each draw their own loading. */
+const ADD_EVENT_COMMAND = "/add-event";
+const EVENTS_COMMAND = "/events";
 
 /** Epic 005: a search reads records, so its loading card says so. */
 const SEARCH_COMMAND = "/search";
@@ -109,13 +127,20 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onConflictDefer,
     onOpenSearchRecord,
     onSeeAllSearch,
+    onOpenEvent,
+    onOpenEvents,
+    isChoosingAlert = false,
+    onAlertChoice,
   } = props;
   const isRemind = isRemindCommand(turn.said);
+  const isAddEvent = commandName(turn.said) === ADD_EVENT_COMMAND;
 
   switch (turn.status) {
     case "loading":
       if (MEMORY_SAVE_COMMANDS.has(commandName(turn.said))) return <MemoryLoadingCard />;
       if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
+      if (isAddEvent) return <EventSavingCard />;
+      if (commandName(turn.said) === EVENTS_COMMAND) return <EventListLoadingCard />;
       if (commandName(turn.said) === SEARCH_COMMAND) {
         const searchText = turn.said.trim().slice(SEARCH_COMMAND.length);
         return <SearchLoadingCard isQuestion={isSearchQuestion(searchText)} />;
@@ -227,6 +252,29 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
         </div>
       );
 
+    case "eventCreated":
+      return <EventSavedCard event={turn.event} onOpenEvent={onOpenEvent} />;
+
+    case "eventList":
+      return <EventListCard events={turn.events} onOpenEvent={onOpenEvent} onOpenEvents={onOpenEvents} />;
+
+    case "eventLimit":
+      return <EventLimitNote />;
+
+    case "eventListFailed":
+      return <EventListFailedNote onRetry={() => onRetry(turn.said)} />;
+
+    case "eventAlertChoice":
+      return (
+        <EventAlertChoiceCard
+          question={turn.question}
+          choices={turn.choices}
+          isBusy={isChoosingAlert}
+          error={turn.error}
+          onChoose={(answer) => onAlertChoice(turn.id, answer)}
+        />
+      );
+
     case "memorySaved":
       return (
         <MemorySavedCard
@@ -311,7 +359,7 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
         <div className={Styles.pendingCardStyles}>
           <div className={Styles.pendingHeadStyles}>
             <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
-              <Clock size={13} /> {isRemind ? "One question" : "Waiting on you"}
+              <Clock size={13} /> {isRemind || isAddEvent ? "One question" : "Waiting on you"}
             </span>
             <span className="ml-auto text-xs text-foreground-tertiary">
               Asked just now · nothing saved yet
@@ -322,8 +370,16 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
             <div className={Styles.pendingHintStyles}>
               {isRemind
                 ? "Reply with a day or time. Nothing is saved until you answer."
-                : "You can answer this whenever you like. Leave it and nothing is recorded."}
+                : isAddEvent
+                  ? EVENT_DATE_HINT
+                  : "You can answer this whenever you like. Leave it and nothing is recorded."}
             </div>
+            {isAddEvent && (
+              <EventDateQuickAnswers
+                isAnswering={isAnswering}
+                onAnswer={(answer) => onQuickAnswer(turn.id, answer)}
+              />
+            )}
             {isRemind && (
               <div className={Styles.quickAnswerRowStyles}>
                 {REMIND_QUICK_ANSWERS.map((answer) => (
@@ -421,6 +477,41 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 };
 
 export default TurnCard;
+
+interface EventDateQuickAnswersProps {
+  isAnswering: boolean;
+  onAnswer: (answer: string) => void;
+}
+
+/** `EventAsk`'s chips for "When is …?". Pick a date opens the browser's own
+ * date picker; the day it returns is sent as the answer. */
+const EventDateQuickAnswers = (props: EventDateQuickAnswersProps): ReactElement => {
+  const { isAnswering, onAnswer } = props;
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  return (
+    <div className={Styles.quickAnswerRowStyles}>
+      {EVENT_DATE_QUICK_ANSWERS.map((answer) => (
+        <Button key={answer} size="sm" disabled={isAnswering} onClick={() => onAnswer(answer)}>
+          {answer}
+        </Button>
+      ))}
+      <Button size="sm" disabled={isAnswering} onClick={() => dateInputRef.current?.showPicker()}>
+        Pick a date
+      </Button>
+      <input
+        ref={dateInputRef}
+        type="date"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only"
+        onChange={(event) => {
+          if (event.target.value) onAnswer(event.target.value);
+        }}
+      />
+    </div>
+  );
+};
 
 /** 001's loading turn, with the fields a memory save fills (004 P-4). */
 const MemoryLoadingCard = (): ReactElement => (

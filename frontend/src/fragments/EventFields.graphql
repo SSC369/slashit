@@ -1,0 +1,29 @@
+# `status` and `description` are aliased: on the RecordItem union they would
+# clash with Task.status (String!) and Reminder.description (String!).
+fragment EventFields on Event {
+  id
+  title
+  location
+  eventDescription: description
+  startDate
+  startTime
+  endDate
+  endTime
+  allDay
+  repeatYearly
+  scheduleTimezone
+  startsAt
+  endsAt
+  occurrenceDate
+  occurrenceEndDate
+  eventStatus: status
+  whenText
+  alertLeadMinutes
+  alertText
+  alertFiresAt
+  origin
+  originalInput
+  createdAt
+  updatedAt
+  whenNotes
+}

@@ -12,6 +12,7 @@ from enum import Enum
 import strawberry
 
 from app.domains.capture.interfaces.dtos import CaptureTurnDTO
+from app.domains.events.public import Event
 from app.domains.memories.public import Memory, MemoryCategory, SecretKind
 from app.domains.records.public import Task
 from app.domains.reminders.public import Reminder
@@ -43,6 +44,43 @@ class RemindersListed:
     """`/reminders`, FR-25: active reminders, soonest first."""
 
     reminders: list[Reminder]
+
+
+@strawberry.type
+class EventCreated:
+    """Epic 007, FR-8: the card reads `event.whenText` and `event.whenNotes`."""
+
+    event: Event
+
+
+@strawberry.type
+class EventsListed:
+    """`/events`, FR-24: upcoming events, soonest first."""
+
+    events: list[Event]
+
+
+@strawberry.type
+class EventLimitReached:
+    """FR-31. Nothing was saved; the input is kept by the client."""
+
+    message: str
+    limit: int
+
+
+@strawberry.type
+class EventAlertChoice:
+    lead_minutes: int
+    label: str
+
+
+@strawberry.type
+class EventAlertChoiceAsked:
+    """FR-16: nothing saved. Answer with a choice's `leadMinutes`, or `none`."""
+
+    pending_capture_id: strawberry.ID
+    question: str
+    choices: list[EventAlertChoice]
 
 
 @strawberry.type
@@ -128,6 +166,9 @@ class CaptureTurnOutcome(Enum):
     MEMORY_CONFLICT_RESOLVED = "memory_conflict_resolved"
     # Epic 005, FR-21.
     SEARCHED = "searched"
+    # Epic 007.
+    EVENT_CREATED = "event_created"
+    EVENTS_LISTED = "events_listed"
 
 
 @strawberry.type
@@ -139,6 +180,7 @@ class CaptureTurn:
     resulting_pending_capture_id: strawberry.ID | None
     resulting_reminder_id: strawberry.ID | None
     resulting_memory_id: strawberry.ID | None
+    resulting_event_id: strawberry.ID | None
     forgotten: bool
     affected_count: int | None
     question_text: str | None
@@ -175,6 +217,11 @@ def capture_turn_dto_to_type(*, turn: CaptureTurnDTO) -> CaptureTurn:
         resulting_memory_id=(
             strawberry.ID(str(turn.resulting_memory_id))
             if turn.resulting_memory_id
+            else None
+        ),
+        resulting_event_id=(
+            strawberry.ID(str(turn.resulting_event_id))
+            if turn.resulting_event_id
             else None
         ),
         forgotten=turn.forgotten,

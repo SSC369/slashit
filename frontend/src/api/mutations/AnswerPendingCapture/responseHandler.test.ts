@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { buildEvent } from "../../../testing/eventFixture";
 import { buildMemory } from "../../../testing/memoryFixture";
 import { buildSearchResults } from "../../../testing/searchFixture";
 import type { AnswerPendingCaptureMutation } from "./operation.generated";
@@ -54,5 +55,62 @@ describe("AnswerPendingCapture responseHandler, epic 005's members", () => {
     handleResponse({ data, onSearchTooLong });
 
     expect(onSearchTooLong).toHaveBeenCalledWith({ length: 612, limit: 500 });
+  });
+});
+
+describe("AnswerPendingCapture responseHandler, epic 007's members", () => {
+  it("hands EventCreated's event to onEventCreated", () => {
+    const { handleResponse } = useResponseHandler();
+    const onEventCreated = vi.fn();
+    const event = buildEvent();
+    const data: AnswerPendingCaptureMutation = { answerPendingCapture: { __typename: "EventCreated", event } };
+
+    handleResponse({ data, onEventCreated });
+
+    expect(onEventCreated).toHaveBeenCalledWith(event);
+  });
+
+  it("hands EventsListed's events to onEventsListed", () => {
+    const { handleResponse } = useResponseHandler();
+    const onEventsListed = vi.fn();
+    const events = [buildEvent()];
+    const data: AnswerPendingCaptureMutation = { answerPendingCapture: { __typename: "EventsListed", events } };
+
+    handleResponse({ data, onEventsListed });
+
+    expect(onEventsListed).toHaveBeenCalledWith(events);
+  });
+
+  it("hands EventLimitReached to onEventLimitReached", () => {
+    const { handleResponse } = useResponseHandler();
+    const onEventLimitReached = vi.fn();
+    const data: AnswerPendingCaptureMutation = {
+      answerPendingCapture: { __typename: "EventLimitReached", message: "full", limit: 500 },
+    };
+
+    handleResponse({ data, onEventLimitReached });
+
+    expect(onEventLimitReached).toHaveBeenCalledWith({ message: "full", limit: 500 });
+  });
+
+  it("hands EventAlertChoiceAsked's choices to onEventAlertChoiceAsked", () => {
+    const { handleResponse } = useResponseHandler();
+    const onEventAlertChoiceAsked = vi.fn();
+    const data: AnswerPendingCaptureMutation = {
+      answerPendingCapture: {
+        __typename: "EventAlertChoiceAsked",
+        pendingCaptureId: "pc-1",
+        question: "Which alert should I keep?",
+        choices: [{ leadMinutes: 60, label: "1 hour before" }],
+      },
+    };
+
+    handleResponse({ data, onEventAlertChoiceAsked });
+
+    expect(onEventAlertChoiceAsked).toHaveBeenCalledWith({
+      pendingCaptureId: "pc-1",
+      question: "Which alert should I keep?",
+      choices: [{ leadMinutes: 60, label: "1 hour before" }],
+    });
   });
 });

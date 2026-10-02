@@ -2,6 +2,7 @@
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
+#import "../../../fragments/EventFields.graphql"
 
 mutation SubmitCapture($rawInput: String!) {
   submitCapture(rawInput: $rawInput) {
@@ -29,6 +30,28 @@ mutation SubmitCapture($rawInput: String!) {
     ... on ReminderLimitReached {
       message
       limit
+    }
+    ... on EventCreated {
+      event {
+        ...EventFields
+      }
+    }
+    ... on EventsListed {
+      events {
+        ...EventFields
+      }
+    }
+    ... on EventLimitReached {
+      message
+      limit
+    }
+    ... on EventAlertChoiceAsked {
+      pendingCaptureId
+      question
+      choices {
+        leadMinutes
+        label
+      }
     }
     ... on MemorySaved {
       memory {
