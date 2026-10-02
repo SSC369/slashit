@@ -5,6 +5,7 @@ as ``ReminderCaptureService`` is: a question answered later runs the same
 reading as a sentence typed whole, so the two cannot disagree.
 """
 
+import re
 from dataclasses import dataclass, replace
 from datetime import date, time
 from typing import Any, cast
@@ -13,6 +14,7 @@ from uuid import UUID
 from app.domains.capture.constants import (
     EVENT_EXTRACTION_INSTRUCTION,
     EVENT_EXTRACTION_SCHEMA,
+    EVENT_NAMED_TIME_PATTERN,
 )
 from app.domains.capture.interfaces.ports import EventPort, ExtractionPort
 from app.domains.events.public import (
@@ -30,6 +32,9 @@ from app.domains.gateway.public import (
     SharedQuotaExhausted,
     UserLimitReached,
 )
+
+_MIDNIGHT = time(0, 0)
+_DAY_END = time(23, 59)
 
 
 @dataclass(frozen=True)
@@ -84,7 +89,8 @@ class EventCaptureService:
         if not isinstance(extraction_result, Extraction):
             return extraction_result
         fields = read_event_fields(
-            extracted_fields=cast(dict[str, Any], extraction_result.data)
+            extracted_fields=cast(dict[str, Any], extraction_result.data),
+            text=argument_text,
         )
         if fields is None:
             return EventNeedsTitle()
@@ -100,13 +106,15 @@ class EventCaptureService:
         )
 
 
-def read_event_fields(*, extracted_fields: dict[str, Any]) -> EventFields | None:
+def read_event_fields(
+    *, extracted_fields: dict[str, Any], text: str
+) -> EventFields | None:
     """The model's output as typed fields. A value that does not parse is
     treated as not said, so the rules for missing input apply to it."""
     title = extracted_fields.get("title")
     if not isinstance(title, str) or not title.strip():
         return None
-    return EventFields(
+    fields = EventFields(
         title=title.strip(),
         start_date=_read_date(raw=extracted_fields.get("start_date")),
         has_year=extracted_fields.get("has_year") is True,
@@ -120,6 +128,18 @@ def read_event_fields(*, extracted_fields: dict[str, Any]) -> EventFields | None
             raw=extracted_fields.get("alert_leads_minutes")
         ),
     )
+    return _without_invented_midnight(fields=fields, text=text)
+
+
+def _without_invented_midnight(*, fields: EventFields, text: str) -> EventFields:
+    """The model sometimes gives a date-only event a 00:00 start, or 00:00 to
+    23:59, which would save it at midnight instead of all day (dev log D-15).
+    Kept only when the text names a time."""
+    names_a_time = re.search(EVENT_NAMED_TIME_PATTERN, text, re.IGNORECASE)
+    if fields.start_time != _MIDNIGHT or names_a_time:
+        return fields
+    end_time = None if fields.end_time in (_MIDNIGHT, _DAY_END) else fields.end_time
+    return replace(fields, start_time=None, end_time=end_time)
 
 
 def _read_date(*, raw: object) -> date | None:

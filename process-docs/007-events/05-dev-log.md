@@ -48,8 +48,54 @@ every run sets `DATABASE_URL` to the local one.
 | T-1.10 | 4.1 | Frontend capture cards and `/events` card | done | `EventCards.tsx`: saved, saving, alert question, cap refusal, month-grouped list, empty, error. Date question chips in `TurnCard`. D-4, D-5 |
 | T-1.11 | 4.1 | Frontend Records tab, All marker, detail, routes | done | `EventTable`, `EventsController`, `EventDetailView`, `EventDetailController`; diamond row under All; `/records/events`, `/records/events/:id`. D-5, D-6, D-7 |
 | T-1.12 | 4.1 | Design deltas in tokens, both themes | done | Three primitives, three semantics, dark values in both dark blocks. D-8 |
-| T-1.13 | 4.1 | Labelled set and live extraction and latency run | owed | Needs a provider key in the build environment. NFR-1 and NFR-2 unmeasured |
-| T-1.14 | 4.1 | Browser pass against the canvas | owed | Needs a signed-in session against the hosted project |
+| T-1.13 | 4.1 | Labelled set and live extraction and latency run | done, NFR-1 misses | 2026-10-02. Set `tests/eval/event_extraction.json`, 60 lines, drafted by Claude, awaiting the user's correction. Scorer `tests/integration/test_event_eval_live.py`. NFR-2 passes, NFR-1 misses; see Live measurements |
+| T-1.14 | 4.1 | Browser pass against the canvas | done, dark only, with findings | 2026-10-02, against the hosted project with a second account. See Browser pass |
+
+### Live measurements
+
+Run 2026-10-02 against the real model, on the local database
+`slashit_007_test`, clock fixed at Friday 2026-10-02 10:00 Asia/Kolkata.
+
+| NFR | Target | Measured | Result |
+|---|---|---|---|
+| NFR-2, field extraction | over 90% of fields | 98.1%, 530 of 540 fields over 60 lines | pass |
+| NFR-1, acknowledgement | under 1.5 s at p95 | Saving card shown on submit, before the request; covered by `TurnCard.test.tsx` | pass, after the PRD change |
+| Server time, recorded not gated | none | 3.29 s p95, 2.67 s median, 3.30 s max over 20 `/add-event` captures | recorded |
+
+NFR-1 was timed from submit to the full GraphQL response, and every capture
+waits on one model call, so 1.5 s could not be met. The user chose to measure
+it at the client's saving card instead; PRD change log, 2026-10-02.
+
+After D-15, NFR-2 reran at 98.3%: no invented midnights remain.
+
+The ten NFR-2 misses:
+
+| Kind | Lines | Effect |
+|---|---|---|
+| A time invented for a date-only event: `00:00`, `00:00` to `23:59` | Rahul's wedding, housewarming | Saved at midnight instead of all day. Fixed by D-15 |
+| An end time invented from a start time | gym trial `08:00`, health checkup `09:00`, anniversary dinner `20:00` | An end the user never gave; harmless where it equals the start |
+| `repeat_yearly` true for a dated chore | health checkup, car insurance renewal | The event repeats every year unasked |
+| A location read from a title word | Office Diwali celebration, location `office` | Minor |
+
+### Browser pass
+
+Run 2026-10-02 in Chrome against `localhost:5173` and the hosted project.
+The first account hit its daily limit of 20 model calls, so the pass used a
+second account.
+
+Matched: `Main`'s saved cards, `EventAsk`'s date question and alert choice,
+`EventsList`, `RecordsEvents`, `RecordsAllEvents` and `EventDetail`. The
+loading, empty, saving and daily-limit states also matched. The differences
+already logged were seen as logged: D-2, D-5, D-6.
+
+| # | Finding | Artboard | Kind |
+|---|---|---|---|
+| B-1 | The first command typed after the page loads is dropped: no turn, nothing saved. Seen twice, on two accounts | `Main` | defect |
+| B-2 | Alert choice chips show the lead only, "1 hour before"; the canvas adds the date, "1 week before · Sat 14 Nov" | `EventAsk` | design gap |
+| B-3 | Timezone reads `Asia/Calcutta`, the legacy name the browser reports; the canvas shows `Asia/Kolkata` | `EventDetail` | design gap |
+| B-4 | "Dentist Friday 4pm", typed on a Friday evening, saved as today and already past, with no question | `Main` | product question |
+| B-5 | "Team dinner 8pm" saved as 8:00 to 9:00 PM, an end never given. The same miss as T-1.13's end times | `Main` | extraction |
+| B-6 | Light theme not compared: this Chrome renders every page dark, the light canvas artboards included | all light | owed |
 
 ### Tests at the end of the slice
 
@@ -82,14 +128,22 @@ Backend: everything passes except eight, none caused by this slice:
 | D-12 | 2026-10-02 | Index §7: a date range whose end cannot follow its start shows the not-saved card | The end is dropped and the event saves as a single day | The not-saved card is drawn for a model outage only; a dropped end is visible in the confirmation | — |
 | D-13 | 2026-10-02 | Not in the design | `/add-event` with no title asks "What is the event?" | Every capture command asks when its subject is missing (001's confirmation model); no artboard draws it | — |
 | D-14 | 2026-10-02 | Build plan §4: `events(include: EventScope = UPCOMING)` | `events(scope: EventScope = UPCOMING)` | Naming only | — |
+| D-15 | 2026-10-02 | 4.1 §5: the model's fields are read as given | `read_event_fields` drops a `00:00` start, and a `00:00` or `23:59` end with it, unless the text names a time | T-1.13 found the model giving date-only events a midnight start. Unit cases in `test_event_capture.py` | user |
+
+### Decisions during the build
+
+| # | Date | Decision | Effect | Approved by |
+|---|---|---|---|---|
+| X-1 | 2026-10-02 | An event may carry any number of alerts, no cap. Reverses epic Q5, "One alert in V1" | Change record on the epic (Q5) and PRD (FR-1, FR-14, FR-16, the non-goal on line 52). Re-opens design, build plan and the plan index. Slice 1 stores one alert, so a migration follows, and FR-16's "which alert?" question goes. Slice 2's sub-plan is drafted for many alerts | user |
 
 ### Pending
 
 | # | Item | Blocks | Owner |
 |---|---|---|---|
-| P-1 | Review D-1 to D-14 and approve each, or ask for a change | Closing slice 1 | user |
-| P-2 | T-1.13: labelled 60-line set, live extraction and latency run, NFR-1 and NFR-2 | Shipping | Claude, needs a provider key in the build environment |
-| P-3 | T-1.14: browser pass against the canvas, Capture and Records pages | Shipping | Claude, needs a signed-in session against the hosted project |
+| P-0 | **Next task.** X-1: change records on the epic and PRD for any number of alerts, then the design, build plan and index changes it re-opens, before sub-plan 4.2 | Slice 2 | Claude, then user approval |
+| P-1 | Review D-1 to D-14 (D-15 approved) and approve each, or ask for a change | Closing slice 1 | user |
+| P-2 | Review the 60-line set `tests/eval/event_extraction.json` | Shipping | user |
+| P-3 | Decide B-1 to B-5 from the browser pass; B-6 light-theme pass in a browser without forced dark | Shipping | user, then Claude |
 | P-4 | Draft sub-plan `04.2-alerts-and-manage.md`: alerts set, fire, re-arm yearly and follow edits; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
 | P-5 | The two `@rls-test.invalid` users left on the hosted database, see Defects | Nothing | user: delete or keep |
 
@@ -105,4 +159,8 @@ Backend: everything passes except eight, none caused by this slice:
 |---|---|---|---|
 | 2026-10-02 | Created. Slice 1 recorded: T-1.1 to T-1.12 done, T-1.13 and T-1.14 owed, D-1 to D-8 | Slice 1 built | — |
 | 2026-10-02 | Slice 1 committed as `fb0a767` and merged to `main` | User: "commit changes and push to main" | user |
+| 2026-10-02 | T-1.13 run: 60-line set and live scorer added; NFR-2 98.1% pass, NFR-1 3.29 s p95 miss | User chose to close slice 1's checks | user |
+| 2026-10-02 | NFR-1 measured at the saving card; D-15 fixes invented midnights; NFR-2 rerun 98.3% | User chose both recommended options | user |
+| 2026-10-02 | T-1.14 browser pass run, dark theme; findings B-1 to B-6 | User chose to close slice 1's checks | user |
+| 2026-10-02 | X-1 recorded: any number of alerts per event; P-0 added as the next task | User: "allow any number of alerts" | user |
 | 2026-10-02 | D-9 to D-14 logged, found on review; Pending section added | User asked for the pending items in the dev log | user |

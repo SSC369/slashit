@@ -1,0 +1,858 @@
+{
+  "_about": "Epic 007, sub-plan 4.1, T-1.13 and NFR-2. Drafted by Claude on 2026-10-02 for the user to correct. The reference moment is Friday 2026-10-02 10:00 Asia/Kolkata. title lists accepted titles, case-insensitive. A field left out means not said: null, false or no leads. {\"any_of\": [...]} accepts any listed value. An end_date equal to start_date counts as none. description is not scored. Scored live by tests/integration/test_event_eval_live.py; target over 90% of fields.",
+  "status": "draft: awaiting the user's review",
+  "reference_moment": "2026-10-02T10:00:00+05:30",
+  "timezone": "Asia/Kolkata",
+  "cases": [
+    {
+      "text": "Dentist appointment tomorrow at 4pm",
+      "expected": {
+        "title": [
+          "dentist appointment",
+          "dentist"
+        ],
+        "start_date": "2026-10-03",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "text": "Team offsite 12 to 14 November in Goa",
+      "expected": {
+        "title": [
+          "team offsite"
+        ],
+        "start_date": "2026-11-12",
+        "end_date": "2026-11-14",
+        "location": [
+          "goa"
+        ]
+      }
+    },
+    {
+      "text": "Mom's birthday 14 March",
+      "expected": {
+        "title": [
+          "mom's birthday",
+          "mom birthday",
+          "mum's birthday"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-03-14",
+            "2027-03-14"
+          ]
+        },
+        "repeat_yearly": true
+      }
+    },
+    {
+      "text": "Wedding anniversary on 22 June",
+      "expected": {
+        "title": [
+          "wedding anniversary",
+          "anniversary"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-06-22",
+            "2027-06-22"
+          ]
+        },
+        "repeat_yearly": true
+      }
+    },
+    {
+      "text": "Rahul's wedding 8 December 2026 at Taj Lands End, Mumbai",
+      "expected": {
+        "title": [
+          "rahul's wedding",
+          "rahul wedding"
+        ],
+        "start_date": "2026-12-08",
+        "has_year": true,
+        "location": [
+          "taj lands end, mumbai",
+          "taj lands end mumbai",
+          "taj lands end"
+        ]
+      }
+    },
+    {
+      "text": "Flight to Delhi on 20 October at 6:30am, remind me 3 hours before",
+      "expected": {
+        "title": [
+          "flight to delhi",
+          "flight"
+        ],
+        "start_date": "2026-10-20",
+        "start_time": "06:30",
+        "location": {
+          "any_of": [
+            null,
+            "delhi"
+          ]
+        },
+        "alert_leads_minutes": [
+          180
+        ]
+      }
+    },
+    {
+      "text": "Parent teacher meeting on Monday 11am at school",
+      "expected": {
+        "title": [
+          "parent teacher meeting",
+          "parent-teacher meeting",
+          "ptm"
+        ],
+        "start_date": "2026-10-05",
+        "start_time": "11:00",
+        "location": [
+          "school"
+        ]
+      }
+    },
+    {
+      "text": "Concert at Phoenix Marketcity on 25 October 7pm to 10pm",
+      "expected": {
+        "title": [
+          "concert"
+        ],
+        "start_date": "2026-10-25",
+        "start_time": "19:00",
+        "end_time": "22:00",
+        "location": [
+          "phoenix marketcity"
+        ]
+      }
+    },
+    {
+      "text": "Doctor follow-up 9 October 10:30, remind me 1 hour before and 1 day before",
+      "expected": {
+        "title": [
+          "doctor follow-up",
+          "doctor follow up",
+          "doctor followup"
+        ],
+        "start_date": "2026-10-09",
+        "start_time": "10:30",
+        "alert_leads_minutes": [
+          60,
+          1440
+        ]
+      }
+    },
+    {
+      "text": "Diwali party at Neha's place on 20 October",
+      "expected": {
+        "title": [
+          "diwali party"
+        ],
+        "start_date": "2026-10-20",
+        "location": [
+          "neha's place",
+          "neha's"
+        ]
+      }
+    },
+    {
+      "text": "Gym trial session tomorrow 7am",
+      "expected": {
+        "title": [
+          "gym trial session",
+          "gym trial"
+        ],
+        "start_date": "2026-10-03",
+        "start_time": "07:00"
+      }
+    },
+    {
+      "text": "Board exam 15 March 2027",
+      "expected": {
+        "title": [
+          "board exam",
+          "board exams"
+        ],
+        "start_date": "2027-03-15",
+        "has_year": true
+      }
+    },
+    {
+      "text": "Dad's birthday on 3rd January",
+      "expected": {
+        "title": [
+          "dad's birthday",
+          "dad birthday"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-01-03",
+            "2027-01-03"
+          ]
+        },
+        "repeat_yearly": true
+      }
+    },
+    {
+      "text": "Conference in Bengaluru 4 to 6 November",
+      "expected": {
+        "title": [
+          "conference"
+        ],
+        "start_date": "2026-11-04",
+        "end_date": "2026-11-06",
+        "location": [
+          "bengaluru",
+          "bangalore"
+        ]
+      }
+    },
+    {
+      "text": "Call with the bank at 3:15pm today",
+      "expected": {
+        "title": [
+          "call with the bank",
+          "call with bank",
+          "bank call"
+        ],
+        "start_date": "2026-10-02",
+        "start_time": "15:15"
+      }
+    },
+    {
+      "text": "Car service on Saturday at 9am at the Honda showroom",
+      "expected": {
+        "title": [
+          "car service"
+        ],
+        "start_date": "2026-10-03",
+        "start_time": "09:00",
+        "location": [
+          "honda showroom",
+          "the honda showroom"
+        ]
+      }
+    },
+    {
+      "text": "Movie night Sunday 8pm",
+      "expected": {
+        "title": [
+          "movie night"
+        ],
+        "start_date": "2026-10-04",
+        "start_time": "20:00"
+      }
+    },
+    {
+      "text": "Priya's birthday 30 October, remind me a day before",
+      "expected": {
+        "title": [
+          "priya's birthday",
+          "priya birthday"
+        ],
+        "start_date": "2026-10-30",
+        "repeat_yearly": true,
+        "alert_leads_minutes": [
+          1440
+        ]
+      }
+    },
+    {
+      "text": "Interview at Infosys on 7 October 2:30pm, remind me 30 minutes before",
+      "expected": {
+        "title": [
+          "interview",
+          "interview at infosys",
+          "infosys interview"
+        ],
+        "start_date": "2026-10-07",
+        "start_time": "14:30",
+        "location": {
+          "any_of": [
+            "infosys",
+            null
+          ]
+        },
+        "alert_leads_minutes": [
+          30
+        ]
+      }
+    },
+    {
+      "text": "Yoga workshop 10 Oct 6am to 8am",
+      "expected": {
+        "title": [
+          "yoga workshop"
+        ],
+        "start_date": "2026-10-10",
+        "start_time": "06:00",
+        "end_time": "08:00"
+      }
+    },
+    {
+      "text": "Housewarming at Arjun's new flat on 18 October",
+      "expected": {
+        "title": [
+          "housewarming",
+          "housewarming party"
+        ],
+        "start_date": "2026-10-18",
+        "location": [
+          "arjun's new flat",
+          "arjun's flat"
+        ]
+      }
+    },
+    {
+      "text": "Quarterly review meeting 1 December 2026 at 10am",
+      "expected": {
+        "title": [
+          "quarterly review meeting",
+          "quarterly review"
+        ],
+        "start_date": "2026-12-01",
+        "has_year": true,
+        "start_time": "10:00"
+      }
+    },
+    {
+      "text": "Holiday in Kerala from 23 December to 2 January",
+      "expected": {
+        "title": [
+          "holiday",
+          "holiday in kerala",
+          "kerala holiday"
+        ],
+        "start_date": "2026-12-23",
+        "end_date": "2027-01-02",
+        "location": [
+          "kerala"
+        ]
+      }
+    },
+    {
+      "text": "Grandparents' anniversary 5 May",
+      "expected": {
+        "title": [
+          "grandparents' anniversary",
+          "grandparents anniversary"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-05-05",
+            "2027-05-05"
+          ]
+        },
+        "repeat_yearly": true
+      }
+    },
+    {
+      "text": "Electricity bill due 10 October",
+      "expected": {
+        "title": [
+          "electricity bill due",
+          "electricity bill"
+        ],
+        "start_date": "2026-10-10"
+      }
+    },
+    {
+      "text": "Lunch with Sameer tomorrow 1pm at Social, Koramangala",
+      "expected": {
+        "title": [
+          "lunch with sameer"
+        ],
+        "start_date": "2026-10-03",
+        "start_time": "13:00",
+        "location": [
+          "social, koramangala",
+          "social koramangala"
+        ]
+      }
+    },
+    {
+      "text": "Sister's graduation ceremony on 28 November 2026, 11am",
+      "expected": {
+        "title": [
+          "sister's graduation ceremony",
+          "sister's graduation",
+          "graduation ceremony"
+        ],
+        "start_date": "2026-11-28",
+        "has_year": true,
+        "start_time": "11:00"
+      }
+    },
+    {
+      "text": "Marathon on 7 December at 5:30am, remind me 2 hours before",
+      "expected": {
+        "title": [
+          "marathon"
+        ],
+        "start_date": "2026-12-07",
+        "start_time": "05:30",
+        "alert_leads_minutes": [
+          120
+        ]
+      }
+    },
+    {
+      "text": "Team dinner on Thursday at 8:30pm",
+      "expected": {
+        "title": [
+          "team dinner"
+        ],
+        "start_date": "2026-10-08",
+        "start_time": "20:30"
+      }
+    },
+    {
+      "text": "Annual health checkup 15 October 9am at Apollo Hospital, remind me 1 day before",
+      "expected": {
+        "title": [
+          "annual health checkup",
+          "health checkup",
+          "annual health check-up"
+        ],
+        "start_date": "2026-10-15",
+        "start_time": "09:00",
+        "location": [
+          "apollo hospital"
+        ],
+        "alert_leads_minutes": [
+          1440
+        ]
+      }
+    },
+    {
+      "text": "School reunion 26 December 2026 at St. Xavier's",
+      "expected": {
+        "title": [
+          "school reunion"
+        ],
+        "start_date": "2026-12-26",
+        "has_year": true,
+        "location": [
+          "st. xavier's",
+          "st xavier's"
+        ]
+      }
+    },
+    {
+      "text": "Webinar 6 October 5pm to 6:30pm",
+      "expected": {
+        "title": [
+          "webinar"
+        ],
+        "start_date": "2026-10-06",
+        "start_time": "17:00",
+        "end_time": "18:30"
+      }
+    },
+    {
+      "text": "Eye doctor appointment on 9 October 4pm",
+      "expected": {
+        "title": [
+          "eye doctor appointment",
+          "eye doctor"
+        ],
+        "start_date": "2026-10-09",
+        "start_time": "16:00"
+      }
+    },
+    {
+      "text": "Visa appointment 13 October at 8:45am at VFS Global",
+      "expected": {
+        "title": [
+          "visa appointment"
+        ],
+        "start_date": "2026-10-13",
+        "start_time": "08:45",
+        "location": [
+          "vfs global",
+          "vfs"
+        ]
+      }
+    },
+    {
+      "text": "Wife's birthday 11 February, remind me 1 week before",
+      "expected": {
+        "title": [
+          "wife's birthday",
+          "wife birthday"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-02-11",
+            "2027-02-11"
+          ]
+        },
+        "repeat_yearly": true,
+        "alert_leads_minutes": [
+          10080
+        ]
+      }
+    },
+    {
+      "text": "Book club meeting this Sunday 4pm at the library",
+      "expected": {
+        "title": [
+          "book club meeting",
+          "book club"
+        ],
+        "start_date": "2026-10-04",
+        "start_time": "16:00",
+        "location": [
+          "the library",
+          "library"
+        ]
+      }
+    },
+    {
+      "text": "Cousin's sangeet 19 November 7pm",
+      "expected": {
+        "title": [
+          "cousin's sangeet",
+          "sangeet"
+        ],
+        "start_date": "2026-11-19",
+        "start_time": "19:00"
+      }
+    },
+    {
+      "text": "Office Diwali celebration 17 October from 3pm to 6pm",
+      "expected": {
+        "title": [
+          "office diwali celebration",
+          "diwali celebration"
+        ],
+        "start_date": "2026-10-17",
+        "start_time": "15:00",
+        "end_time": "18:00"
+      }
+    },
+    {
+      "text": "Trek to Kedarkantha 20 to 25 December",
+      "expected": {
+        "title": [
+          "trek to kedarkantha",
+          "kedarkantha trek"
+        ],
+        "start_date": "2026-12-20",
+        "end_date": "2026-12-25",
+        "location": {
+          "any_of": [
+            null,
+            "kedarkantha"
+          ]
+        }
+      }
+    },
+    {
+      "text": "Tax filing deadline 31 July 2027",
+      "expected": {
+        "title": [
+          "tax filing deadline",
+          "tax filing"
+        ],
+        "start_date": "2027-07-31",
+        "has_year": true
+      }
+    },
+    {
+      "text": "Car insurance renewal on 3 November",
+      "expected": {
+        "title": [
+          "car insurance renewal"
+        ],
+        "start_date": "2026-11-03"
+      }
+    },
+    {
+      "text": "Physiotherapy session tomorrow at 5:30pm, remind me 15 minutes before",
+      "expected": {
+        "title": [
+          "physiotherapy session",
+          "physiotherapy",
+          "physio session"
+        ],
+        "start_date": "2026-10-03",
+        "start_time": "17:30",
+        "alert_leads_minutes": [
+          15
+        ]
+      }
+    },
+    {
+      "text": "Badminton tournament on 1 November at Prakash Padukone Academy",
+      "expected": {
+        "title": [
+          "badminton tournament"
+        ],
+        "start_date": "2026-11-01",
+        "location": [
+          "prakash padukone academy"
+        ]
+      }
+    },
+    {
+      "text": "Anniversary dinner 9 October 8pm at Olive Bistro",
+      "expected": {
+        "title": [
+          "anniversary dinner"
+        ],
+        "start_date": "2026-10-09",
+        "start_time": "20:00",
+        "location": [
+          "olive bistro"
+        ],
+        "repeat_yearly": {
+          "any_of": [
+            true,
+            false
+          ]
+        }
+      }
+    },
+    {
+      "text": "Ravi's farewell party Wednesday 6pm",
+      "expected": {
+        "title": [
+          "ravi's farewell party",
+          "ravi's farewell",
+          "farewell party"
+        ],
+        "start_date": "2026-10-07",
+        "start_time": "18:00"
+      }
+    },
+    {
+      "text": "Pick up passport from the passport office on 12 October at 11am",
+      "expected": {
+        "title": [
+          "pick up passport",
+          "passport pickup",
+          "pick up passport from the passport office"
+        ],
+        "start_date": "2026-10-12",
+        "start_time": "11:00",
+        "location": {
+          "any_of": [
+            "passport office",
+            "the passport office",
+            null
+          ]
+        }
+      }
+    },
+    {
+      "text": "Sprint planning on 5 October 10am to 11am, remind me 10 minutes before",
+      "expected": {
+        "title": [
+          "sprint planning"
+        ],
+        "start_date": "2026-10-05",
+        "start_time": "10:00",
+        "end_time": "11:00",
+        "alert_leads_minutes": [
+          10
+        ]
+      }
+    },
+    {
+      "text": "Niece's birthday party 2 November 2026 at 4pm",
+      "expected": {
+        "title": [
+          "niece's birthday party",
+          "niece's birthday"
+        ],
+        "start_date": "2026-11-02",
+        "has_year": true,
+        "start_time": "16:00",
+        "repeat_yearly": {
+          "any_of": [
+            true,
+            false
+          ]
+        }
+      }
+    },
+    {
+      "text": "Startup pitch event 22 October 6pm at 91springboard, HSR Layout",
+      "expected": {
+        "title": [
+          "startup pitch event",
+          "startup pitch"
+        ],
+        "start_date": "2026-10-22",
+        "start_time": "18:00",
+        "location": [
+          "91springboard, hsr layout",
+          "91springboard hsr layout",
+          "91springboard"
+        ]
+      }
+    },
+    {
+      "text": "Hackathon 14 to 15 November",
+      "expected": {
+        "title": [
+          "hackathon"
+        ],
+        "start_date": "2026-11-14",
+        "end_date": "2026-11-15"
+      }
+    },
+    {
+      "text": "Puja at home on 21 October",
+      "expected": {
+        "title": [
+          "puja"
+        ],
+        "start_date": "2026-10-21",
+        "location": {
+          "any_of": [
+            "home",
+            null
+          ]
+        }
+      }
+    },
+    {
+      "text": "Tennis lesson on 8 October 7am at the club",
+      "expected": {
+        "title": [
+          "tennis lesson",
+          "tennis lessons"
+        ],
+        "start_date": "2026-10-08",
+        "start_time": "07:00",
+        "location": [
+          "the club",
+          "club"
+        ]
+      }
+    },
+    {
+      "text": "Dinner with in-laws on 4 October 8pm, remind me 2 hours before",
+      "expected": {
+        "title": [
+          "dinner with in-laws",
+          "dinner with the in-laws"
+        ],
+        "start_date": "2026-10-04",
+        "start_time": "20:00",
+        "alert_leads_minutes": [
+          120
+        ]
+      }
+    },
+    {
+      "text": "Recital at NCPA 30 November 2026 7:30pm to 9:30pm",
+      "expected": {
+        "title": [
+          "recital"
+        ],
+        "start_date": "2026-11-30",
+        "has_year": true,
+        "start_time": "19:30",
+        "end_time": "21:30",
+        "location": [
+          "ncpa"
+        ]
+      }
+    },
+    {
+      "text": "Dentist cleaning 16 October 10am, remind me an hour before",
+      "expected": {
+        "title": [
+          "dentist cleaning",
+          "dental cleaning"
+        ],
+        "start_date": "2026-10-16",
+        "start_time": "10:00",
+        "alert_leads_minutes": [
+          60
+        ]
+      }
+    },
+    {
+      "text": "Anniversary of grandfather's passing 18 April",
+      "expected": {
+        "title": [
+          "anniversary of grandfather's passing",
+          "grandfather's death anniversary"
+        ],
+        "start_date": {
+          "any_of": [
+            "2026-04-18",
+            "2027-04-18"
+          ]
+        },
+        "repeat_yearly": true
+      }
+    },
+    {
+      "text": "Product launch 10 November 2026 at 11am",
+      "expected": {
+        "title": [
+          "product launch"
+        ],
+        "start_date": "2026-11-10",
+        "has_year": true,
+        "start_time": "11:00"
+      }
+    },
+    {
+      "text": "Weekend trip to Pondicherry 10 to 11 October",
+      "expected": {
+        "title": [
+          "weekend trip to pondicherry",
+          "trip to pondicherry",
+          "weekend trip"
+        ],
+        "start_date": "2026-10-10",
+        "end_date": "2026-10-11",
+        "location": {
+          "any_of": [
+            "pondicherry",
+            null
+          ]
+        }
+      }
+    },
+    {
+      "text": "Meeting with CA on 14 October 4pm at his office in Indiranagar",
+      "expected": {
+        "title": [
+          "meeting with ca"
+        ],
+        "start_date": "2026-10-14",
+        "start_time": "16:00",
+        "location": [
+          "his office in indiranagar",
+          "office in indiranagar",
+          "indiranagar"
+        ]
+      }
+    },
+    {
+      "text": "Friend's wedding reception 27 November 7pm at ITC Gardenia, remind me 3 hours before and 1 day before",
+      "expected": {
+        "title": [
+          "friend's wedding reception",
+          "wedding reception"
+        ],
+        "start_date": "2026-11-27",
+        "start_time": "19:00",
+        "location": [
+          "itc gardenia"
+        ],
+        "alert_leads_minutes": [
+          180,
+          1440
+        ]
+      }
+    }
+  ]
+}

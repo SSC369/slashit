@@ -111,7 +111,7 @@ No numeric targets, following `product.md` §9: with no users there is no baseli
 
 | id | Requirement | Number | How it is measured |
 |---|---|---|---|
-| NFR-1 | Capture acknowledgement, as 001 NFR-2 | Under 1.5 s at p95 | Server timing, submit to first byte |
+| NFR-1 | Capture acknowledgement, as 001 NFR-2 | Under 1.5 s at p95 | Client timing, submit to the first visible response, the saving card. The saved result waits on the model and is not this NFR |
 | NFR-2 | Field extraction correct on everyday event input, including ranges, yearly phrases and alert leads | Over 90% of fields correct, as 001 NFR-4 | Labelled evaluation set, built before build plan approval |
 | NFR-3 | All-day events shown on a different date than recorded | 0 | Tests across timezone changes, including across the date line |
 | NFR-4 | Alerts out of step with their event: firing after the event moved, or for a deleted event | 0 | Nightly reconciliation of alerts against events |
@@ -168,3 +168,4 @@ category labels, and travel time.
 | 2026-10-02 | Created from the approved epic | Epic approved | user |
 | 2026-10-02 | Q1 and Q2 answered; FR-32 and FR-33 added | User chose the recommended options | user |
 | 2026-10-02 | Approved | User: "Approve, start design" | user |
+| 2026-10-02 | NFR-1 measured at the client's saving card, not at the server's first byte | T-1.13 measured 3.29 s p95 at the server: every capture waits on one model call, so the old method could not pass. Measurement only; no scope change. Stale: implementation plan §8 and 4.1 §7's NFR-1 rows, which name a live server run | user |

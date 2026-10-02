@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
@@ -18,7 +18,10 @@ from app.domains.capture.interfaces.dtos import (
     EventListDTO,
     PendingCaptureDTO,
 )
-from app.domains.capture.services.event_capture import EventCaptureService
+from app.domains.capture.services.event_capture import (
+    EventCaptureService,
+    read_event_fields,
+)
 from app.domains.events.interactors.create_event import CreateEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
 from app.domains.events.public import EventDTO, EventService
@@ -207,3 +210,29 @@ async def test_a_model_outage_saves_nothing_and_refuses() -> None:
     assert isinstance(outcome, ProviderUnavailable)
     assert harness.events.rows == []
     assert harness.turns.rows[0].outcome == "refused"
+
+
+def test_an_invented_midnight_is_dropped_from_a_date_only_event() -> None:
+    """D-15: no time in the text, so 00:00 to 23:59 means all day."""
+    fields = read_event_fields(
+        extracted_fields={
+            "title": "Housewarming",
+            "start_date": "2026-10-18",
+            "start_time": "00:00",
+            "end_time": "23:59",
+        },
+        text="Housewarming at Arjun's new flat on 18 October",
+    )
+    assert fields is not None
+    assert fields.start_time is None
+    assert fields.end_time is None
+
+
+def test_a_midnight_the_text_names_is_kept() -> None:
+    """D-15: a named time is the user's, midnight included."""
+    for text in ("New year party 31 December at midnight", "Flight 9 Oct 12am"):
+        fields = read_event_fields(
+            extracted_fields={"title": "x", "start_time": "00:00"}, text=text
+        )
+        assert fields is not None
+        assert fields.start_time == time(0, 0), text

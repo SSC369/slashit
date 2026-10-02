@@ -162,7 +162,7 @@ Feature-level cases. Each sub-plan lists its own.
 | User A requests, lists and searches user B's events and gets nothing | T7, NFR-6 |
 | `resolve` property test over 1,000 random schedules: `starts_at <= ends_at`, and all-day local dates round-trip in 12 timezones including `Pacific/Kiritimati` and `Pacific/Pago_Pago` | NFR-3 |
 | Labelled extraction set of 60 event lines, run live | NFR-2, over 90% of fields |
-| Capture acknowledgement under 1.5 s at p95, run live | NFR-1 |
+| Saving card shown on submit, before the request returns; server latency recorded, not gated | NFR-1 |
 
 ## 9. Rollout
 
@@ -188,3 +188,4 @@ Tasks live in the sub-plans, `T-1.n` and `T-2.n`.
 |---|---|---|---|
 | 2026-10-02 | Created as the index, two slices | Build plan approved | user |
 | 2026-10-02 | Approved | User: "Approve both, start building slice 1" | user |
+| 2026-10-02 | NFR-1 test row now the client's saving card, per the PRD change of the same day | Server timing waits on the model, 3.29 s p95 | user |

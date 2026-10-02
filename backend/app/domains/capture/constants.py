@@ -158,6 +158,12 @@ EVENT_EXTRACTION_INSTRUCTION: Final = (
     "before', N in minutes."
 )
 
+# A clock time as typed: "4pm", "6:30 am", "18:00", "midnight", "noon". Only a
+# midnight the text names is kept (dev log D-15).
+EVENT_NAMED_TIME_PATTERN: Final = (
+    r"\b\d{1,2}(:\d{2})?\s*(am|pm)\b|\b\d{1,2}:\d{2}\b|\bmidnight\b|\bnoon\b"
+)
+
 # FR-16's one question.
 EVENT_ALERT_QUESTION: Final = "Which alert should I keep?"
 # The answer to FR-16's question that keeps no alert.
