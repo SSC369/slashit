@@ -1,0 +1,258 @@
+{
+  "_about": "Epic 006, index section 6, NFR-4. Drafted by Claude on 2026-10-02 for the user to correct. expected is one of food, transport, shopping, bills, health, entertainment, travel, other. Scored live by tests/integration/test_expense_eval_live.py; target over 85%. Contested on purpose: gym membership (health or entertainment), Netflix (bills or entertainment), book (entertainment or shopping), cab on a trip (travel or transport), haircut (other or health).",
+  "status": "corrected: contested cases kept as drafted by the user, 2026-10-02",
+  "cases": [
+    {
+      "description": "Dinner with friends at Toit",
+      "expected": "food"
+    },
+    {
+      "description": "Groceries at Nature's Basket",
+      "expected": "food"
+    },
+    {
+      "description": "Swiggy order, biryani",
+      "expected": "food"
+    },
+    {
+      "description": "Zomato lunch",
+      "expected": "food"
+    },
+    {
+      "description": "Chai and samosa",
+      "expected": "food"
+    },
+    {
+      "description": "Coffee at Third Wave",
+      "expected": "food"
+    },
+    {
+      "description": "Weekly vegetables",
+      "expected": "food"
+    },
+    {
+      "description": "Milk and bread",
+      "expected": "food"
+    },
+    {
+      "description": "Birthday cake for Mom",
+      "expected": "food"
+    },
+    {
+      "description": "Office canteen lunch",
+      "expected": "food"
+    },
+    {
+      "description": "Uber to office",
+      "expected": "transport"
+    },
+    {
+      "description": "Ola auto to station",
+      "expected": "transport"
+    },
+    {
+      "description": "Metro card recharge",
+      "expected": "transport"
+    },
+    {
+      "description": "Petrol for the bike",
+      "expected": "transport"
+    },
+    {
+      "description": "Rapido to the airport",
+      "expected": "transport"
+    },
+    {
+      "description": "Parking at the mall",
+      "expected": "transport"
+    },
+    {
+      "description": "FASTag recharge",
+      "expected": "transport"
+    },
+    {
+      "description": "Bus pass for October",
+      "expected": "transport"
+    },
+    {
+      "description": "Running shoes",
+      "expected": "shopping"
+    },
+    {
+      "description": "New phone cover",
+      "expected": "shopping"
+    },
+    {
+      "description": "Amazon order, headphones",
+      "expected": "shopping"
+    },
+    {
+      "description": "Kurta from Fabindia",
+      "expected": "shopping"
+    },
+    {
+      "description": "Myntra jeans",
+      "expected": "shopping"
+    },
+    {
+      "description": "IKEA bookshelf",
+      "expected": "shopping"
+    },
+    {
+      "description": "Gift for Rahul's wedding",
+      "expected": "shopping"
+    },
+    {
+      "description": "Kitchen utensils",
+      "expected": "shopping"
+    },
+    {
+      "description": "Electricity bill",
+      "expected": "bills"
+    },
+    {
+      "description": "Airtel postpaid",
+      "expected": "bills"
+    },
+    {
+      "description": "Broadband for October",
+      "expected": "bills"
+    },
+    {
+      "description": "Society maintenance",
+      "expected": "bills"
+    },
+    {
+      "description": "Rent for October",
+      "expected": "bills"
+    },
+    {
+      "description": "Gas cylinder",
+      "expected": "bills"
+    },
+    {
+      "description": "Water bill",
+      "expected": "bills"
+    },
+    {
+      "description": "Netflix subscription",
+      "expected": "bills"
+    },
+    {
+      "description": "Pharmacy",
+      "expected": "health"
+    },
+    {
+      "description": "Doctor consultation",
+      "expected": "health"
+    },
+    {
+      "description": "Blood test at Thyrocare",
+      "expected": "health"
+    },
+    {
+      "description": "Dentist cleaning",
+      "expected": "health"
+    },
+    {
+      "description": "Gym membership",
+      "expected": "health"
+    },
+    {
+      "description": "Health insurance premium",
+      "expected": "health"
+    },
+    {
+      "description": "Eye drops and glasses",
+      "expected": "health"
+    },
+    {
+      "description": "Movie tickets",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Concert tickets",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Spotify premium",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Bowling with the team",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Steam game",
+      "expected": "entertainment"
+    },
+    {
+      "description": "IPL match tickets",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Book from Crossword",
+      "expected": "entertainment"
+    },
+    {
+      "description": "Train to Pune",
+      "expected": "travel"
+    },
+    {
+      "description": "Flight to Goa",
+      "expected": "travel"
+    },
+    {
+      "description": "Hotel in Jaipur",
+      "expected": "travel"
+    },
+    {
+      "description": "Cab from Mumbai airport on the trip",
+      "expected": "travel"
+    },
+    {
+      "description": "Trek booking at Kedarkantha",
+      "expected": "travel"
+    },
+    {
+      "description": "Visa fee for Thailand",
+      "expected": "travel"
+    },
+    {
+      "description": "Bus ticket to Mysore",
+      "expected": "travel"
+    },
+    {
+      "description": "Donation to the temple",
+      "expected": "other"
+    },
+    {
+      "description": "Haircut",
+      "expected": "other"
+    },
+    {
+      "description": "Laundry",
+      "expected": "other"
+    },
+    {
+      "description": "Gift to the maid for Diwali",
+      "expected": "other"
+    },
+    {
+      "description": "Courier charges",
+      "expected": "other"
+    },
+    {
+      "description": "Bank charges",
+      "expected": "other"
+    },
+    {
+      "description": "ATM fee",
+      "expected": "other"
+    },
+    {
+      "description": "Stamp paper",
+      "expected": "other"
+    }
+  ]
+}

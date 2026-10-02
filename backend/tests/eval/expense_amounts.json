@@ -1,0 +1,395 @@
+{
+  "_about": "Epic 006, index section 6, NFR-5. Drafted by Claude on 2026-10-02 for the user to correct, against today 2026-10-02 (Friday). expected is save, ask_amount, ask_amount_choice, ask_description, ask_date or refuse_currency. kept_candidates_paise is what keep_candidates should leave after the model call; amount_paise is the saved amount when expected is save. Scored live by tests/integration/test_expense_eval_live.py; target over 98%. Debatable on purpose: 'room 101 hotel 4500' and 'iphone 15 case 999', where the model may rightly skip the first number ; 'one fifty' written in words asks for the amount, since AD-4 keeps only numbers written in the text.",
+  "status": "draft: awaiting user correction",
+  "cases": [
+    {
+      "input": "/add-expense ₹850 dinner with friends yesterday",
+      "kept_candidates_paise": [
+        85000
+      ],
+      "expected": "save",
+      "amount_paise": 85000
+    },
+    {
+      "input": "/add-expense Uber to office 320",
+      "kept_candidates_paise": [
+        32000
+      ],
+      "expected": "save",
+      "amount_paise": 32000
+    },
+    {
+      "input": "/add-expense ₹1,200 concert tickets",
+      "kept_candidates_paise": [
+        120000
+      ],
+      "expected": "save",
+      "amount_paise": 120000
+    },
+    {
+      "input": "/add-expense ₹1,20,000 laptop",
+      "kept_candidates_paise": [
+        12000000
+      ],
+      "expected": "save",
+      "amount_paise": 12000000
+    },
+    {
+      "input": "/add-expense Rs 500 haircut",
+      "kept_candidates_paise": [
+        50000
+      ],
+      "expected": "save",
+      "amount_paise": 50000
+    },
+    {
+      "input": "/add-expense rs.450 lunch",
+      "kept_candidates_paise": [
+        45000
+      ],
+      "expected": "save",
+      "amount_paise": 45000
+    },
+    {
+      "input": "/add-expense 1.2k groceries",
+      "kept_candidates_paise": [
+        120000
+      ],
+      "expected": "save",
+      "amount_paise": 120000
+    },
+    {
+      "input": "/add-expense 2k shoes",
+      "kept_candidates_paise": [
+        200000
+      ],
+      "expected": "save",
+      "amount_paise": 200000
+    },
+    {
+      "input": "/add-expense 850.50 pharmacy",
+      "kept_candidates_paise": [
+        85050
+      ],
+      "expected": "save",
+      "amount_paise": 85050
+    },
+    {
+      "input": "/add-expense ₹99 spotify",
+      "kept_candidates_paise": [
+        9900
+      ],
+      "expected": "save",
+      "amount_paise": 9900
+    },
+    {
+      "input": "/add-expense electricity bill 3450",
+      "kept_candidates_paise": [
+        345000
+      ],
+      "expected": "save",
+      "amount_paise": 345000
+    },
+    {
+      "input": "/add-expense 850 dinner on 28 sep",
+      "kept_candidates_paise": [
+        85000
+      ],
+      "expected": "save",
+      "amount_paise": 85000
+    },
+    {
+      "input": "/add-expense train to pune 1150 on 24th",
+      "kept_candidates_paise": [
+        115000
+      ],
+      "expected": "save",
+      "amount_paise": 115000
+    },
+    {
+      "input": "/add-expense movie at 7pm 600",
+      "kept_candidates_paise": [
+        60000
+      ],
+      "expected": "save",
+      "amount_paise": 60000
+    },
+    {
+      "input": "/add-expense rent 25000 for october",
+      "kept_candidates_paise": [
+        2500000
+      ],
+      "expected": "save",
+      "amount_paise": 2500000
+    },
+    {
+      "input": "/add-expense ₹15,00,000 car down payment",
+      "kept_candidates_paise": [
+        150000000
+      ],
+      "expected": "save",
+      "amount_paise": 150000000
+    },
+    {
+      "input": "/add-expense 5 crore flat",
+      "kept_candidates_paise": [
+        5000000000
+      ],
+      "expected": "save",
+      "amount_paise": 5000000000
+    },
+    {
+      "input": "/add-expense 3 lakh wedding gift",
+      "kept_candidates_paise": [
+        30000000
+      ],
+      "expected": "save",
+      "amount_paise": 30000000
+    },
+    {
+      "input": "/add-expense ₹40 chai",
+      "kept_candidates_paise": [
+        4000
+      ],
+      "expected": "save",
+      "amount_paise": 4000
+    },
+    {
+      "input": "/add-expense paid 2,100 for groceries",
+      "kept_candidates_paise": [
+        210000
+      ],
+      "expected": "save",
+      "amount_paise": 210000
+    },
+    {
+      "input": "/add-expense gym 1500 monthly",
+      "kept_candidates_paise": [
+        150000
+      ],
+      "expected": "save",
+      "amount_paise": 150000
+    },
+    {
+      "input": "/add-expense bowling with 6 people 2400",
+      "kept_candidates_paise": [
+        240000
+      ],
+      "expected": "save",
+      "amount_paise": 240000
+    },
+    {
+      "input": "/add-expense 2 coffees 180",
+      "kept_candidates_paise": [
+        200,
+        18000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense dinner for 4 at 3200",
+      "kept_candidates_paise": [
+        400,
+        320000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 3 movie tickets 900",
+      "kept_candidates_paise": [
+        300,
+        90000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense paid 500 and 300 for cabs",
+      "kept_candidates_paise": [
+        50000,
+        30000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 120 or 150 for lunch, not sure",
+      "kept_candidates_paise": [
+        12000,
+        15000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense dinner",
+      "kept_candidates_paise": [],
+      "expected": "ask_amount",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense groceries at dmart",
+      "kept_candidates_paise": [],
+      "expected": "ask_amount",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense uber yesterday",
+      "kept_candidates_paise": [],
+      "expected": "ask_amount",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 500",
+      "kept_candidates_paise": [
+        50000
+      ],
+      "expected": "ask_description",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense ₹1,200",
+      "kept_candidates_paise": [
+        120000
+      ],
+      "expected": "ask_description",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 2k yesterday",
+      "kept_candidates_paise": [
+        200000
+      ],
+      "expected": "ask_description",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense $20 lunch in Singapore",
+      "kept_candidates_paise": [],
+      "expected": "refuse_currency",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 20 USD uber",
+      "kept_candidates_paise": [],
+      "expected": "refuse_currency",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense €15 museum",
+      "kept_candidates_paise": [],
+      "expected": "refuse_currency",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense AED 40 taxi",
+      "kept_candidates_paise": [],
+      "expected": "refuse_currency",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 30 dollars books",
+      "kept_candidates_paise": [],
+      "expected": "refuse_currency",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense ₹1,200 concert tickets next Saturday",
+      "kept_candidates_paise": [
+        120000
+      ],
+      "expected": "ask_date",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense 900 flight tomorrow",
+      "kept_candidates_paise": [
+        90000
+      ],
+      "expected": "ask_date",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense ₹600 movie last friday",
+      "kept_candidates_paise": [
+        60000
+      ],
+      "expected": "save",
+      "amount_paise": 60000
+    },
+    {
+      "input": "/add-expense 750 dinner on monday",
+      "kept_candidates_paise": [
+        75000
+      ],
+      "expected": "save",
+      "amount_paise": 75000
+    },
+    {
+      "input": "/add-expense one fifty for chai",
+      "kept_candidates_paise": [],
+      "expected": "ask_amount",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense ₹ 850 dinner",
+      "kept_candidates_paise": [
+        85000
+      ],
+      "expected": "save",
+      "amount_paise": 85000
+    },
+    {
+      "input": "/add-expense 850rs dinner",
+      "kept_candidates_paise": [
+        85000
+      ],
+      "expected": "save",
+      "amount_paise": 85000
+    },
+    {
+      "input": "/add-expense INR 1200 shoes",
+      "kept_candidates_paise": [
+        120000
+      ],
+      "expected": "save",
+      "amount_paise": 120000
+    },
+    {
+      "input": "/add-expense 10,000 phone repair",
+      "kept_candidates_paise": [
+        1000000
+      ],
+      "expected": "save",
+      "amount_paise": 1000000
+    },
+    {
+      "input": "/add-expense 0.5k parking",
+      "kept_candidates_paise": [
+        50000
+      ],
+      "expected": "save",
+      "amount_paise": 50000
+    },
+    {
+      "input": "/add-expense room 101 hotel 4500",
+      "kept_candidates_paise": [
+        10100,
+        450000
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    },
+    {
+      "input": "/add-expense iphone 15 case 999",
+      "kept_candidates_paise": [
+        1500,
+        99900
+      ],
+      "expected": "ask_amount_choice",
+      "amount_paise": null
+    }
+  ]
+}
