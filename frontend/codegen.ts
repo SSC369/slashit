@@ -27,6 +27,9 @@ const config: CodegenConfig = {
     scalars: {
       DateTime: "string",
       Date: "string",
+      // Whole paise as a decimal string (006 index §4): a number would lose
+      // precision past 2^53, so amounts stay strings until summed as BigInt.
+      Paise: "string",
     },
     // Vite/esbuild's isolatedModules-style transpilation forbids runtime
     // `enum` declarations (tsconfig's erasableSyntaxOnly). Union string

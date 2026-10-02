@@ -3,7 +3,12 @@
 import uuid
 from datetime import UTC, datetime
 
-from app.domains.capture.interfaces.dtos import MissingField, PendingCaptureDTO
+from app.domains.capture.interfaces.dtos import (
+    ExpenseDraft,
+    ExpenseQuestionKind,
+    MissingField,
+    PendingCaptureDTO,
+)
 from app.domains.memories.public import MemoryCategory
 
 
@@ -57,6 +62,35 @@ class FakePendingCaptureRepository:
             candidate_text=candidate_text,
             candidate_category=candidate_category,
             conflicting_memory_ids=tuple(conflicting_memory_ids),
+        )
+        self.rows[pending_capture.id] = pending_capture
+        return pending_capture
+
+    async def create_pending_expense(
+        self,
+        *,
+        user_id: uuid.UUID,
+        kind: ExpenseQuestionKind,
+        question_text: str,
+        original_input: str,
+        draft: ExpenseDraft,
+        date_words: str | None,
+        replacing_id: uuid.UUID | None,
+    ) -> PendingCaptureDTO:
+        if replacing_id is not None:
+            await self.delete_pending_capture(
+                user_id=user_id, pending_capture_id=replacing_id
+            )
+        pending_capture = PendingCaptureDTO(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            command_name="/add-expense",
+            known_title=date_words,
+            missing_field=kind.value,
+            question_text=question_text,
+            original_input=original_input,
+            asked_at=datetime.now(UTC),
+            expense_draft=draft,
         )
         self.rows[pending_capture.id] = pending_capture
         return pending_capture

@@ -26,6 +26,8 @@ const baseProps = {
   onEditMemory: vi.fn(),
   onOpenMemory: vi.fn(),
   onOpenMemories: vi.fn(),
+  onEditExpense: vi.fn(),
+  onOpenExpense: vi.fn(),
   onForgetSelect: vi.fn(),
   onForgetContinue: vi.fn(),
   onForgetConfirm: vi.fn(),

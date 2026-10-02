@@ -1,0 +1,19 @@
+#import "../../../fragments/ExpenseFields.graphql"
+
+mutation UpdateExpense($id: ID!, $input: UpdateExpenseInput!) {
+  updateExpense(id: $id, input: $input) {
+    __typename
+    ... on Expense {
+      ...ExpenseFields
+    }
+    ... on ExpenseNotFound {
+      message
+    }
+    ... on ExpenseInvalid {
+      message
+      field
+      reason
+      length
+    }
+  }
+}

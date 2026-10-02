@@ -8,6 +8,8 @@ import { gql } from '@apollo/client';
 import { CaptureTurnFieldsFragmentDoc } from '../../../fragments/CaptureTurnFields.generated';
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'EXPENSES_SUMMARISED'
+  | 'EXPENSE_SAVED'
   | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
@@ -23,7 +25,7 @@ export type GetCaptureHistoryQueryVariables = Exact<{
 }>;
 
 
-export type GetCaptureHistoryQuery = { captureHistory: { nextCursor: string | null, items: Array<{ id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string }> } };
+export type GetCaptureHistoryQuery = { captureHistory: { nextCursor: string | null, items: Array<{ id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, resultingExpenseId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string }> } };
 
 
 export const GetCaptureHistoryDocument = gql`

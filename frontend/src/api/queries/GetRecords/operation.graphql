@@ -14,5 +14,19 @@ query GetRecords($filter: RecordsFilterInput) {
     ... on Memory {
       ...MemoryFields
     }
+    # Not ExpenseFields: Memory's `category` and nullable `originalInput`
+    # share this selection set, so the clashing fields are aliased here and
+    # renamed back in the response handler.
+    ... on Expense {
+      id
+      amountPaise
+      description
+      expenseCategory: category
+      spentOn
+      origin
+      expenseOriginalInput: originalInput
+      createdAt
+      updatedAt
+    }
   }
 }

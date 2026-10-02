@@ -9,6 +9,27 @@ import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
 import { SearchResultsFieldsFragmentDoc } from '../../../fragments/SearchResultsFields.generated';
+import { ExpenseFieldsFragmentDoc } from '../../../fragments/ExpenseFields.generated';
+export type ExpenseCategory =
+  | 'BILLS'
+  | 'ENTERTAINMENT'
+  | 'FOOD'
+  | 'HEALTH'
+  | 'OTHER'
+  | 'SHOPPING'
+  | 'TRANSPORT'
+  | 'TRAVEL';
+
+export type ExpenseQuestionKind =
+  | 'AMOUNT'
+  | 'AMOUNT_CHOICE'
+  | 'DATE'
+  | 'DESCRIPTION';
+
+export type ExpenseRefusalReason =
+  | 'DESCRIPTION_TOO_LONG'
+  | 'FOREIGN_CURRENCY';
+
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
@@ -50,6 +71,9 @@ export type AnswerPendingCaptureMutationVariables = Exact<{
 
 
 export type AnswerPendingCaptureMutation = { answerPendingCapture:
+    | { __typename: 'ExpenseQuestionAsked', pendingCaptureId: string, kind: Types.ExpenseQuestionKind, question: string, amountCandidates: Array<string>, readDate: string | null }
+    | { __typename: 'ExpenseRefused', message: string, refusalReason: Types.ExpenseRefusalReason, descriptionLength: number | null }
+    | { __typename: 'ExpenseSaved', expense: { id: string, amountPaise: string, description: string, category: Types.ExpenseCategory, spentOn: string, origin: string, originalInput: string, createdAt: string, updatedAt: string } }
     | { __typename: 'MalformedResult', message: string, reason: string }
     | { __typename: 'MemoriesListed', searchText: string | null, memories: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
     | { __typename: 'MemoryConflictAsked', pendingCaptureId: string, question: string, newText: string, category: Types.MemoryCategory | null, conflicting: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
@@ -137,6 +161,23 @@ export const AnswerPendingCaptureDocument = gql`
       length
       limit
     }
+    ... on ExpenseSaved {
+      expense {
+        ...ExpenseFields
+      }
+    }
+    ... on ExpenseQuestionAsked {
+      pendingCaptureId
+      kind
+      question
+      amountCandidates
+      readDate
+    }
+    ... on ExpenseRefused {
+      message
+      refusalReason: reason
+      descriptionLength: length
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question
@@ -172,4 +213,5 @@ export const AnswerPendingCaptureDocument = gql`
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
 ${MemoryFieldsFragmentDoc}
-${SearchResultsFieldsFragmentDoc}`;
+${SearchResultsFieldsFragmentDoc}
+${ExpenseFieldsFragmentDoc}`;

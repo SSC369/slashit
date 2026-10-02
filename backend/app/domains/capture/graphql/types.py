@@ -6,12 +6,17 @@ here: they cross from ``gateway.public`` directly, per build plan section 7
 corrected 2026-09-13.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 
 import strawberry
 
-from app.domains.capture.interfaces.dtos import CaptureTurnDTO
+from app.domains.capture.interfaces.dtos import (
+    CaptureTurnDTO,
+    ExpenseQuestionKind,
+    ExpenseRefusalReason,
+)
+from app.domains.expenses.public import Expense, Paise
 from app.domains.memories.public import Memory, MemoryCategory, SecretKind
 from app.domains.records.public import Task
 from app.domains.reminders.public import Reminder
@@ -83,6 +88,34 @@ class MemoryDiscarded:
 
 
 @strawberry.type
+class ExpenseSaved:
+    """Epic 006, FR-12: amount, description, category and date, as read."""
+
+    expense: Expense
+
+
+@strawberry.type
+class ExpenseQuestionAsked:
+    """Epic 006, FR-3 to FR-5, FR-8: nothing saved. ``amountCandidates`` are
+    FR-5's chips; ``readDate`` is the future date FR-8 asks to confirm."""
+
+    pending_capture_id: strawberry.ID
+    kind: ExpenseQuestionKind
+    question: str
+    amount_candidates: list[Paise]
+    read_date: date | None
+
+
+@strawberry.type
+class ExpenseRefused:
+    """Epic 006, FR-6 and FR-13: nothing saved; the client keeps the text."""
+
+    message: str
+    reason: ExpenseRefusalReason
+    length: int | None
+
+
+@strawberry.type
 class PendingCaptureNotFound:
     """The conflict was already answered or discarded, from another tab or
     device. This request changed nothing (FR-13)."""
@@ -128,6 +161,9 @@ class CaptureTurnOutcome(Enum):
     MEMORY_CONFLICT_RESOLVED = "memory_conflict_resolved"
     # Epic 005, FR-21.
     SEARCHED = "searched"
+    # Epic 006.
+    EXPENSE_SAVED = "expense_saved"
+    EXPENSES_SUMMARISED = "expenses_summarised"
 
 
 @strawberry.type
@@ -139,6 +175,7 @@ class CaptureTurn:
     resulting_pending_capture_id: strawberry.ID | None
     resulting_reminder_id: strawberry.ID | None
     resulting_memory_id: strawberry.ID | None
+    resulting_expense_id: strawberry.ID | None
     forgotten: bool
     affected_count: int | None
     question_text: str | None
@@ -175,6 +212,11 @@ def capture_turn_dto_to_type(*, turn: CaptureTurnDTO) -> CaptureTurn:
         resulting_memory_id=(
             strawberry.ID(str(turn.resulting_memory_id))
             if turn.resulting_memory_id
+            else None
+        ),
+        resulting_expense_id=(
+            strawberry.ID(str(turn.resulting_expense_id))
+            if turn.resulting_expense_id
             else None
         ),
         forgotten=turn.forgotten,

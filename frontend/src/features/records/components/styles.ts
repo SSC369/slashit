@@ -165,3 +165,24 @@ export const relatedStatusStyles = "flex w-[110px] shrink-0 justify-end";
 export const relatedEmptyStyles = "py-3 text-sm text-foreground-secondary";
 export const relatedEmptyBodyStyles = "mt-0.5 text-[13px] text-foreground-tertiary";
 export const relatedErrorStyles = "flex items-center gap-3 py-3 text-sm text-foreground-secondary";
+
+// Expenses (006 design §6): `.dot.exp`, `.amt`, `RecordsExpenses`, `ExpenseDetail`, `ExpenseEdit`
+export const typeDotExpenseStyles = "h-1.5 w-1.5 shrink-0 rotate-45 rounded-[2px] bg-success";
+export const amountStyles = "whitespace-nowrap font-mono tabular-nums";
+export const amountHeadStyles = "text-right";
+export const amountCellStyles = "text-right font-mono tabular-nums whitespace-nowrap";
+export const expenseDescriptionCellStyles = "font-medium text-foreground";
+export const expenseDetailAmountStyles = "font-serif text-[40px] leading-[1.1] tabular-nums text-foreground";
+export const expenseDetailDescriptionStyles = "mt-1 text-base font-medium text-foreground";
+export const expenseEditGridStyles = "grid grid-cols-[200px_1fr] gap-4";
+export const amountControlPrefixStyles = "mr-1.5 font-mono text-foreground-secondary";
+export const amountControlInputStyles = "w-full border-0 bg-transparent font-mono text-sm tabular-nums text-foreground outline-none";
+export const dateControlStyles = "w-[260px] justify-between";
+export const dateControlButtonStyles = "flex w-full items-center justify-between text-left";
+export const datePopoverStyles = "absolute z-30 mt-1.5";
+export const dateFieldStyles = "relative w-fit";
+export const deleteButtonStyles = "text-destructive";
+export const emptyExampleStyles = "mt-3.5 font-mono text-[13px] text-foreground-tertiary";
+export const expenseEditErrorsStyles = "-mt-2 mb-[18px] flex flex-col gap-1";
+// `DetailStates`: the red border with a red-wash ring.
+export const expenseControlErrorStyles = "border-destructive ring-[3px] ring-destructive-wash";

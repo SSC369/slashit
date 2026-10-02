@@ -19,6 +19,7 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    ADD_EXPENSE_COMMAND,
     CONFLICT_QUESTION,
     FACT_QUESTION,
     KNOWN_COMMANDS,
@@ -32,6 +33,8 @@ from app.domains.capture.constants import (
 )
 from app.domains.capture.interfaces.dtos import (
     CaptureTurnOutcome,
+    ExpenseQuestionAskedDTO,
+    ExpenseRefusedDTO,
     MemoryConflictAskedDTO,
     MissingField,
     NonCommandGuidanceDTO,
@@ -51,10 +54,16 @@ from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
 )
+from app.domains.capture.services.expense_capture import (
+    ExpenseAsk,
+    ExpenseCaptureService,
+    expense_question_asked,
+)
 from app.domains.capture.services.reminder_capture import (
     ReminderCaptureService,
     ReminderNeedsDescription,
 )
+from app.domains.expenses.public import ExpenseDTO
 from app.domains.gateway.public import (
     Extraction,
     ExtractionResult,
@@ -96,6 +105,9 @@ CaptureOutcome = (
     | MemoryConflictAskedDTO
     | SearchResultsDTO
     | SearchTooLongDTO
+    | ExpenseDTO
+    | ExpenseQuestionAskedDTO
+    | ExpenseRefusedDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -120,6 +132,7 @@ class SubmitCaptureInteractor:
         reminder_capture: ReminderCaptureService,
         memory_port: MemoryPort,
         search_port: SearchPort,
+        expense_capture: ExpenseCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -130,6 +143,7 @@ class SubmitCaptureInteractor:
         self.reminder_capture = reminder_capture
         self.memory_port = memory_port
         self.search_port = search_port
+        self.expense_capture = expense_capture
 
     async def submit_capture(self, *, user_id: UUID, raw_input: str) -> CaptureOutcome:
         """Run one capture on behalf of one user.
@@ -167,6 +181,11 @@ class SubmitCaptureInteractor:
 
         if command_name == "/remind":
             return await self._submit_remind(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name == ADD_EXPENSE_COMMAND:
+            return await self._submit_expense(
                 user_id=user_id, argument_text=argument_text, original_input=text
             )
 
@@ -322,6 +341,54 @@ class SubmitCaptureInteractor:
             user_id=user_id, input_text=original_input, outcome="refused"
         )
         return outcome
+
+    async def _submit_expense(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> CaptureOutcome:
+        """Epic 006, FR-1 to FR-15. Reading and deciding is the shared
+        ExpenseCaptureService's; storing a question and a turn is this
+        interactor's."""
+        outcome = await self.expense_capture.capture(
+            user_id=user_id, argument_text=argument_text, original_input=original_input
+        )
+        if isinstance(outcome, ExpenseAsk):
+            return await self._ask_expense_question(
+                user_id=user_id, ask=outcome, original_input=original_input
+            )
+        if isinstance(outcome, ExpenseDTO):
+            await self._record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="expense_saved",
+                resulting_expense_id=outcome.id,
+            )
+            return outcome
+        # A refusal, or one of the gateway's failure members (FR-14).
+        await self._record_turn(
+            user_id=user_id, input_text=original_input, outcome="refused"
+        )
+        return outcome
+
+    async def _ask_expense_question(
+        self, *, user_id: UUID, ask: ExpenseAsk, original_input: str
+    ) -> ExpenseQuestionAskedDTO:
+        pending = await self.pending_capture_repository.create_pending_expense(
+            user_id=user_id,
+            kind=ask.kind,
+            question_text=ask.question,
+            original_input=original_input,
+            draft=ask.draft,
+            date_words=ask.date_words,
+            replacing_id=None,
+        )
+        await self._record_turn(
+            user_id=user_id,
+            input_text=original_input,
+            outcome="question_asked",
+            resulting_pending_capture_id=pending.id,
+            question_text=ask.question,
+        )
+        return expense_question_asked(pending_capture_id=pending.id, ask=ask)
 
     async def _submit_memory(
         self,
@@ -494,6 +561,7 @@ class SubmitCaptureInteractor:
         question_text: str | None = None,
         resulting_reminder_id: UUID | None = None,
         resulting_memory_id: UUID | None = None,
+        resulting_expense_id: UUID | None = None,
     ) -> None:
         """FR-44. A capture-turn write failure never undoes an otherwise
         successful capture: NFR-9's "no capture is lost" binds the task or
@@ -509,6 +577,7 @@ class SubmitCaptureInteractor:
                 answer_text=None,
                 resulting_reminder_id=resulting_reminder_id,
                 resulting_memory_id=resulting_memory_id,
+                resulting_expense_id=resulting_expense_id,
             )
         except Exception:
             logger.exception(

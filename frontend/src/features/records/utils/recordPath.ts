@@ -1,0 +1,28 @@
+import type { RecordRow } from "../../../stores/RecordsStore";
+
+/** Where a row of any record type opens. */
+export const recordPath = (row: RecordRow): string => {
+  switch (row.kind) {
+    case "TASK":
+      return `/records/${row.task.id}`;
+    case "REMINDER":
+      return `/records/reminders/${row.reminder.id}`;
+    case "MEMORY":
+      return `/records/memories/${row.memory.id}`;
+    case "EXPENSE":
+      return `/records/expenses/${row.expense.id}`;
+  }
+};
+
+export const recordId = (row: RecordRow): string => {
+  switch (row.kind) {
+    case "TASK":
+      return row.task.id;
+    case "REMINDER":
+      return row.reminder.id;
+    case "MEMORY":
+      return row.memory.id;
+    case "EXPENSE":
+      return row.expense.id;
+  }
+};

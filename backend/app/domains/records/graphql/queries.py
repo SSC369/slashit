@@ -17,6 +17,7 @@ from app.core.deps import (
     build_list_tasks_interactor,
     build_records_service,
 )
+from app.domains.expenses.public import Expense, ExpenseDTO, expense_dto_to_type
 from app.domains.memories.public import Memory, MemoryDTO, memory_dto_to_type
 from app.domains.records.graphql.errors import RecordNotFound
 from app.domains.records.graphql.inputs import RecordsFilterInput
@@ -32,7 +33,10 @@ from app.graphql.permissions import IsAuthenticated
 
 RecordResult = Annotated[Task | RecordNotFound, strawberry.union("RecordResult")]
 # Epic 003: the All tab lists both record types.
-RecordItem = Annotated[Task | Reminder | Memory, strawberry.union("RecordItem")]
+# Epic 006 adds expenses, with the amount where others show a status (FR-19).
+RecordItem = Annotated[
+    Task | Reminder | Memory | Expense, strawberry.union("RecordItem")
+]
 
 
 def _record_item_to_type(*, item: RecordItemDTO) -> RecordItem:
@@ -40,6 +44,8 @@ def _record_item_to_type(*, item: RecordItemDTO) -> RecordItem:
         return cast(RecordItem, task_dto_to_type(task=item))
     if isinstance(item, MemoryDTO):
         return cast(RecordItem, memory_dto_to_type(memory=item))
+    if isinstance(item, ExpenseDTO):
+        return cast(RecordItem, expense_dto_to_type(expense=item))
     return cast(RecordItem, reminder_dto_to_type(reminder=item))
 
 

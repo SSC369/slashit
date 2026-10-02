@@ -19,6 +19,14 @@ EventType = Literal[
     "search_result_opened",
     "answer_citation_opened",
     "related_opened",
+    # Epic 006, migration 0039.
+    "expense_saved",
+    "expense_summary_viewed",
+    "expense_amount_asked",
+    "expense_currency_refused",
+    "expense_amount_edited",
+    "expense_category_edited",
+    "expense_deleted",
 ]
 
 

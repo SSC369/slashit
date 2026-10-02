@@ -1,6 +1,8 @@
 import { makeAutoObservable } from "mobx";
 
-import type { MemoryCategory, SecretKind } from "../../types.generated";
+import type { ExpenseRefusalReason, MemoryCategory, SecretKind } from "../../types.generated";
+import type { ExpenseQuestionArgs } from "../constants/expenseConstants";
+import type { ExpenseFieldsFragment } from "../fragments/ExpenseFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { SearchResultsFieldsFragment } from "../fragments/SearchResultsFields.generated";
@@ -53,6 +55,20 @@ export type CaptureTurn =
   | { id: string; said: string; status: "searchResults"; results: SearchResultsFieldsFragment }
   | { id: string; said: string; status: "searchTooLong"; length: number; limit: number }
   | { id: string; said: string; status: "memoryModelDown" }
+  /** Epic 006, `Main` and `AmountPick`. */
+  | { id: string; said: string; status: "expenseSaved"; expense: ExpenseFieldsFragment }
+  /** `ExpenseAsk`, `AmountPick`, `DatePick`: one question at a time (FR-15). */
+  | ({ id: string; said: string; status: "expenseQuestion"; answerDraft: string } & ExpenseQuestionArgs)
+  /** `CaptureStates`, FR-6 and FR-13. */
+  | {
+      id: string;
+      said: string;
+      status: "expenseRefused";
+      reason: ExpenseRefusalReason;
+      length: number | null;
+    }
+  /** `CaptureStates`, FR-14. */
+  | { id: string; said: string; status: "expenseModelDown" }
   | {
       id: string;
       said: string;
@@ -89,6 +105,10 @@ const scrubTurn = (turn: CaptureTurn, isGone: (memoryId: string) => boolean): Ca
   }
 };
 
+/** A question still open in the stream. */
+export const isWaiting = (turn: CaptureTurn): boolean =>
+  turn.status === "pending" || turn.status === "memoryConflict" || turn.status === "expenseQuestion";
+
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 type CaptureTurnPatch = DistributiveOmit<CaptureTurn, "id" | "said">;
@@ -122,7 +142,7 @@ export class CaptureStoreModel {
 
   setAnswerDraft(id: string, answerDraft: string): void {
     const turn = this.turns.get(id);
-    if (!turn || turn.status !== "pending") return;
+    if (!turn || (turn.status !== "pending" && turn.status !== "expenseQuestion")) return;
     this.turns.set(id, { ...turn, answerDraft });
   }
 
@@ -140,8 +160,7 @@ export class CaptureStoreModel {
 
   /** "1 question waiting": every question still open in the stream (Q2). */
   get waitingCount(): number {
-    return this.getAll().filter((turn) => turn.status === "pending" || turn.status === "memoryConflict")
-      .length;
+    return this.getAll().filter(isWaiting).length;
   }
 
   /**

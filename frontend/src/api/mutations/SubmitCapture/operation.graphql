@@ -2,6 +2,7 @@
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
+#import "../../../fragments/ExpenseFields.graphql"
 
 mutation SubmitCapture($rawInput: String!) {
   submitCapture(rawInput: $rawInput) {
@@ -62,6 +63,25 @@ mutation SubmitCapture($rawInput: String!) {
     ... on SearchTooLong {
       length
       limit
+    }
+    ... on ExpenseSaved {
+      expense {
+        ...ExpenseFields
+      }
+    }
+    ... on ExpenseQuestionAsked {
+      pendingCaptureId
+      kind
+      question
+      amountCandidates
+      readDate
+    }
+    ... on ExpenseRefused {
+      message
+      # Aliased: MalformedResult's `reason` is a String and MemoryTooLong's
+      # `length` is non-null, and one selection set cannot mix the types.
+      refusalReason: reason
+      descriptionLength: length
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

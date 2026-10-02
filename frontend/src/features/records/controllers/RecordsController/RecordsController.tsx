@@ -16,6 +16,8 @@ import EmptyRecords from "../../components/EmptyRecords";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
+import { recordPath } from "../../utils/recordPath";
+import ExpensesController from "../ExpensesController/ExpensesController";
 import MemoriesController from "../MemoriesController/MemoriesController";
 import RecordsSearchController from "../RecordsSearchController/RecordsSearchController";
 import RemindersController from "../RemindersController/RemindersController";
@@ -29,6 +31,7 @@ const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "TASKS", label: "Tasks" },
   { filter: "REMINDERS", label: "Reminders" },
   { filter: "MEMORIES", label: "Memories" },
+  { filter: "EXPENSES", label: "Expenses" },
 ];
 
 const RecordsController = (): ReactElement => {
@@ -42,7 +45,10 @@ const RecordsController = (): ReactElement => {
   const trimmedSearch = searchText.trim();
   // Epic 005, FR-22: any text in the box moves every tab onto search's own
   // matching; the tab lists below serve only the unsearched view.
-  const isSearching = trimmedSearch !== "";
+  // Epic 006: the Expenses tab has no search until slice 3, so text left in
+  // the box from another tab does not apply there.
+  const isExpensesTab = kindFilter === "EXPENSES";
+  const isSearching = trimmedSearch !== "" && !isExpensesTab;
 
   useEffect(() => {
     // PRD section 8's "weekly actives opening a records view" metric. Fired
@@ -54,8 +60,8 @@ const RecordsController = (): ReactElement => {
 
   const isRemindersTab = kindFilter === "REMINDERS";
   const isMemoriesTab = kindFilter === "MEMORIES";
-  // Both tabs load their own queries; the records query serves All and Tasks.
-  const hasOwnQuery = isRemindersTab || isMemoriesTab;
+  // These tabs load their own queries; the records query serves All and Tasks.
+  const hasOwnQuery = isRemindersTab || isMemoriesTab || isExpensesTab;
 
   // A tab, search or sort change makes the current `apiStatus` stale until a
   // response for the new filter lands. Without this, switching tabs shows a
@@ -118,15 +124,7 @@ const RecordsController = (): ReactElement => {
   };
 
   const handleOpenRecord = (row: RecordRow): void => {
-    if (row.kind === "REMINDER") {
-      navigate(`/records/reminders/${row.reminder.id}`);
-      return;
-    }
-    if (row.kind === "MEMORY") {
-      navigate(`/records/memories/${row.memory.id}`);
-      return;
-    }
-    navigate(`/records/${row.task.id}`);
+    navigate(recordPath(row));
   };
 
   const records = store.records.getVisible();
@@ -166,16 +164,18 @@ const RecordsController = (): ReactElement => {
               ))}
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
-              <div className={RecordsStyles.searchBoxStyles}>
-                <input
-                  className={RecordsStyles.searchInputStyles}
-                  type="text"
-                  placeholder={isMemoriesTab ? "Search memories" : "Search records"}
-                  value={searchText}
-                  maxLength={MAX_SEARCH_LENGTH}
-                  onChange={handleSearchChange}
-                />
-              </div>
+              {!isExpensesTab && (
+                <div className={RecordsStyles.searchBoxStyles}>
+                  <input
+                    className={RecordsStyles.searchInputStyles}
+                    type="text"
+                    placeholder={isMemoriesTab ? "Search memories" : "Search records"}
+                    value={searchText}
+                    maxLength={MAX_SEARCH_LENGTH}
+                    onChange={handleSearchChange}
+                  />
+                </div>
+              )}
               {isSearching && (
                 <Button size="sm" onClick={handleToggleSearchSort}>
                   <ArrowUpDown size={14} />
@@ -190,6 +190,8 @@ const RecordsController = (): ReactElement => {
             <RemindersController />
           ) : isMemoriesTab ? (
             <MemoriesController />
+          ) : isExpensesTab ? (
+            <ExpensesController />
           ) : isTrulyEmpty ? (
             <ReminderListNotice
               icon={<ClipboardList size={24} />}

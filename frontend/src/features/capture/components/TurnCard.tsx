@@ -14,6 +14,13 @@ import {
   MemoryTooLongNote,
 } from "./MemoryCards";
 import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
+import {
+  ExpenseLoadingCard,
+  ExpenseModelDownNote,
+  ExpenseQuestionCard,
+  ExpenseRefusedNote,
+  ExpenseSavedCard,
+} from "./ExpenseCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import {
   SearchLoadingCard,
@@ -39,6 +46,8 @@ interface TurnCardProps {
   onEditMemory: (id: string) => void;
   onOpenMemory: (id: string) => void;
   onOpenMemories: () => void;
+  onEditExpense: (id: string) => void;
+  onOpenExpense: (id: string) => void;
   isResolving?: boolean;
   onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
   onConflictDefer: (id: string, deferred: boolean) => void;
@@ -58,6 +67,9 @@ const MEMORY_SAVE_COMMANDS = new Set(["/remember", "/add-memory"]);
 
 /** A memory lookup: nothing to fill in, so no fields. */
 const MEMORY_READ_COMMANDS = new Set(["/memories"]);
+
+/** Epic 006: an expense save has its own loading copy. */
+const EXPENSE_SAVE_COMMAND = "/add-expense";
 
 /** Epic 005: a search reads records, so its loading card says so. */
 const SEARCH_COMMAND = "/search";
@@ -104,6 +116,8 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onEditMemory,
     onOpenMemory,
     onOpenMemories,
+    onEditExpense,
+    onOpenExpense,
     isResolving = false,
     onConflictAnswer,
     onConflictDefer,
@@ -116,6 +130,7 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     case "loading":
       if (MEMORY_SAVE_COMMANDS.has(commandName(turn.said))) return <MemoryLoadingCard />;
       if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
+      if (commandName(turn.said) === EXPENSE_SAVE_COMMAND) return <ExpenseLoadingCard />;
       if (commandName(turn.said) === SEARCH_COMMAND) {
         const searchText = turn.said.trim().slice(SEARCH_COMMAND.length);
         return <SearchLoadingCard isQuestion={isSearchQuestion(searchText)} />;
@@ -265,6 +280,34 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "memoryModelDown":
       return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;
+
+    case "expenseSaved":
+      return (
+        <ExpenseSavedCard expense={turn.expense} onEditExpense={onEditExpense} onOpenExpense={onOpenExpense} />
+      );
+
+    case "expenseQuestion":
+      return (
+        <ExpenseQuestionCard
+          pendingCaptureId={turn.pendingCaptureId}
+          kind={turn.kind}
+          question={turn.question}
+          amountCandidates={turn.amountCandidates}
+          readDate={turn.readDate}
+          answerDraft={turn.answerDraft}
+          isAnswering={isAnswering}
+          onAnswerDraftChange={(draft) => onAnswerDraftChange(turn.id, draft)}
+          onAnswerSubmit={() => onAnswerSubmit(turn.id)}
+          onAnswer={(answer) => onQuickAnswer(turn.id, answer)}
+          onDiscard={() => onDiscardPending(turn.id)}
+        />
+      );
+
+    case "expenseRefused":
+      return <ExpenseRefusedNote reason={turn.reason} length={turn.length} />;
+
+    case "expenseModelDown":
+      return <ExpenseModelDownNote />;
 
     case "memoryConflict":
       return (

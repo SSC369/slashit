@@ -4,6 +4,7 @@ import {
   Check,
   Clock,
   Eraser,
+  IndianRupee,
   History,
   RotateCw,
   Scale,
@@ -46,6 +47,14 @@ const OUTCOME_PILL: Record<
     icon: <Scale size={12} />,
   },
   SEARCHED: { className: Styles.pillMutedStyles, label: "Searched", icon: <Search size={12} /> },
+  EXPENSE_SAVED: { className: Styles.pillDoneStyles, label: "Expense saved", icon: <IndianRupee size={12} /> },
+  // Slice 2's /expenses; the schema has the outcome already. The design draws
+  // no history row for it, so this label is a placeholder until slice 2.
+  EXPENSES_SUMMARISED: {
+    className: Styles.pillMutedStyles,
+    label: "Expenses summed",
+    icon: <IndianRupee size={12} />,
+  },
 };
 
 /** FR-28: the `/forget` row names the count and nothing typed. */

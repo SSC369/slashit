@@ -1,10 +1,14 @@
 """Data crossing capture's own boundaries. Frozen, never a model instance."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
+from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
+import strawberry
+
+from app.domains.expenses.public import ExpenseCategory
 from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
@@ -16,7 +20,42 @@ MissingField = Literal[
     "memory_conflict",
     # Epic 005, FR-2.
     "search_text",
+    # Epic 006, migration 0038: the four expense questions (AD-6).
+    "expense_amount",
+    "expense_description",
+    "expense_amount_choice",
+    "expense_date",
 ]
+
+
+@strawberry.enum
+class ExpenseQuestionKind(StrEnum):
+    """Epic 006: the four questions, asked in this order (build plan §5)."""
+
+    AMOUNT = "expense_amount"
+    AMOUNT_CHOICE = "expense_amount_choice"
+    DESCRIPTION = "expense_description"
+    DATE = "expense_date"
+
+
+@strawberry.enum
+class ExpenseRefusalReason(StrEnum):
+    """FR-6 and FR-13. Slice 2 adds PERIOD_NOT_UNDERSTOOD."""
+
+    FOREIGN_CURRENCY = "foreign_currency"
+    DESCRIPTION_TOO_LONG = "description_too_long"
+
+
+@dataclass(frozen=True)
+class ExpenseDraft:
+    """What a `/add-expense` has read so far. Held in ``pending_captures``'
+    typed ``expense_`` columns while a question waits (AD-6)."""
+
+    amount_paise: int | None = None
+    candidates: tuple[int, ...] = ()
+    description: str | None = None
+    category: ExpenseCategory | None = None
+    spent_on: date | None = None
 
 
 @dataclass(frozen=True)
@@ -37,6 +76,9 @@ class PendingCaptureDTO:
     candidate_text: str | None = None
     candidate_category: MemoryCategory | None = None
     conflicting_memory_ids: tuple[UUID, ...] = ()
+    # Epic 006: set only on an expense question. ``known_title`` then holds
+    # the words that gave the date, for FR-8's question (dev log D-1).
+    expense_draft: ExpenseDraft | None = None
 
 
 @dataclass(frozen=True)
@@ -49,6 +91,27 @@ class MemoryConflictAskedDTO:
     text: str
     category: MemoryCategory | None
     conflicting: list[MemoryDTO]
+
+
+@dataclass(frozen=True)
+class ExpenseQuestionAskedDTO:
+    """FR-3 to FR-5, FR-8: nothing saved; one question waits. ``read_date``
+    is set on a DATE question, ``amount_candidates`` on an AMOUNT_CHOICE."""
+
+    pending_capture_id: UUID
+    kind: ExpenseQuestionKind
+    question: str
+    amount_candidates: tuple[int, ...]
+    read_date: date | None
+
+
+@dataclass(frozen=True)
+class ExpenseRefusedDTO:
+    """FR-6, FR-13: nothing saved; the client keeps the text. ``length`` is
+    set for an over-long description."""
+
+    reason: ExpenseRefusalReason
+    length: int | None = None
 
 
 @dataclass(frozen=True)
@@ -80,6 +143,9 @@ CaptureTurnOutcome = Literal[
     "memory_conflict_resolved",
     # Epic 005, migration 0034: the typed line only, never results (FR-21).
     "searched",
+    # Epic 006, migration 0038. `expenses_summarised` is slice 2's.
+    "expense_saved",
+    "expenses_summarised",
 ]
 
 
@@ -103,6 +169,8 @@ class CaptureTurnDTO:
     # Epic 004, sub-plan 4.2: a scrubbed turn, and a `/forget` turn's count.
     forgotten: bool = False
     affected_count: int | None = None
+    # Epic 006, migration 0038.
+    resulting_expense_id: UUID | None = None
 
 
 @dataclass(frozen=True)

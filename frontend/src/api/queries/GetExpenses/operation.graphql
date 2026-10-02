@@ -1,0 +1,7 @@
+#import "../../../fragments/ExpenseFields.graphql"
+
+query GetExpenses($filter: ExpensesFilterInput) {
+  expenses(filter: $filter) {
+    ...ExpenseFields
+  }
+}

@@ -1,6 +1,6 @@
 {
-  "_about": "Epic 006, index section 6, NFR-5. Drafted by Claude on 2026-10-02 for the user to correct, against today 2026-10-02 (Friday). expected is save, ask_amount, ask_amount_choice, ask_description, ask_date or refuse_currency. kept_candidates_paise is what keep_candidates should leave after the model call; amount_paise is the saved amount when expected is save. Scored live by tests/integration/test_expense_eval_live.py; target over 98%. Debatable on purpose: 'room 101 hotel 4500' and 'iphone 15 case 999', where the model may rightly skip the first number ; 'one fifty' written in words asks for the amount, since AD-4 keeps only numbers written in the text.",
-  "status": "draft: awaiting user correction",
+  "_about": "Epic 006, index section 6, NFR-5. Drafted by Claude on 2026-10-02 for the user to correct, against today 2026-10-02 (Friday). expected is save, ask_amount, ask_amount_choice, ask_description, ask_date or refuse_currency. kept_candidates_paise is what keep_candidates should leave after the model call; amount_paise is the saved amount when expected is save. Scored live by tests/integration/test_expense_eval_live.py; target over 98%. Rule, set by the user on 2026-10-02: a count of people or items is a number the amount could be, so the line asks which; a number inside a name ('room 101', 'iphone 15') is never an amount. 'one fifty' written in words asks for the amount, since AD-4 keeps only numbers written in the text.",
+  "status": "approved by user 2026-10-02",
   "cases": [
     {
       "input": "/add-expense ₹850 dinner with friends yesterday",
@@ -173,10 +173,11 @@
     {
       "input": "/add-expense bowling with 6 people 2400",
       "kept_candidates_paise": [
+        600,
         240000
       ],
-      "expected": "save",
-      "amount_paise": 240000
+      "expected": "ask_amount_choice",
+      "amount_paise": null
     },
     {
       "input": "/add-expense 2 coffees 180",
@@ -376,20 +377,18 @@
     {
       "input": "/add-expense room 101 hotel 4500",
       "kept_candidates_paise": [
-        10100,
         450000
       ],
-      "expected": "ask_amount_choice",
-      "amount_paise": null
+      "expected": "save",
+      "amount_paise": 450000
     },
     {
       "input": "/add-expense iphone 15 case 999",
       "kept_candidates_paise": [
-        1500,
         99900
       ],
-      "expected": "ask_amount_choice",
-      "amount_paise": null
+      "expected": "save",
+      "amount_paise": 99900
     }
   ]
 }

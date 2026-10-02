@@ -17,6 +17,7 @@ import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
 import CategoryChips from "../../components/CategoryChips";
 import RecordTable from "../../components/RecordTable";
 import ReminderListNotice from "../../components/ReminderListNotice";
+import { recordPath } from "../../utils/recordPath";
 import * as RecordsStyles from "../../components/styles";
 
 const SEARCH_DEBOUNCE_MS = 250;
@@ -27,6 +28,8 @@ const TAB_RECORD_TYPE: Record<RecordsKindFilter, RecordType | null> = {
   TASKS: "TASK",
   REMINDERS: "REMINDER",
   MEMORIES: "MEMORY",
+  // Search reaches expenses in slice 3; until then the tab has no search box.
+  EXPENSES: null,
 };
 
 const TAB_NOUN: Record<RecordsKindFilter, string> = {
@@ -34,6 +37,7 @@ const TAB_NOUN: Record<RecordsKindFilter, string> = {
   TASKS: "tasks",
   REMINDERS: "reminders",
   MEMORIES: "memories",
+  EXPENSES: "expenses",
 };
 
 type SearchStateType =
@@ -124,9 +128,7 @@ const RecordsSearchController = (): ReactElement => {
 
   const handleOpenRow = (row: RecordRow): void => {
     recordSearchEvent({ kind: "SEARCH_RESULT_OPENED", position: rows.indexOf(row) + 1 });
-    if (row.kind === "REMINDER") navigate(`/records/reminders/${row.reminder.id}`);
-    else if (row.kind === "MEMORY") navigate(`/records/memories/${row.memory.id}`);
-    else navigate(`/records/${row.task.id}`);
+    navigate(recordPath(row));
   };
 
   const chips =

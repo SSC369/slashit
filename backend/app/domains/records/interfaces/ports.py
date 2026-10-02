@@ -6,6 +6,7 @@ Per repo-rules.md section 6, the port belongs to the consumer.
 from typing import Protocol
 from uuid import UUID
 
+from app.domains.expenses.public import ExpenseDTO
 from app.domains.memories.public import MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
@@ -29,6 +30,13 @@ class MemoryRecordsPort(Protocol):
     (epic 004, FR-15). Records orders the merged list itself."""
 
     async def list_memories(self, *, user_id: UUID) -> list[MemoryDTO]: ...
+
+
+class ExpenseRecordsPort(Protocol):
+    """What records needs from expenses: every live expense, for the All tab
+    (epic 006, FR-19). Records orders the merged list itself."""
+
+    async def list_expenses(self, *, user_id: UUID) -> list[ExpenseDTO]: ...
 
 
 class TaskEmbeddingPort(Protocol):

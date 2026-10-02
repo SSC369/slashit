@@ -41,6 +41,8 @@
   --color-red-wash: #fbf0ee;
   --color-green: #2f7a52;
   --color-green-wash: #edf6f1;
+  /* 006 design §6: text on a filled blue day in the calendar. */
+  --color-on-accent: #ffffff;
 
   /* Tier 2: semantics. Named for what they do. Reference tier 1 only. */
   --color-background: var(--color-paper);
@@ -90,6 +92,7 @@
     --color-red-wash: #3a2320;
     --color-green: #6fbf95;
     --color-green-wash: #1e3128;
+    --color-on-accent: #1c1917;
   }
 }
 
@@ -112,6 +115,7 @@
   --color-red-wash: #3a2320;
   --color-green: #6fbf95;
   --color-green-wash: #1e3128;
+  --color-on-accent: #1c1917;
 }
 
 html,

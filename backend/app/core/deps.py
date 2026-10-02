@@ -19,6 +19,7 @@ from app.domains.analytics.repositories.event_repository import SqlEventReposito
 from app.domains.capture.adapters.analytics_event_adapter import (
     CaptureAnalyticsAdapter,
 )
+from app.domains.capture.adapters.expenses_adapter import ExpensesAdapter
 from app.domains.capture.adapters.gateway_extraction_adapter import (
     GatewayExtractionAdapter,
 )
@@ -48,8 +49,16 @@ from app.domains.capture.repositories.capture_turn_repository import (
 from app.domains.capture.repositories.pending_capture_repository import (
     SqlPendingCaptureRepository,
 )
+from app.domains.capture.services.expense_capture import ExpenseCaptureService
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
 from app.domains.capture.services.turn_scrubber import CaptureTurnScrubber
+from app.domains.expenses.adapters.analytics_adapter import ExpenseAnalyticsAdapter
+from app.domains.expenses.interactors.delete_expense import DeleteExpenseInteractor
+from app.domains.expenses.interactors.get_expense import GetExpenseInteractor
+from app.domains.expenses.interactors.list_expenses import ListExpensesInteractor
+from app.domains.expenses.interactors.update_expense import UpdateExpenseInteractor
+from app.domains.expenses.repositories.expense_repository import SqlExpenseRepository
+from app.domains.expenses.services.expense_service import ExpenseService
 from app.domains.gateway.interactors.embed import EmbedInteractor
 from app.domains.gateway.interactors.extract import ExtractInteractor
 from app.domains.gateway.repositories.usage_repository import SqlUsageRepository
@@ -124,6 +133,7 @@ from app.domains.notifications.services.smtp_sender import SmtpEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
+from app.domains.records.adapters.expenses_adapter import ExpenseRecordsAdapter
 from app.domains.records.adapters.gateway_adapter import GatewayTaskEmbeddingAdapter
 from app.domains.records.adapters.memories_adapter import MemoryRecordsAdapter
 from app.domains.records.adapters.reminders_adapter import ReminderRecordsAdapter
@@ -337,6 +347,18 @@ def _build_reminder_capture(*, context: Context) -> ReminderCaptureService:
     )
 
 
+def _build_expense_capture(*, context: Context) -> ExpenseCaptureService:
+    """Epic 006: `/add-expense` and its questions, shared by submit and answer."""
+    return ExpenseCaptureService(
+        expense_port=ExpensesAdapter(expense_service=build_expense_service(context)),
+        extraction=_build_extraction_port(context=context),
+        local_clock=IdentityLocalClockAdapter(
+            identity_service=_build_identity_service(context=context)
+        ),
+        analytics=_build_capture_analytics_port(context=context),
+    )
+
+
 def _build_record_event_interactor(*, context: Context) -> RecordEventInteractor:
     return RecordEventInteractor(event_repository=SqlEventRepository(context.session))
 
@@ -373,6 +395,7 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
         search_port=SearchAdapter(search_service=build_search_service(context)),
+        expense_capture=_build_expense_capture(context=context),
     )
 
 
@@ -387,6 +410,7 @@ def build_answer_pending_capture_interactor(
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
         search_port=SearchAdapter(search_service=build_search_service(context)),
+        expense_capture=_build_expense_capture(context=context),
     )
 
 
@@ -455,6 +479,9 @@ def build_list_tasks_interactor(context: Context) -> ListTasksInteractor:
         ),
         memory_records=MemoryRecordsAdapter(
             memory_service=build_memory_service(context)
+        ),
+        expense_records=ExpenseRecordsAdapter(
+            expense_service=build_expense_service(context)
         ),
     )
 
@@ -896,4 +923,49 @@ def build_record_search_event_interactor(
 ) -> RecordSearchEventInteractor:
     return RecordSearchEventInteractor(
         analytics=_build_search_analytics_port(context=context)
+    )
+
+
+# --- Epic 006: expenses ---
+
+
+def _build_expense_analytics_port(*, session: AsyncSession) -> ExpenseAnalyticsAdapter:
+    return ExpenseAnalyticsAdapter(
+        record_event_interactor=RecordEventInteractor(
+            event_repository=SqlEventRepository(session)
+        )
+    )
+
+
+def build_expense_service(context: Context) -> ExpenseService:
+    """Expenses' published service, for capture's and records' adapters."""
+    return ExpenseService(
+        expense_repository=SqlExpenseRepository(context.session),
+        analytics=_build_expense_analytics_port(session=context.session),
+    )
+
+
+def build_list_expenses_interactor(context: Context) -> ListExpensesInteractor:
+    return ListExpensesInteractor(
+        expense_repository=SqlExpenseRepository(context.session)
+    )
+
+
+def build_get_expense_interactor(context: Context) -> GetExpenseInteractor:
+    return GetExpenseInteractor(
+        expense_repository=SqlExpenseRepository(context.session)
+    )
+
+
+def build_update_expense_interactor(context: Context) -> UpdateExpenseInteractor:
+    return UpdateExpenseInteractor(
+        expense_repository=SqlExpenseRepository(context.session),
+        analytics=_build_expense_analytics_port(session=context.session),
+    )
+
+
+def build_delete_expense_interactor(context: Context) -> DeleteExpenseInteractor:
+    return DeleteExpenseInteractor(
+        expense_repository=SqlExpenseRepository(context.session),
+        analytics=_build_expense_analytics_port(session=context.session),
     )

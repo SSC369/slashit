@@ -52,3 +52,17 @@ export const pageTopbarActionsStyles = "flex items-center gap-1.5";
 export const categoryTagStyles =
   "inline-flex h-[23px] shrink-0 items-center rounded-full border border-border bg-sidebar px-2.5 text-[11.5px] font-medium text-foreground-secondary";
 export const categoryTagNoneStyles = "border-dashed border-border-strong bg-transparent text-foreground-tertiary";
+
+// Calendar (006 design §6, `.cal`): Monday first, today ringed, chosen day filled.
+export const calendarStyles = "w-[300px] shrink-0 rounded-lg border border-border-strong bg-card p-3";
+export const calendarHeadStyles = "mb-2 flex items-center justify-between";
+export const calendarMonthStyles = "text-[13.5px] font-semibold text-foreground";
+export const calendarNavButtonStyles = "w-8 justify-center px-0";
+export const calendarGridStyles = "grid grid-cols-7 gap-0.5 text-center";
+export const calendarWeekdayStyles =
+  "flex h-[22px] items-center justify-center text-[11px] font-semibold text-foreground-tertiary";
+export const calendarDayStyles =
+  "flex h-8 items-center justify-center rounded-[7px] text-[13px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent";
+export const calendarDayOutsideStyles = "text-foreground-tertiary";
+export const calendarDayTodayStyles = "font-semibold shadow-[inset_0_0_0_1.5px_var(--color-line-2)]";
+export const calendarDaySelectedStyles = "bg-accent text-on-accent shadow-none";

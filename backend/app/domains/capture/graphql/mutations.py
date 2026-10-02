@@ -19,6 +19,9 @@ from app.core.deps import (
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
+    ExpenseQuestionAsked,
+    ExpenseRefused,
+    ExpenseSaved,
     MemoriesListed,
     MemoryConflictAsked,
     MemoryDiscarded,
@@ -36,11 +39,20 @@ from app.domains.capture.graphql.types import (
 from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
+    ExpenseQuestionAskedDTO,
+    ExpenseRefusalReason,
+    ExpenseRefusedDTO,
     MemoryConflictAskedDTO,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
     ReminderListDTO,
     UnrecognisedCommandDTO,
+)
+from app.domains.expenses.public import (
+    MAX_DESCRIPTION_LENGTH,
+    ExpenseDTO,
+    Paise,
+    expense_dto_to_type,
 )
 from app.domains.gateway.public import (
     MalformedResult,
@@ -86,6 +98,9 @@ CaptureResult = Annotated[
     | MemoryConflictAsked
     | SearchResults
     | SearchTooLong
+    | ExpenseSaved
+    | ExpenseQuestionAsked
+    | ExpenseRefused
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -105,6 +120,9 @@ def _capture_outcome_to_result(
     memory_result = _memory_outcome_to_result(outcome=outcome)
     if memory_result is not None:
         return memory_result
+    expense_result = _expense_outcome_to_result(outcome=outcome)
+    if expense_result is not None:
+        return expense_result
     if isinstance(outcome, SearchResultsDTO):
         return cast(CaptureResult, search_results_to_type(results=outcome))
     if isinstance(outcome, SearchTooLongDTO):
@@ -204,6 +222,52 @@ def _memory_outcome_to_result(
             ),
         )
     return None
+
+
+def _expense_outcome_to_result(
+    *, outcome: CaptureOutcome | AnswerOutcome
+) -> CaptureResult | None:
+    """Epic 006's three outcomes, or None for any other."""
+    if isinstance(outcome, ExpenseDTO):
+        return cast(
+            CaptureResult, ExpenseSaved(expense=expense_dto_to_type(expense=outcome))
+        )
+    if isinstance(outcome, ExpenseQuestionAskedDTO):
+        return cast(
+            CaptureResult,
+            ExpenseQuestionAsked(
+                pending_capture_id=strawberry.ID(str(outcome.pending_capture_id)),
+                kind=outcome.kind,
+                question=outcome.question,
+                amount_candidates=[
+                    Paise(candidate) for candidate in outcome.amount_candidates
+                ],
+                read_date=outcome.read_date,
+            ),
+        )
+    if isinstance(outcome, ExpenseRefusedDTO):
+        return cast(
+            CaptureResult,
+            ExpenseRefused(
+                message=_expense_refusal_message(refusal=outcome),
+                reason=outcome.reason,
+                length=outcome.length,
+            ),
+        )
+    return None
+
+
+def _expense_refusal_message(*, refusal: ExpenseRefusedDTO) -> str:
+    """Design §8's copy for FR-6 and FR-13."""
+    if refusal.reason == ExpenseRefusalReason.FOREIGN_CURRENCY:
+        return (
+            "Slashit records rupees only for now. Enter the amount in ₹ and it "
+            "will save."
+        )
+    return (
+        f"That description is {refusal.length} characters. "
+        f"It can be up to {MAX_DESCRIPTION_LENGTH}."
+    )
 
 
 ResolveMemoryConflictResult = Annotated[

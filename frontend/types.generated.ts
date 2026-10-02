@@ -11,6 +11,8 @@ export type Scalars = {
   Date: { input: string; output: string; }
   /** Date with time (isoformat) */
   DateTime: { input: string; output: string; }
+  /** An amount in whole paise, as a decimal string. */
+  Paise: { input: string; output: string; }
 };
 
 export type AccountLocked = {
@@ -41,7 +43,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = ExpenseQuestionAsked | ExpenseRefused | ExpenseSaved | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -53,6 +55,7 @@ export type CaptureTurn = {
   inputText: Scalars['String']['output'];
   outcome: CaptureTurnOutcome;
   questionText?: Maybe<Scalars['String']['output']>;
+  resultingExpenseId?: Maybe<Scalars['ID']['output']>;
   resultingMemoryId?: Maybe<Scalars['ID']['output']>;
   resultingPendingCaptureId?: Maybe<Scalars['ID']['output']>;
   resultingReminderId?: Maybe<Scalars['ID']['output']>;
@@ -61,6 +64,8 @@ export type CaptureTurn = {
 
 export type CaptureTurnOutcome =
   | 'DISCARDED'
+  | 'EXPENSES_SUMMARISED'
+  | 'EXPENSE_SAVED'
   | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
@@ -76,7 +81,98 @@ export type ConflictAnswer =
   | 'KEEP_NEW'
   | 'KEEP_OLD';
 
+export type DeleteExpenseResult = ExpenseDeleted | ExpenseNotFound;
+
 export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
+
+export type Expense = {
+  __typename?: 'Expense';
+  amountPaise: Scalars['Paise']['output'];
+  category: ExpenseCategory;
+  createdAt: Scalars['DateTime']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  origin: Scalars['String']['output'];
+  originalInput: Scalars['String']['output'];
+  spentOn: Scalars['Date']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ExpenseCategory =
+  | 'BILLS'
+  | 'ENTERTAINMENT'
+  | 'FOOD'
+  | 'HEALTH'
+  | 'OTHER'
+  | 'SHOPPING'
+  | 'TRANSPORT'
+  | 'TRAVEL';
+
+export type ExpenseDeleted = {
+  __typename?: 'ExpenseDeleted';
+  id: Scalars['ID']['output'];
+};
+
+export type ExpenseField =
+  | 'AMOUNT'
+  | 'DESCRIPTION';
+
+export type ExpenseInvalid = {
+  __typename?: 'ExpenseInvalid';
+  field: ExpenseField;
+  length?: Maybe<Scalars['Int']['output']>;
+  message: Scalars['String']['output'];
+  reason: ExpenseInvalidReason;
+};
+
+export type ExpenseInvalidReason =
+  | 'EMPTY'
+  | 'NOT_POSITIVE'
+  | 'TOO_LONG';
+
+export type ExpenseNotFound = {
+  __typename?: 'ExpenseNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type ExpenseQuestionAsked = {
+  __typename?: 'ExpenseQuestionAsked';
+  amountCandidates: Array<Scalars['Paise']['output']>;
+  kind: ExpenseQuestionKind;
+  pendingCaptureId: Scalars['ID']['output'];
+  question: Scalars['String']['output'];
+  readDate?: Maybe<Scalars['Date']['output']>;
+};
+
+export type ExpenseQuestionKind =
+  | 'AMOUNT'
+  | 'AMOUNT_CHOICE'
+  | 'DATE'
+  | 'DESCRIPTION';
+
+export type ExpenseRefusalReason =
+  | 'DESCRIPTION_TOO_LONG'
+  | 'FOREIGN_CURRENCY';
+
+export type ExpenseRefused = {
+  __typename?: 'ExpenseRefused';
+  length?: Maybe<Scalars['Int']['output']>;
+  message: Scalars['String']['output'];
+  reason: ExpenseRefusalReason;
+};
+
+export type ExpenseResult = Expense | ExpenseNotFound;
+
+export type ExpenseSaved = {
+  __typename?: 'ExpenseSaved';
+  expense: Expense;
+};
+
+export type ExpensesFilterInput = {
+  category?: InputMaybe<ExpenseCategory>;
+  end?: InputMaybe<Scalars['Date']['input']>;
+  start?: InputMaybe<Scalars['Date']['input']>;
+};
 
 export type ForgetMemoryResult = MemoriesForgotten | MemoryNotFound;
 
@@ -199,6 +295,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   answerPendingCapture: CaptureResult;
   completeTask: UpdateTaskResult;
+  deleteExpense: DeleteExpenseResult;
   deleteReminder: DeleteReminderResult;
   deleteTask: Scalars['Int']['output'];
   discardPendingCapture: Scalars['Boolean']['output'];
@@ -212,6 +309,7 @@ export type Mutation = {
   signIn: SignInResult;
   snoozeReminder: ReminderActionResult;
   submitCapture: CaptureResult;
+  updateExpense: UpdateExpenseResult;
   updateMemory: UpdateMemoryResult;
   updateReminder: UpdateReminderResult;
   updateReminderSettings: UpdateReminderSettingsResult;
@@ -227,6 +325,11 @@ export type MutationAnswerPendingCaptureArgs = {
 
 
 export type MutationCompleteTaskArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteExpenseArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -285,6 +388,12 @@ export type MutationSnoozeReminderArgs = {
 
 export type MutationSubmitCaptureArgs = {
   rawInput: Scalars['String']['input'];
+};
+
+
+export type MutationUpdateExpenseArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateExpenseInput;
 };
 
 
@@ -391,6 +500,8 @@ export type Query = {
   __typename?: 'Query';
   apiVersion: Scalars['String']['output'];
   captureHistory: CaptureHistoryPage;
+  expense: ExpenseResult;
+  expenses: Array<Expense>;
   me: Me;
   memories: Array<Memory>;
   memory: MemoryResult;
@@ -410,6 +521,16 @@ export type Query = {
 export type QueryCaptureHistoryArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
+export type QueryExpenseArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryExpensesArgs = {
+  filter?: InputMaybe<ExpensesFilterInput>;
 };
 
 
@@ -461,7 +582,7 @@ export type QuerySettingsArgs = {
   detectedTimezone?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type RecordItem = Memory | Reminder | Task;
+export type RecordItem = Expense | Memory | Reminder | Task;
 
 export type RecordNotFound = {
   __typename?: 'RecordNotFound';
@@ -716,6 +837,15 @@ export type UnrecognisedCommand = {
   attemptedName: Scalars['String']['output'];
   closestMatches: Array<Scalars['String']['output']>;
 };
+
+export type UpdateExpenseInput = {
+  amountPaise?: InputMaybe<Scalars['Paise']['input']>;
+  category?: InputMaybe<ExpenseCategory>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  spentOn?: InputMaybe<Scalars['Date']['input']>;
+};
+
+export type UpdateExpenseResult = Expense | ExpenseInvalid | ExpenseNotFound;
 
 export type UpdateMemoryInput = {
   category?: InputMaybe<MemoryCategory>;
