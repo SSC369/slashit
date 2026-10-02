@@ -53,6 +53,8 @@ from app.domains.expenses.public import (
     ExpenseCategory,
     ExpenseDTO,
     ExpenseFields,
+    ExpenseSummaryDTO,
+    PeriodNotUnderstood,
 )
 from app.domains.gateway.public import (
     Extraction,
@@ -159,6 +161,21 @@ class ExpenseCaptureService:
             original_input=original_input,
             date_words=_read_text(raw=extracted_fields.get("date_words")),
         )
+
+    async def summarise(
+        self, *, user_id: UUID, argument_text: str
+    ) -> ExpenseSummaryDTO | ExpenseRefusedDTO:
+        """FR-23 to FR-27: `/expenses <period>`. Expenses reads the period and
+        sums; no model call and no quota."""
+        outcome = await self.expense_port.summarise_text(
+            user_id=user_id, text=argument_text
+        )
+        if isinstance(outcome, PeriodNotUnderstood):
+            return ExpenseRefusedDTO(
+                reason=ExpenseRefusalReason.PERIOD_NOT_UNDERSTOOD,
+                period_text=outcome.text,
+            )
+        return outcome
 
     async def resume(
         self,

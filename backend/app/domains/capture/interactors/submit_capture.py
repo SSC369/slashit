@@ -21,6 +21,7 @@ import structlog
 from app.domains.capture.constants import (
     ADD_EXPENSE_COMMAND,
     CONFLICT_QUESTION,
+    EXPENSES_COMMAND,
     FACT_QUESTION,
     KNOWN_COMMANDS,
     MAX_INPUT_LENGTH,
@@ -63,7 +64,7 @@ from app.domains.capture.services.reminder_capture import (
     ReminderCaptureService,
     ReminderNeedsDescription,
 )
-from app.domains.expenses.public import ExpenseDTO
+from app.domains.expenses.public import ExpenseDTO, ExpenseSummaryDTO
 from app.domains.gateway.public import (
     Extraction,
     ExtractionResult,
@@ -108,6 +109,7 @@ CaptureOutcome = (
     | ExpenseDTO
     | ExpenseQuestionAskedDTO
     | ExpenseRefusedDTO
+    | ExpenseSummaryDTO
     | PendingCaptureDTO
     | NonCommandGuidanceDTO
     | UnrecognisedCommandDTO
@@ -186,6 +188,11 @@ class SubmitCaptureInteractor:
 
         if command_name == ADD_EXPENSE_COMMAND:
             return await self._submit_expense(
+                user_id=user_id, argument_text=argument_text, original_input=text
+            )
+
+        if command_name == EXPENSES_COMMAND:
+            return await self._summarise_expenses(
                 user_id=user_id, argument_text=argument_text, original_input=text
             )
 
@@ -366,6 +373,25 @@ class SubmitCaptureInteractor:
         # A refusal, or one of the gateway's failure members (FR-14).
         await self._record_turn(
             user_id=user_id, input_text=original_input, outcome="refused"
+        )
+        return outcome
+
+    async def _summarise_expenses(
+        self, *, user_id: UUID, argument_text: str, original_input: str
+    ) -> ExpenseSummaryDTO | ExpenseRefusedDTO:
+        """Epic 006, FR-23 to FR-27. The turn keeps the line, never the
+        totals: history reruns it, as a search's does."""
+        outcome = await self.expense_capture.summarise(
+            user_id=user_id, argument_text=argument_text
+        )
+        await self._record_turn(
+            user_id=user_id,
+            input_text=original_input,
+            outcome=(
+                "expenses_summarised"
+                if isinstance(outcome, ExpenseSummaryDTO)
+                else "refused"
+            ),
         )
         return outcome
 

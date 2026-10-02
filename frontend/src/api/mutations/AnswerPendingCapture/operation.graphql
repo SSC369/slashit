@@ -3,6 +3,7 @@
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
 #import "../../../fragments/ExpenseFields.graphql"
+#import "../../../fragments/ExpenseSummaryFields.graphql"
 
 mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
   answerPendingCapture(pendingCaptureId: $pendingCaptureId, answer: $answer) {
@@ -82,6 +83,9 @@ mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
       # `length` is non-null, and one selection set cannot mix the types.
       refusalReason: reason
       descriptionLength: length
+    }
+    ... on ExpenseSummary {
+      ...ExpenseSummaryFields
     }
     ... on PendingQuestionCreated {
       pendingCaptureId

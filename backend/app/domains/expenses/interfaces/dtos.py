@@ -77,6 +77,61 @@ class ExpenseDTO:
     updated_at: datetime
 
 
+@strawberry.enum(name="ExpensePeriodKey")
+class PeriodKey(StrEnum):
+    """FR-23's periods, and All time from the picker (sub-plan 4.2)."""
+
+    TODAY = "today"
+    THIS_WEEK = "this_week"
+    LAST_WEEK = "last_week"
+    THIS_MONTH = "this_month"
+    LAST_MONTH = "last_month"
+    MONTH = "month"
+    THIS_YEAR = "this_year"
+    ALL_TIME = "all_time"
+
+
+@dataclass(frozen=True)
+class Period:
+    key: PeriodKey
+    # None only for ALL_TIME, which only the picker offers (decision 2A).
+    start: date | None
+    end: date | None  # inclusive
+    label: str  # the card's pill and the band: "September 2026"
+    phrase: str  # FR-26's sentence: "last week", "in September 2026"
+
+
+@dataclass(frozen=True)
+class CategoryTotal:
+    """One category's sum over a range. Never zero: an empty category has no
+    row (FR-25)."""
+
+    category: ExpenseCategory
+    total_paise: int
+    count: int
+
+
+@dataclass(frozen=True)
+class ExpenseSummaryDTO:
+    """FR-23 and FR-18's totals for one range, sub-plan 4.2 §5."""
+
+    label: str
+    phrase: str
+    start: date | None
+    end: date | None
+    category: ExpenseCategory | None
+    totals: list[CategoryTotal]  # largest first, ties in FR-9's order
+    grand_total_paise: int
+    count: int
+
+
+@dataclass(frozen=True)
+class PeriodNotUnderstood:
+    """FR-27: the text after ``/expenses`` is not on FR-23's list."""
+
+    text: str
+
+
 @dataclass(frozen=True)
 class ExpenseChanges:
     """An edit. Every field is optional; None means unchanged (FR-21)."""
@@ -113,4 +168,62 @@ def expense_dto_to_type(*, expense: ExpenseDTO) -> Expense:
         original_input=expense.original_input,
         created_at=expense.created_at,
         updated_at=expense.updated_at,
+    )
+
+
+@strawberry.type
+class ExpensePeriod:
+    """One option of the Records period picker, resolved by the server so it
+    sums exactly as ``/expenses`` does (FR-28, sub-plan 4.2 decision 3A)."""
+
+    key: PeriodKey
+    label: str
+    phrase: str
+    start: date | None
+    end: date | None
+
+
+@strawberry.type
+class ExpenseCategoryTotal:
+    category: ExpenseCategory
+    total_paise: Paise
+
+
+@strawberry.type
+class ExpenseSummary:
+    """FR-18 and FR-23: per-category totals, largest first, for one range."""
+
+    label: str
+    phrase: str
+    start: date | None
+    end: date | None
+    count: int
+    grand_total_paise: Paise
+    totals: list[ExpenseCategoryTotal]
+
+
+def period_to_type(*, period: Period) -> ExpensePeriod:
+    return ExpensePeriod(
+        key=period.key,
+        label=period.label,
+        phrase=period.phrase,
+        start=period.start,
+        end=period.end,
+    )
+
+
+def expense_summary_dto_to_type(*, summary: ExpenseSummaryDTO) -> ExpenseSummary:
+    return ExpenseSummary(
+        label=summary.label,
+        phrase=summary.phrase,
+        start=summary.start,
+        end=summary.end,
+        count=summary.count,
+        grand_total_paise=Paise(summary.grand_total_paise),
+        totals=[
+            ExpenseCategoryTotal(
+                category=total.category, total_paise=Paise(total.total_paise)
+            )
+            for total in summary.totals
+        ],
     )

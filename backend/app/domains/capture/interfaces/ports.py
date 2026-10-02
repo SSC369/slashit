@@ -9,7 +9,12 @@ from datetime import datetime
 from typing import Any, Literal, Protocol
 from uuid import UUID
 
-from app.domains.expenses.public import ExpenseDTO, ExpenseFields
+from app.domains.expenses.public import (
+    ExpenseDTO,
+    ExpenseFields,
+    ExpenseSummaryDTO,
+    PeriodNotUnderstood,
+)
 from app.domains.gateway.public import (
     ExtractionResult,
     MalformedResult,
@@ -151,3 +156,9 @@ class ExpensePort(Protocol):
     async def create_expense(
         self, *, user_id: UUID, fields: ExpenseFields, original_input: str
     ) -> ExpenseDTO: ...
+
+    async def summarise_text(
+        self, *, user_id: UUID, text: str
+    ) -> ExpenseSummaryDTO | PeriodNotUnderstood:
+        """FR-23 to FR-27: `/expenses <period>`, read and summed by expenses."""
+        ...

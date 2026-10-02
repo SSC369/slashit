@@ -33,8 +33,9 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     # memory's detail page only, and `/forget` falls to FR-12's reply.
     # Epic 005, FR-1.
     "/search",
-    # Epic 006, FR-1.
+    # Epic 006, FR-1 and FR-23.
     "/add-expense",
+    "/expenses",
 )
 
 # Epic 005. Like a memory save (AD-7 below), a search is measured on its text,
@@ -127,6 +128,9 @@ REMINDER_EXTRACTION_INSTRUCTION: Final = (
 
 # Epic 006, FR-1.
 ADD_EXPENSE_COMMAND: Final = "/add-expense"
+
+# Epic 006, FR-23. Read by code, no model call (build plan AD-5).
+EXPENSES_COMMAND: Final = "/expenses"
 
 # Index §4. The model lists every number that could be the price; code keeps
 # only those typed (AD-4). Kept terse, for the latency reason at the top of

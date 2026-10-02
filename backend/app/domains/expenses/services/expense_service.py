@@ -12,16 +12,23 @@ from uuid import UUID
 
 import structlog
 
+from app.domains.expenses.constants import EXPENSE_CATEGORIES
 from app.domains.expenses.interfaces.dtos import (
+    CategoryTotal,
     ExpenseCategory,
     ExpenseDTO,
     ExpenseFields,
+    ExpenseSummaryDTO,
+    Period,
+    PeriodKey,
+    PeriodNotUnderstood,
 )
-from app.domains.expenses.interfaces.ports import ExpenseAnalyticsPort
+from app.domains.expenses.interfaces.ports import ExpenseAnalyticsPort, LocalDatePort
 from app.domains.expenses.interfaces.repositories import (
     ExpenseRepository,
     ExpenseWrite,
 )
+from app.domains.expenses.services.periods import parse_period, picker_periods
 
 logger = structlog.get_logger(__name__)
 
@@ -32,9 +39,11 @@ class ExpenseService:
         *,
         expense_repository: ExpenseRepository,
         analytics: ExpenseAnalyticsPort,
+        local_date: LocalDatePort,
     ) -> None:
         self.expense_repository = expense_repository
         self.analytics = analytics
+        self.local_date = local_date
 
     async def create_expense(
         self, *, user_id: UUID, fields: ExpenseFields, original_input: str
@@ -69,6 +78,73 @@ class ExpenseService:
             user_id=user_id, category=category, start=start, end=end
         )
 
+    async def periods(self, *, user_id: UUID) -> list[Period]:
+        """The Records picker's periods, resolved in the user's zone by the
+        parser ``/expenses`` uses (sub-plan 4.2, decision 3A)."""
+        today = await self.local_date.local_today(user_id=user_id)
+        return picker_periods(today=today)
+
+    async def summarise(
+        self,
+        *,
+        user_id: UUID,
+        start: date | None,
+        end: date | None,
+        category: ExpenseCategory | None,
+    ) -> ExpenseSummaryDTO:
+        """FR-18: the Records band's totals for the picked range. The label is
+        the picker period with that range; the client sends no other."""
+        today = await self.local_date.local_today(user_id=user_id)
+        period = _picker_period_for(start=start, end=end, today=today)
+        summary = await self._summarise_period(
+            user_id=user_id, period=period, category=category
+        )
+        await self._record_summary_viewed(user_id=user_id, from_command=False)
+        return summary
+
+    async def summarise_text(
+        self, *, user_id: UUID, text: str
+    ) -> ExpenseSummaryDTO | PeriodNotUnderstood:
+        """FR-23, FR-24 and FR-27: ``/expenses <period>``. No model call."""
+        today = await self.local_date.local_today(user_id=user_id)
+        period = parse_period(text=text, today=today)
+        if period is None:
+            return PeriodNotUnderstood(text=text.strip())
+        summary = await self._summarise_period(
+            user_id=user_id, period=period, category=None
+        )
+        await self._record_summary_viewed(user_id=user_id, from_command=True)
+        return summary
+
+    async def _summarise_period(
+        self, *, user_id: UUID, period: Period, category: ExpenseCategory | None
+    ) -> ExpenseSummaryDTO:
+        totals = await self.expense_repository.sum_by_category(
+            user_id=user_id, start=period.start, end=period.end, category=category
+        )
+        return ExpenseSummaryDTO(
+            label=period.label,
+            phrase=period.phrase,
+            start=period.start,
+            end=period.end,
+            category=category,
+            totals=_largest_first(totals=totals),
+            grand_total_paise=sum(total.total_paise for total in totals),
+            count=sum(total.count for total in totals),
+        )
+
+    async def _record_summary_viewed(
+        self, *, user_id: UUID, from_command: bool
+    ) -> None:
+        """G2's metric. Never fails the summary."""
+        try:
+            await self.analytics.record_summary_viewed(
+                user_id=user_id, from_command=from_command
+            )
+        except Exception:
+            # Broad on purpose: an instrumentation loss is logged, never raised.
+            logger.exception("expenses.event_not_recorded", user_id=str(user_id))
+
     async def _record_saved(self, *, user_id: UUID) -> None:
         """G1's metric. Never fails the save."""
         try:
@@ -78,3 +154,26 @@ class ExpenseService:
         except Exception:
             # Broad on purpose: an instrumentation loss is logged, never raised.
             logger.exception("expenses.event_not_recorded", user_id=str(user_id))
+
+
+def _largest_first(*, totals: list[CategoryTotal]) -> list[CategoryTotal]:
+    """FR-25: largest first; a tie keeps FR-9's category order."""
+    return sorted(
+        totals,
+        key=lambda total: (
+            -total.total_paise,
+            EXPENSE_CATEGORIES.index(total.category.value),
+        ),
+    )
+
+
+def _picker_period_for(*, start: date | None, end: date | None, today: date) -> Period:
+    """The picker period holding this range, for its label. A range the picker
+    never offers is still summed, labelled by its dates."""
+    for period in picker_periods(today=today):
+        if (period.start, period.end) == (start, end):
+            return period
+    label = f"{start} to {end}"
+    return Period(
+        key=PeriodKey.MONTH, start=start, end=end, label=label, phrase=f"from {label}"
+    )

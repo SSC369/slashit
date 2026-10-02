@@ -20,6 +20,7 @@ export const CAPTURE_COMMANDS: CaptureCommand[] = [
   { name: "/add-memory", description: "Save a fact to remember" },
   { name: "/memories", description: "List or look up your memories" },
   { name: "/add-expense", description: "Record an expense" },
+  { name: "/expenses", description: "Totals by category for a period" },
 ];
 
 /** Epic 004, FR-1: two names for one action. */

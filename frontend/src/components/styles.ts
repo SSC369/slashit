@@ -66,3 +66,7 @@ export const calendarDayStyles =
 export const calendarDayOutsideStyles = "text-foreground-tertiary";
 export const calendarDayTodayStyles = "font-semibold shadow-[inset_0_0_0_1.5px_var(--color-line-2)]";
 export const calendarDaySelectedStyles = "bg-accent text-on-accent shadow-none";
+
+// Share bar (006 design §6, `.bar`): a proportion, never a chart.
+export const shareBarTrackStyles = "h-1.5 overflow-hidden rounded-[3px] bg-bar-track";
+export const shareBarFillStyles = "block h-full rounded-[3px] bg-success";

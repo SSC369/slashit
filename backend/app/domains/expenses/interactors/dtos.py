@@ -32,3 +32,11 @@ class UpdateExpenseInputDTO:
 class DeleteExpenseInputDTO:
     user_id: UUID
     expense_id: UUID
+
+
+@dataclass(frozen=True)
+class GetExpenseSummaryInputDTO:
+    user_id: UUID
+    category: ExpenseCategory | None
+    start: date | None
+    end: date | None

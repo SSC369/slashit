@@ -7,7 +7,15 @@ from uuid import UUID
 from zoneinfo import ZoneInfo
 
 from app.domains.capture.services.expense_capture import ExpenseCaptureService
-from app.domains.expenses.public import ExpenseCategory, ExpenseDTO, ExpenseFields
+from app.domains.expenses.interfaces.dtos import CategoryTotal
+from app.domains.expenses.public import (
+    ExpenseCategory,
+    ExpenseDTO,
+    ExpenseFields,
+    ExpenseSummaryDTO,
+    PeriodNotUnderstood,
+)
+from app.domains.expenses.services.periods import parse_period
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 
@@ -45,6 +53,7 @@ class FakeExpensePort:
     def __init__(self) -> None:
         self.saved: list[ExpenseDTO] = []
         self.original_inputs: list[str] = []
+        self.summarised_texts: list[str] = []
 
     async def create_expense(
         self, *, user_id: UUID, fields: ExpenseFields, original_input: str
@@ -64,6 +73,46 @@ class FakeExpensePort:
         self.saved.append(expense)
         self.original_inputs.append(original_input)
         return expense
+
+    async def summarise_text(
+        self, *, user_id: UUID, text: str
+    ) -> ExpenseSummaryDTO | PeriodNotUnderstood:
+        """Reads the period as expenses does and sums what this fake saved,
+        without ordering: the order is expenses' rule, tested there."""
+        self.summarised_texts.append(text)
+        period = parse_period(text=text, today=TODAY)
+        if period is None:
+            return PeriodNotUnderstood(text=text.strip())
+        in_period = [
+            expense
+            for expense in self.saved
+            if expense.user_id == user_id
+            and period.start is not None
+            and period.end is not None
+            and period.start <= expense.spent_on <= period.end
+        ]
+        totals = [
+            CategoryTotal(
+                category=category,
+                total_paise=sum(
+                    expense.amount_paise
+                    for expense in in_period
+                    if expense.category == category
+                ),
+                count=sum(1 for expense in in_period if expense.category == category),
+            )
+            for category in {expense.category for expense in in_period}
+        ]
+        return ExpenseSummaryDTO(
+            label=period.label,
+            phrase=period.phrase,
+            start=period.start,
+            end=period.end,
+            category=None,
+            totals=totals,
+            grand_total_paise=sum(expense.amount_paise for expense in in_period),
+            count=len(in_period),
+        )
 
 
 class FakeLocalClock:

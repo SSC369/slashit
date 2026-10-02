@@ -35,11 +35,22 @@ working tree on `feat/006-expenses`.
 | T-1.13 | 4.1 | Design deltas in styles | done | `.dot.exp`, `.amt`, `.choicechip`, `.cal` as Tailwind classes; `--color-on-accent` in all three token blocks. Dark checked in T-1.15 |
 | T-1.15 | 4.1 | Browser pass, light and dark | done, differences below | Worktree on ports 8006 and 4173 against `slashit_006_test`, signed in as the user's dev account |
 | T-1.9 | 4.1 | Boundary and redaction tests | done | C-17 passes through GraphQL and under RLS alone; C-18 passes |
+| T-2.1 | 4.2 | `periods.py` | done | C-22 to C-26 pass, 22 cases |
+| T-2.2 | 4.2 | `LocalDatePort` adapter, grouped sum, `summarise`, `periods` | done | Unit C-27, C-28. `Period` and `PeriodKey` live in `interfaces/dtos.py` so the GraphQL types do not import `services/`. Closes D-5 |
+| T-2.3 | 4.2 | `expensePeriods`, `expenseSummary` | done | Integration C-27, C-28 against PostgreSQL |
+| T-2.4 | 4.2 | `/expenses` in capture | done | C-29, C-32. `ExpensePort` gains `summarise_text`; no new interactor collaborator |
+| T-2.5 | 4.2 | Boundary and load tests | done | C-30 passes. C-31, local PostgreSQL, 5,000 expenses, This year, 50 calls each: `expenseSummary` p50 11 ms, p95 13 ms; `expenses` p50 77 ms, p95 86 ms. NFR-3 under 1 s |
+| T-2.6 | 4.2 | Frontend data layer and store | done | No codegen clash; `ExpenseSummary` needed no aliases |
+| T-2.7 | 4.2 | Summary card, empty form, refusal note, loading, history row | done | F-6, F-7 |
+| T-2.8 | 4.2 | Period picker, band, Expenses tab states, Open in Records | done | F-8 to F-10. The band shows only totals whose range matches the picked period |
+| T-2.9 | 4.2 | Design deltas | done | `--color-bar-track` in all three token blocks; dark checked in T-2.10 |
+| T-2.10 | 4.2 | Browser pass | done, differences below | `ExpenseDiscovery`, `DarkSummary`, `SummaryStates` (empty, not understood), `DarkRecordsExpenses`, `RecordsExpenses`, `ExpensesStates` (empty period). `/expenses` and the band both read ₹3,680 for October |
 | T-1.10 | 4.1 | Frontend data layer | done | `schema.graphql` re-exported; `ExpenseFields`, four operation folders, three union members in both capture mutations, `ExpensesStore`, `money.ts`, `Paise` mapped to `string` in codegen. F-3 passes |
 | T-1.11 | 4.1 | `DatePicker` and the capture cards | done | `ExpenseCards.tsx`, `src/components/DatePicker.tsx`, `utils/localDate.ts`; four new turn statuses in `CaptureStore`. F-1, F-2 pass, plus five controller cases |
 | T-1.12 | 4.1 | Expenses tab, All rows, detail, edit, delete | done | `ExpensesController`, `ExpenseDetailController`, `ExpenseTable`, `ExpenseEditForm`, `ExpenseDetailView`, `ExpenseCategoryChips`, `EmptyExpenses`; routes; expense rows in All, related and search rows. F-4, F-5 pass |
 
-Frontend on 2026-10-02, after T-1.10 to T-1.12: 328 tests in 62 files pass;
+Frontend on 2026-10-02, after slice 2: 344 tests in 65 files pass. After
+slice 1 it was 328 tests in 62 files;
 `tsc -b`, `vite build` and `oxlint` are clean (one existing warning in
 `main.tsx`).
 
@@ -102,6 +113,12 @@ one wrong case in 50 fails the target. NFR-4's misses repeat across runs:
 
 | # | Sub-plan | Task | Blocked on |
 |---|---|---|---|
+| E-1 | 4.1 | Fix: a malformed id (`/records/expenses/abc`) raises `badly formed hexadecimal UUID string` in `expense`, `updateExpense` and `deleteExpense`; it should read as `ExpenseNotFound`. The same `UUID(str(id_))` pattern is in memories, reminders, records and search | Nothing. Test: `test_a_malformed_id_reads_as_not_found` |
+| E-2 | 4.1 | Fix: an amount past `bigint` (about 9.2 × 10^18 paise) reaches PostgreSQL and fails as a raw `DataError`, on save and on edit. Refuse it as a typed result instead; FR-2's "no limit" needs a stated storage ceiling, user to confirm | User: the ceiling's wording. Test: `test_an_amount_past_the_storage_limit_is_refused_not_a_server_error` |
+| E-3 | 4.1 | Fix: an `/add-expense` line over 001's 500-character cap raises `capture input exceeds 500 characters`, shown raw, where FR-13 promises the typed long-description refusal. Give `/add-expense` the 1,000 outer guard memory and search use, so FR-13 judges the description | Nothing. Test: `test_a_long_expense_line_is_refused_as_a_long_description` |
+| E-4 | 4.1 | Fix: the edit form counts a description in UTF-16 units (`"😀".length` is 2), the server in characters, so 101 emoji are blocked in the browser though the server accepts 200. Count with `[...text].length` | Nothing. The server side passes `test_a_description_is_measured_in_characters_not_bytes` |
+| E-5 | 4.1 | Decide: answering the amount-choice question by API with digits equal to a candidate's paise, such as `18000` meaning ₹18,000, saves the candidate, ₹180. The browser sends only chips, so no user reaches it today | User: keep, or make chips send a marker |
+| E-6 | 4.1, 4.2 | Finish the edge-case pass: frontend tests, then a browser pass for long descriptions in every view, very large amounts in card, band and detail, all eight categories in the band and the card, a malformed and a deleted detail URL, back navigation after delete, the edit form's odd inputs (`.5`, `1,2,3`, empty), the calendar across a year, Escape on the period menu, two questions waiting at once, and reload with a question open | E-1 to E-4 first, so the pass sees the fixes |
 | — | 4.1 | NFR-2 at p95 over a real sample | Six live model calls in T-1.15 took 1.6 s to 3.3 s; not enough for a p95 |
 | — | 4.1 | Update `index.md`'s 006 row | End of slice 1 |
 | — | 4.2 | Draft sub-plan 4.2, summaries, then build it | Slice 1 |
@@ -128,6 +145,35 @@ component test.
 | `ExpenseAsk`, `ExpenseEdit` | Primary buttons and the selected segment use white text on blue in dark; the design uses `#1c1917` | Existing `Button` and segment styles, app-wide |
 | `RecordsExpenses` | No band, period picker or search box | Slices 2 and 3; D-12 |
 
+## Edge-case pass, 2026-10-02, in progress
+
+Asked by the user: test every UI and functional edge case. Stopped part way
+when the session ended; the rest is E-6.
+
+`backend/tests/integration/test_expense_edge_cases.py` is new and runs against
+local PostgreSQL with only the model faked. Ten of its sixteen cases pass; the
+six failures are E-1 (four ids), E-2 and E-3 above. They are left failing on
+purpose until fixed.
+
+| Passes | Case |
+|---|---|
+| ✓ | ₹10,00,00,00,00,00,000, 10^16 paise and past 2^53, saves and sums exactly through GraphQL |
+| ✓ | `<script>`, `&` and emoji in a description come back as typed |
+| ✓ | 200 emoji fit a description; 201 are `TOO_LONG` with length 201; whitespace only is `EMPTY` |
+| ✓ | An edit to 0 or −500 paise is `ExpenseInvalid`, `NOT_POSITIVE` |
+| ✓ | Period edges are inclusive; the day before and after last month do not count; the last day of this month, still ahead, does |
+| ✓ | `/expenses   LAST   Month  ` reads; `/EXPENSES` is an unknown command, as every command name is matched exactly |
+| ✓ | A deleted expense cannot be edited, deleted again, listed or counted |
+
+## Browser pass, slice 2, 2026-10-02
+
+| Artboard | Difference | Action |
+|---|---|---|
+| `RecordsExpenses` | The period menu's 19 options run past its 360 px height | The menu uses the `scroll` class, which exists on `main` (`4d0b14a`) but not on this branch. Fixed by merging `main` |
+| `RecordsExpenses` | The band's label "Spent · October 2026 so far" wraps to two lines in its 210 px cell | Open, minor |
+| `ExpensesStates` | A new user on this month sees "No expenses recorded this month", not "No expenses yet"; the example command shows on All time | The tab knows only the picked period's count. Open, minor |
+| `SummaryStates` | The summary card's history row reruns the line, as a search's does | No artboard draws it; follows 005 |
+
 ## Deviations from the plan
 
 None of these is approved yet.
@@ -149,6 +195,8 @@ None of these is approved yet.
 | D-13 | 2026-10-02 | `AmountPick` draws the chosen amount as a new turn above the saved card | The answer replaces the question card in place, as every 001 to 004 question does | One answer flow for every command. Logged for T-1.15's comparison |
 | D-14 | 2026-10-02 | — | Records shows the amount-choice card with chips only, no typed field | `AmountPick` draws none. The server still accepts a typed amount |
 | D-15 | 2026-10-02 | — | The Expenses tab shows the offline note over loaded rows, as the Reminders tab does | `ExpensesStates` draws it; the plan's file list did not name it |
+| D-16 | 2026-10-02 | 4.2 §4: `PeriodNotUnderstood` mapped in capture | Expenses returns `PeriodNotUnderstood`; capture turns it into `ExpenseRefusedDTO(PERIOD_NOT_UNDERSTOOD, period_text)` | As planned; recorded because `ExpenseRefusedDTO` gained `period_text` for FR-27's quote |
+| D-17 | 2026-10-02 | 4.2 §4 lists no `pyproject.toml` change | A `slow` pytest marker for C-31 | `--strict-markers` rejects an unregistered marker |
 
 ## Deferred
 

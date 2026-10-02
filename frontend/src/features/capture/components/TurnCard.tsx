@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 
 import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
+import type { ExpenseSummaryFieldsFragment } from "../../../fragments/ExpenseSummaryFields.generated";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
 import type { ConflictAnswer, RecordType } from "../../../../types.generated";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
@@ -20,6 +21,9 @@ import {
   ExpenseQuestionCard,
   ExpenseRefusedNote,
   ExpenseSavedCard,
+  ExpenseSummaryCard,
+  ExpenseSummaryLoadingCard,
+  PeriodNotUnderstoodNote,
 } from "./ExpenseCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import {
@@ -48,6 +52,7 @@ interface TurnCardProps {
   onOpenMemories: () => void;
   onEditExpense: (id: string) => void;
   onOpenExpense: (id: string) => void;
+  onOpenExpenseSummary: (summary: ExpenseSummaryFieldsFragment) => void;
   isResolving?: boolean;
   onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
   onConflictDefer: (id: string, deferred: boolean) => void;
@@ -70,6 +75,9 @@ const MEMORY_READ_COMMANDS = new Set(["/memories"]);
 
 /** Epic 006: an expense save has its own loading copy. */
 const EXPENSE_SAVE_COMMAND = "/add-expense";
+
+/** Epic 006 FR-23: a summary adds up, so its loading card says so. */
+const EXPENSE_SUMMARY_COMMAND = "/expenses";
 
 /** Epic 005: a search reads records, so its loading card says so. */
 const SEARCH_COMMAND = "/search";
@@ -118,6 +126,7 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onOpenMemories,
     onEditExpense,
     onOpenExpense,
+    onOpenExpenseSummary,
     isResolving = false,
     onConflictAnswer,
     onConflictDefer,
@@ -131,6 +140,7 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
       if (MEMORY_SAVE_COMMANDS.has(commandName(turn.said))) return <MemoryLoadingCard />;
       if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
       if (commandName(turn.said) === EXPENSE_SAVE_COMMAND) return <ExpenseLoadingCard />;
+      if (commandName(turn.said) === EXPENSE_SUMMARY_COMMAND) return <ExpenseSummaryLoadingCard />;
       if (commandName(turn.said) === SEARCH_COMMAND) {
         const searchText = turn.said.trim().slice(SEARCH_COMMAND.length);
         return <SearchLoadingCard isQuestion={isSearchQuestion(searchText)} />;
@@ -308,6 +318,12 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "expenseModelDown":
       return <ExpenseModelDownNote />;
+
+    case "expenseSummary":
+      return <ExpenseSummaryCard summary={turn.summary} onOpenInRecords={onOpenExpenseSummary} />;
+
+    case "periodNotUnderstood":
+      return <PeriodNotUnderstoodNote periodText={turn.periodText} />;
 
     case "memoryConflict":
       return (

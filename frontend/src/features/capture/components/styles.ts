@@ -191,3 +191,14 @@ export const datePickSideStyles = "flex flex-col gap-2.5 pt-1";
 export const datePickChosenStyles = "text-[15px] font-medium text-foreground";
 export const datePickHintStyles = "max-w-[260px] text-[12.5px] text-foreground-secondary";
 export const datePickActionsStyles = "mt-1 flex gap-2";
+
+// Summary card (006 `Summary`, `SummaryStates`): `.sum`, `.sumrow`, `.sumtotal`
+export const summaryCountStyles = "ml-auto text-[12.5px] text-foreground-tertiary";
+export const summaryRowsStyles = "pt-1.5 pb-2";
+export const summaryRowStyles = "grid grid-cols-[150px_minmax(0,1fr)_118px] items-center gap-4 px-4 py-[7px] text-sm text-foreground";
+export const summaryAmountStyles = "text-right text-sm";
+export const summaryTotalStyles =
+  "grid grid-cols-[150px_minmax(0,1fr)_118px] gap-4 border-t border-border px-4 py-[11px] text-sm font-semibold text-foreground";
+export const summaryTotalAmountStyles = "text-right text-[15px]";
+export const summaryEmptyBodyStyles = "px-4 py-3 text-[13px] text-foreground-secondary";
+export const summaryCommandStyles = "font-mono text-foreground";

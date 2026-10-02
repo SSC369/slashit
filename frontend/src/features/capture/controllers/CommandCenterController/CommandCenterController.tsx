@@ -17,7 +17,9 @@ import {
   CAPTURE_COMMANDS,
   MEMORY_SAVE_COMMANDS,
 } from "../../../../constants/captureCommands";
+import type { ExpenseSummaryFieldsFragment } from "../../../../fragments/ExpenseSummaryFields.generated";
 import { isWaiting } from "../../../../stores/CaptureStore";
+import { periodIdOf } from "../../../../stores/ExpensesStore";
 import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
@@ -136,9 +138,15 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
     onExpenseQuestionAsked: (question) =>
       captureStore.resolveTurn(turnId, { status: "expenseQuestion", ...question, answerDraft: "" }),
     onExpenseRefused: ({ reason, length }) => {
-      captureStore.resolveTurn(turnId, { status: "expenseRefused", reason, length });
+      if (reason === "PERIOD_NOT_UNDERSTOOD") {
+        const periodText = said.slice(said.indexOf(" ") + 1).trim();
+        captureStore.resolveTurn(turnId, { status: "periodNotUnderstood", periodText });
+      } else {
+        captureStore.resolveTurn(turnId, { status: "expenseRefused", reason, length });
+      }
       restoreInput(said);
     },
+    onExpenseSummary: (summary) => captureStore.resolveTurn(turnId, { status: "expenseSummary", summary }),
     onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
       captureStore.resolveTurn(turnId, { status: "pending", pendingCaptureId, question, answerDraft: "" }),
     onNonCommandGuidance: (originalInput) =>
@@ -372,6 +380,14 @@ const CommandCenterController = (): ReactElement => {
     navigate(`/records/expenses/${id}`);
   };
 
+  // FR-28: the Expenses tab on the card's own period.
+  const handleOpenExpenseSummary = (summary: ExpenseSummaryFieldsFragment): void => {
+    store.expenses.selectPeriod(periodIdOf(summary));
+    store.expenses.setCategoryFilter("ALL");
+    store.records.setKindFilter("EXPENSES");
+    navigate("/records");
+  };
+
   const handleEditExpense = (id: string): void => {
     navigate(`/records/expenses/${id}/edit`);
   };
@@ -477,6 +493,7 @@ const CommandCenterController = (): ReactElement => {
                 onOpenMemories={handleOpenMemories}
                 onEditExpense={handleEditExpense}
                 onOpenExpense={handleOpenExpense}
+                onOpenExpenseSummary={handleOpenExpenseSummary}
                 isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
                 onConflictAnswer={handleConflictAnswer}
                 onConflictDefer={handleConflictDefer}

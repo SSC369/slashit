@@ -43,7 +43,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = ExpenseQuestionAsked | ExpenseRefused | ExpenseSaved | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = ExpenseQuestionAsked | ExpenseRefused | ExpenseSaved | ExpenseSummary | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -108,6 +108,12 @@ export type ExpenseCategory =
   | 'TRANSPORT'
   | 'TRAVEL';
 
+export type ExpenseCategoryTotal = {
+  __typename?: 'ExpenseCategoryTotal';
+  category: ExpenseCategory;
+  totalPaise: Scalars['Paise']['output'];
+};
+
 export type ExpenseDeleted = {
   __typename?: 'ExpenseDeleted';
   id: Scalars['ID']['output'];
@@ -135,6 +141,25 @@ export type ExpenseNotFound = {
   message: Scalars['String']['output'];
 };
 
+export type ExpensePeriod = {
+  __typename?: 'ExpensePeriod';
+  end?: Maybe<Scalars['Date']['output']>;
+  key: ExpensePeriodKey;
+  label: Scalars['String']['output'];
+  phrase: Scalars['String']['output'];
+  start?: Maybe<Scalars['Date']['output']>;
+};
+
+export type ExpensePeriodKey =
+  | 'ALL_TIME'
+  | 'LAST_MONTH'
+  | 'LAST_WEEK'
+  | 'MONTH'
+  | 'THIS_MONTH'
+  | 'THIS_WEEK'
+  | 'THIS_YEAR'
+  | 'TODAY';
+
 export type ExpenseQuestionAsked = {
   __typename?: 'ExpenseQuestionAsked';
   amountCandidates: Array<Scalars['Paise']['output']>;
@@ -152,7 +177,8 @@ export type ExpenseQuestionKind =
 
 export type ExpenseRefusalReason =
   | 'DESCRIPTION_TOO_LONG'
-  | 'FOREIGN_CURRENCY';
+  | 'FOREIGN_CURRENCY'
+  | 'PERIOD_NOT_UNDERSTOOD';
 
 export type ExpenseRefused = {
   __typename?: 'ExpenseRefused';
@@ -166,6 +192,17 @@ export type ExpenseResult = Expense | ExpenseNotFound;
 export type ExpenseSaved = {
   __typename?: 'ExpenseSaved';
   expense: Expense;
+};
+
+export type ExpenseSummary = {
+  __typename?: 'ExpenseSummary';
+  count: Scalars['Int']['output'];
+  end?: Maybe<Scalars['Date']['output']>;
+  grandTotalPaise: Scalars['Paise']['output'];
+  label: Scalars['String']['output'];
+  phrase: Scalars['String']['output'];
+  start?: Maybe<Scalars['Date']['output']>;
+  totals: Array<ExpenseCategoryTotal>;
 };
 
 export type ExpensesFilterInput = {
@@ -501,6 +538,8 @@ export type Query = {
   apiVersion: Scalars['String']['output'];
   captureHistory: CaptureHistoryPage;
   expense: ExpenseResult;
+  expensePeriods: Array<ExpensePeriod>;
+  expenseSummary: ExpenseSummary;
   expenses: Array<Expense>;
   me: Me;
   memories: Array<Memory>;
@@ -526,6 +565,11 @@ export type QueryCaptureHistoryArgs = {
 
 export type QueryExpenseArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryExpenseSummaryArgs = {
+  filter?: InputMaybe<ExpensesFilterInput>;
 };
 
 

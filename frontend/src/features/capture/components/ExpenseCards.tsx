@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   Calendar,
+  CalendarRange,
   Check,
   CircleQuestionMark,
   CircleX,
@@ -12,15 +13,21 @@ import { useState, type ReactElement, type ReactNode } from "react";
 
 import ExpenseCategoryTag from "../../../components/ExpenseCategoryTag";
 import DatePicker from "../../../components/DatePicker";
+import ShareBar from "../../../components/ShareBar";
 import InlineSpinner from "../../../components/InlineSpinner";
 import Skeleton from "../../../components/Skeleton";
 import Button from "../../../design-system/components/Button";
-import { MAX_DESCRIPTION_LENGTH, type ExpenseQuestionArgs } from "../../../constants/expenseConstants";
+import {
+  EXPENSE_CATEGORY_LABEL,
+  MAX_DESCRIPTION_LENGTH,
+  type ExpenseQuestionArgs,
+} from "../../../constants/expenseConstants";
 import type { ExpenseFieldsFragment } from "../../../fragments/ExpenseFields.generated";
+import type { ExpenseSummaryFieldsFragment } from "../../../fragments/ExpenseSummaryFields.generated";
 import type { ExpenseRefusalReason } from "../../../../types.generated";
 import { cn } from "../../../utils/cn";
 import { formatDayLong, formatDayShort, formatSpentOn, todayIso } from "../../../utils/localDate";
-import { formatRupees, spokenRupees } from "../../../utils/money";
+import { formatRupees, shareOf, spokenRupees } from "../../../utils/money";
 import * as Styles from "./styles";
 
 /** `CaptureMoreStates`, loading · saving. */
@@ -101,7 +108,7 @@ export const ExpenseSavedCard = (props: ExpenseSavedCardProps): ReactElement => 
 };
 
 interface ExpenseRefusedNoteProps {
-  reason: ExpenseRefusalReason;
+  reason: Exclude<ExpenseRefusalReason, "PERIOD_NOT_UNDERSTOOD">;
   length: number | null;
 }
 
@@ -319,6 +326,119 @@ const DateAnswer = (props: DateAnswerProps): ReactElement => {
             Back
           </Button>
         </div>
+      </div>
+    </div>
+  );
+};
+
+/** `CaptureMoreStates`, loading · summary. */
+export const ExpenseSummaryLoadingCard = (): ReactElement => (
+  <div className={Styles.cardStyles}>
+    <div className={Styles.cardHeadStyles}>
+      <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+        <Clock size={13} /> Adding up your expenses…
+      </span>
+    </div>
+    <div className={Styles.expenseLoadingBodyStyles}>
+      <Skeleton width="60%" />
+      <Skeleton width="40%" />
+    </div>
+  </div>
+);
+
+/** "Mon 21 Sep to Sun 27 Sep", or one day alone. */
+const rangeText = (start: string | null, end: string | null): string | null => {
+  if (start === null || end === null) return null;
+  return start === end ? formatDayShort(start) : `${formatDayShort(start)} to ${formatDayShort(end)}`;
+};
+
+interface ExpenseSummaryCardProps {
+  summary: ExpenseSummaryFieldsFragment;
+  onOpenInRecords: (summary: ExpenseSummaryFieldsFragment) => void;
+}
+
+/** `Summary` and `SummaryStates` (FR-23 to FR-26): rows largest first, a
+ * share bar each, and the total. An empty period names itself. */
+export const ExpenseSummaryCard = (props: ExpenseSummaryCardProps): ReactElement => {
+  const { summary, onOpenInRecords } = props;
+
+  if (summary.count === 0) {
+    const range = rangeText(summary.start, summary.end);
+    return (
+      <div className={Styles.cardStyles}>
+        <div className={Styles.cardHeadStyles}>
+          <span className={`${Styles.pillBaseStyles} ${Styles.pillMutedStyles}`}>
+            <CalendarRange size={12} /> No expenses recorded {summary.phrase}
+          </span>
+        </div>
+        <div className={Styles.summaryEmptyBodyStyles}>
+          {range !== null && `${range}. `}Record one with{" "}
+          <span className={Styles.summaryCommandStyles}>/add-expense</span>.
+        </div>
+      </div>
+    );
+  }
+
+  const largest = summary.totals[0]?.totalPaise ?? "0";
+  return (
+    <div className={Styles.cardStyles}>
+      <div className={Styles.cardHeadStyles}>
+        <span className={`${Styles.pillBaseStyles} ${Styles.pillDoneStyles}`}>
+          <CalendarRange size={13} /> {summary.label}
+        </span>
+        <span className={Styles.summaryCountStyles}>
+          {summary.count} {summary.count === 1 ? "expense" : "expenses"}
+        </span>
+      </div>
+      <table className="block w-full">
+        <caption className="sr-only">Totals by category, {summary.label}</caption>
+        <tbody className={cn("block", Styles.summaryRowsStyles)}>
+          {summary.totals.map((total) => (
+            <tr key={total.category} className={Styles.summaryRowStyles}>
+              <th scope="row" className="text-left font-normal">
+                {EXPENSE_CATEGORY_LABEL[total.category]}
+              </th>
+              <td>
+                <ShareBar share={shareOf(total.totalPaise, largest)} />
+              </td>
+              <td className={Styles.summaryAmountStyles}>
+                <Amount paise={total.totalPaise} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="block">
+          <tr className={Styles.summaryTotalStyles}>
+            <th scope="row" className="text-left font-semibold">
+              Total
+            </th>
+            <td />
+            <td className={Styles.summaryTotalAmountStyles}>
+              <Amount paise={summary.grandTotalPaise} />
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+      <div className={Styles.cardFootStyles}>
+        <span>Largest first · only your expenses are counted</span>
+        <Button size="sm" onClick={() => onOpenInRecords(summary)}>
+          Open in Records <ArrowRight size={14} />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/** `SummaryStates`, FR-27: the text back in the box, the list to try. */
+export const PeriodNotUnderstoodNote = (props: { periodText: string }): ReactElement => {
+  const { periodText } = props;
+  return (
+    <div role="alert" className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
+      <CircleX size={18} className="shrink-0 text-destructive" />
+      <div className={Styles.expenseNoteTextStyles}>
+        <b>Slashit did not understand “{periodText}”.</b> Try today, this week, last week, this
+        month, last month, a month such as <span className="font-mono">august</span>, or this
+        year.
       </div>
     </div>
   );

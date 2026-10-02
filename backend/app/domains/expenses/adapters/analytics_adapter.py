@@ -16,3 +16,12 @@ class ExpenseAnalyticsAdapter:
         await self.record_event_interactor.record_event(
             dto=RecordEventInputDTO(user_id=user_id, event_type=event_type)
         )
+
+    async def record_summary_viewed(self, *, user_id: UUID, from_command: bool) -> None:
+        await self.record_event_interactor.record_event(
+            dto=RecordEventInputDTO(
+                user_id=user_id,
+                event_type="expense_summary_viewed",
+                properties={"from_command": from_command},
+            )
+        )

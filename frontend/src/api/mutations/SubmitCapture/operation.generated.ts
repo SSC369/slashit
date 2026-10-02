@@ -10,6 +10,7 @@ import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.gen
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
 import { SearchResultsFieldsFragmentDoc } from '../../../fragments/SearchResultsFields.generated';
 import { ExpenseFieldsFragmentDoc } from '../../../fragments/ExpenseFields.generated';
+import { ExpenseSummaryFieldsFragmentDoc } from '../../../fragments/ExpenseSummaryFields.generated';
 export type ExpenseCategory =
   | 'BILLS'
   | 'ENTERTAINMENT'
@@ -28,7 +29,8 @@ export type ExpenseQuestionKind =
 
 export type ExpenseRefusalReason =
   | 'DESCRIPTION_TOO_LONG'
-  | 'FOREIGN_CURRENCY';
+  | 'FOREIGN_CURRENCY'
+  | 'PERIOD_NOT_UNDERSTOOD';
 
 export type MemoryCategory =
   | 'LIFE'
@@ -73,6 +75,7 @@ export type SubmitCaptureMutation = { submitCapture:
     | { __typename: 'ExpenseQuestionAsked', pendingCaptureId: string, kind: Types.ExpenseQuestionKind, question: string, amountCandidates: Array<string>, readDate: string | null }
     | { __typename: 'ExpenseRefused', message: string, refusalReason: Types.ExpenseRefusalReason, descriptionLength: number | null }
     | { __typename: 'ExpenseSaved', expense: { id: string, amountPaise: string, description: string, category: Types.ExpenseCategory, spentOn: string, origin: string, originalInput: string, createdAt: string, updatedAt: string } }
+    | { __typename: 'ExpenseSummary', label: string, phrase: string, start: string | null, end: string | null, count: number, grandTotalPaise: string, totals: Array<{ category: Types.ExpenseCategory, totalPaise: string }> }
     | { __typename: 'MalformedResult', message: string, reason: string }
     | { __typename: 'MemoriesListed', searchText: string | null, memories: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
     | { __typename: 'MemoryConflictAsked', pendingCaptureId: string, question: string, newText: string, category: Types.MemoryCategory | null, conflicting: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
@@ -177,6 +180,9 @@ export const SubmitCaptureDocument = gql`
       refusalReason: reason
       descriptionLength: length
     }
+    ... on ExpenseSummary {
+      ...ExpenseSummaryFields
+    }
     ... on PendingQuestionCreated {
       pendingCaptureId
       question
@@ -213,4 +219,5 @@ export const SubmitCaptureDocument = gql`
 ${ReminderFieldsFragmentDoc}
 ${MemoryFieldsFragmentDoc}
 ${SearchResultsFieldsFragmentDoc}
-${ExpenseFieldsFragmentDoc}`;
+${ExpenseFieldsFragmentDoc}
+${ExpenseSummaryFieldsFragmentDoc}`;

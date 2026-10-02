@@ -6,6 +6,7 @@ from dataclasses import replace
 from datetime import UTC, date, datetime
 
 from app.domains.expenses.interfaces.dtos import (
+    CategoryTotal,
     ExpenseCategory,
     ExpenseChanges,
     ExpenseDTO,
@@ -96,3 +97,24 @@ class FakeExpenseRepository:
             return False
         self.deleted.add(expense_id)
         return True
+
+    async def sum_by_category(
+        self,
+        *,
+        user_id: uuid.UUID,
+        start: date | None,
+        end: date | None,
+        category: ExpenseCategory | None,
+    ) -> list[CategoryTotal]:
+        expenses = await self.list_for_user(
+            user_id=user_id, category=category, start=start, end=end
+        )
+        totals: dict[ExpenseCategory, CategoryTotal] = {}
+        for expense in expenses:
+            held = totals.get(expense.category)
+            totals[expense.category] = CategoryTotal(
+                category=expense.category,
+                total_paise=(held.total_paise if held else 0) + expense.amount_paise,
+                count=(held.count if held else 0) + 1,
+            )
+        return list(totals.values())

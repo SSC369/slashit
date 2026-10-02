@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { RootStore } from "@/stores/RootStore";
 import { StoreProvider } from "@/stores/StoreProvider";
-import { buildExpense } from "@/testing/expenseFixture";
+import { buildExpense, buildExpenseSummary } from "@/testing/expenseFixture";
 import { buildMemory } from "@/testing/memoryFixture";
 import { buildReminder } from "@/testing/reminderFixture";
 import { buildAnsweredResults } from "@/testing/searchFixture";
@@ -421,5 +421,32 @@ describe("CommandCenterController /add-expense", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Slashit could not save this right now.");
     expect(screen.getByPlaceholderText("Type / to begin")).toHaveValue("/add-expense ₹640 pharmacy");
+  });
+
+  it("shows the summary card, and Open in Records picks its period on the Expenses tab (F-10)", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    const summary = buildExpenseSummary();
+    mockTriggerSubmitCapture.mockImplementation((args) => args.onExpenseSummary(summary));
+    const store = new RootStore();
+    renderWithProviders(store);
+
+    runCommand("/expenses last month");
+    fireEvent.click(screen.getByRole("button", { name: /Open in Records/ }));
+
+    expect(store.records.kindFilter).toBe("EXPENSES");
+    expect(store.expenses.periodId).toBe("2026-09-01|2026-09-30");
+  });
+
+  it("refuses a period it cannot read, quoting it and keeping the text (FR-27)", () => {
+    mockUseOnlineStatus.mockReturnValue(true);
+    mockTriggerSubmitCapture.mockImplementation((args) =>
+      args.onExpenseRefused({ message: "not understood", reason: "PERIOD_NOT_UNDERSTOOD", length: null }),
+    );
+    renderWithProviders();
+
+    runCommand("/expenses since diwali");
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Slashit did not understand “since diwali”.");
+    expect(screen.getByPlaceholderText("Type / to begin")).toHaveValue("/expenses since diwali");
   });
 });

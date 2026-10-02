@@ -53,8 +53,17 @@ from app.domains.capture.services.expense_capture import ExpenseCaptureService
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
 from app.domains.capture.services.turn_scrubber import CaptureTurnScrubber
 from app.domains.expenses.adapters.analytics_adapter import ExpenseAnalyticsAdapter
+from app.domains.expenses.adapters.identity_clock_adapter import (
+    IdentityLocalDateAdapter,
+)
 from app.domains.expenses.interactors.delete_expense import DeleteExpenseInteractor
 from app.domains.expenses.interactors.get_expense import GetExpenseInteractor
+from app.domains.expenses.interactors.get_expense_summary import (
+    GetExpenseSummaryInteractor,
+)
+from app.domains.expenses.interactors.list_expense_periods import (
+    ListExpensePeriodsInteractor,
+)
 from app.domains.expenses.interactors.list_expenses import ListExpensesInteractor
 from app.domains.expenses.interactors.update_expense import UpdateExpenseInteractor
 from app.domains.expenses.repositories.expense_repository import SqlExpenseRepository
@@ -942,6 +951,9 @@ def build_expense_service(context: Context) -> ExpenseService:
     return ExpenseService(
         expense_repository=SqlExpenseRepository(context.session),
         analytics=_build_expense_analytics_port(session=context.session),
+        local_date=IdentityLocalDateAdapter(
+            identity_service=_build_identity_service(context=context)
+        ),
     )
 
 
@@ -949,6 +961,18 @@ def build_list_expenses_interactor(context: Context) -> ListExpensesInteractor:
     return ListExpensesInteractor(
         expense_repository=SqlExpenseRepository(context.session)
     )
+
+
+def build_list_expense_periods_interactor(
+    context: Context,
+) -> ListExpensePeriodsInteractor:
+    return ListExpensePeriodsInteractor(expense_service=build_expense_service(context))
+
+
+def build_get_expense_summary_interactor(
+    context: Context,
+) -> GetExpenseSummaryInteractor:
+    return GetExpenseSummaryInteractor(expense_service=build_expense_service(context))
 
 
 def build_get_expense_interactor(context: Context) -> GetExpenseInteractor:

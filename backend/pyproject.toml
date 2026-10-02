@@ -26,6 +26,7 @@ asyncio_mode = "auto"
 addopts = "-q --strict-markers"
 markers = [
     "live: calls the real model provider and spends money. Locally only, per 04.3 Q4",
+    "slow: seeds thousands of rows to measure a latency target. Locally only",
 ]
 
 [tool.mypy]

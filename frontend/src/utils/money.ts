@@ -55,3 +55,10 @@ export const paiseToInput = (paise: string): string => {
 /** NFR-6: totals are the exact sum of stored paise. */
 export const sumPaise = (amounts: readonly string[]): string =>
   amounts.reduce((total, amount) => total + BigInt(amount), 0n).toString();
+
+/** A share of the largest amount, for a bar. Exact BigInt ratios are not
+ * needed for a proportion drawn in pixels. */
+export const shareOf = (paise: string, largestPaise: string): number => {
+  const largest = Number(largestPaise);
+  return largest > 0 ? Number(paise) / largest : 0;
+};

@@ -1,0 +1,12 @@
+fragment ExpenseSummaryFields on ExpenseSummary {
+  label
+  phrase
+  start
+  end
+  count
+  grandTotalPaise
+  totals {
+    category
+    totalPaise
+  }
+}

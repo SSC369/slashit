@@ -4,11 +4,12 @@ import uuid
 from datetime import UTC, date, datetime
 from typing import cast
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
 from app.domains.expenses.interfaces.dtos import (
+    CategoryTotal,
     ExpenseCategory,
     ExpenseChanges,
     ExpenseDTO,
@@ -101,6 +102,41 @@ class SqlExpenseRepository:
             expense.updated_at = datetime.now(UTC)
             await scoped.flush()
             return _expense_to_dto(expense=expense)
+
+    async def sum_by_category(
+        self,
+        *,
+        user_id: uuid.UUID,
+        start: date | None,
+        end: date | None,
+        category: ExpenseCategory | None,
+    ) -> list[CategoryTotal]:
+        # Integer paise summed in PostgreSQL: exact to the paisa (NFR-6, AD-2).
+        query = (
+            select(
+                Expense.category,
+                func.sum(Expense.amount_paise),
+                func.count(Expense.id),
+            )
+            .where(Expense.user_id == user_id, Expense.deleted_at.is_(None))
+            .group_by(Expense.category)
+        )
+        if category is not None:
+            query = query.where(Expense.category == category.value)
+        if start is not None:
+            query = query.where(Expense.spent_on >= start)
+        if end is not None:
+            query = query.where(Expense.spent_on <= end)
+        async with user_transaction(self.session, user_id) as scoped:
+            rows = (await scoped.execute(query)).all()
+            return [
+                CategoryTotal(
+                    category=ExpenseCategory(row_category),
+                    total_paise=int(total_paise),
+                    count=int(row_count),
+                )
+                for row_category, total_paise, row_count in rows
+            ]
 
     async def soft_delete(self, *, user_id: uuid.UUID, expense_id: uuid.UUID) -> bool:
         async with user_transaction(self.session, user_id) as scoped:

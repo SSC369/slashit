@@ -12,8 +12,12 @@ from app.domains.expenses.interfaces.dtos import (
     ExpenseCategory,
     ExpenseDTO,
     ExpenseFields,
+    ExpenseSummary,
+    ExpenseSummaryDTO,
     Paise,
+    PeriodNotUnderstood,
     expense_dto_to_type,
+    expense_summary_dto_to_type,
 )
 from app.domains.expenses.services.expense_service import ExpenseService
 
@@ -25,6 +29,10 @@ __all__ = [
     "ExpenseDTO",
     "ExpenseFields",
     "ExpenseService",
+    "ExpenseSummary",
+    "ExpenseSummaryDTO",
     "Paise",
+    "PeriodNotUnderstood",
     "expense_dto_to_type",
+    "expense_summary_dto_to_type",
 ]

@@ -3,6 +3,7 @@ import { makeAutoObservable } from "mobx";
 import type { ExpenseRefusalReason, MemoryCategory, SecretKind } from "../../types.generated";
 import type { ExpenseQuestionArgs } from "../constants/expenseConstants";
 import type { ExpenseFieldsFragment } from "../fragments/ExpenseFields.generated";
+import type { ExpenseSummaryFieldsFragment } from "../fragments/ExpenseSummaryFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { SearchResultsFieldsFragment } from "../fragments/SearchResultsFields.generated";
@@ -64,11 +65,16 @@ export type CaptureTurn =
       id: string;
       said: string;
       status: "expenseRefused";
-      reason: ExpenseRefusalReason;
+      reason: Exclude<ExpenseRefusalReason, "PERIOD_NOT_UNDERSTOOD">;
       length: number | null;
     }
   /** `CaptureStates`, FR-14. */
   | { id: string; said: string; status: "expenseModelDown" }
+  /** `Summary` and `SummaryStates`, FR-23 to FR-26. Held only while the page
+   * is open; history reruns the line. */
+  | { id: string; said: string; status: "expenseSummary"; summary: ExpenseSummaryFieldsFragment }
+  /** `SummaryStates`, FR-27. */
+  | { id: string; said: string; status: "periodNotUnderstood"; periodText: string }
   | {
       id: string;
       said: string;

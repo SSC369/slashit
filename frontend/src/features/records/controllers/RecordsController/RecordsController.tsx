@@ -13,6 +13,7 @@ import { useStore } from "../../../../stores/StoreProvider";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
 import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
+import ExpensePeriodSelect from "../../components/ExpensePeriodSelect";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
@@ -164,6 +165,13 @@ const RecordsController = (): ReactElement => {
               ))}
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
+              {isExpensesTab && (
+                <ExpensePeriodSelect
+                  periods={store.expenses.periods}
+                  selected={store.expenses.selectedPeriod}
+                  onSelect={store.expenses.selectPeriod}
+                />
+              )}
               {!isExpensesTab && (
                 <div className={RecordsStyles.searchBoxStyles}>
                   <input

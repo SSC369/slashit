@@ -48,11 +48,11 @@ const OUTCOME_PILL: Record<
   },
   SEARCHED: { className: Styles.pillMutedStyles, label: "Searched", icon: <Search size={12} /> },
   EXPENSE_SAVED: { className: Styles.pillDoneStyles, label: "Expense saved", icon: <IndianRupee size={12} /> },
-  // Slice 2's /expenses; the schema has the outcome already. The design draws
-  // no history row for it, so this label is a placeholder until slice 2.
+  // Epic 006 FR-23. The design draws no history row for it, so it follows a
+  // search's: totals are not kept, and the row reruns the line.
   EXPENSES_SUMMARISED: {
     className: Styles.pillMutedStyles,
-    label: "Expenses summed",
+    label: "Expenses totalled",
     icon: <IndianRupee size={12} />,
   },
 };
@@ -72,7 +72,9 @@ interface HistoryRowProps {
 
 const HistoryRow = (props: HistoryRowProps): ReactElement => {
   const { turn, onRunAgain } = props;
+  // A search's results and a summary's totals are not kept: the row reruns.
   const isSearch = turn.outcome === "SEARCHED";
+  const isRerun = isSearch || turn.outcome === "EXPENSES_SUMMARISED";
   // Sub-plan 4.4: a forgotten memory's turns are deleted, so none reach here.
   const pill = OUTCOME_PILL[turn.outcome];
 
@@ -91,9 +93,9 @@ const HistoryRow = (props: HistoryRowProps): ReactElement => {
       {turn.answerText && (
         <div className={Styles.historyDetailStyles}>Answered: {turn.answerText}</div>
       )}
-      {isSearch && (
+      {isRerun && (
         <div className={Styles.historySearchDetailStyles}>
-          <span>Results are not kept.</span>
+          <span>{isSearch ? "Results are not kept." : "Totals are not kept."}</span>
           <Button size="sm" onClick={() => onRunAgain(turn.inputText)}>
             <RotateCw size={13} /> Run again
           </Button>

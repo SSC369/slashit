@@ -43,6 +43,8 @@
   --color-green-wash: #edf6f1;
   /* 006 design §6: text on a filled blue day in the calendar. */
   --color-on-accent: #ffffff;
+  /* 006 design §6: the share bar's track. */
+  --color-bar-track: #f5f1ea;
 
   /* Tier 2: semantics. Named for what they do. Reference tier 1 only. */
   --color-background: var(--color-paper);
@@ -93,6 +95,7 @@
     --color-green: #6fbf95;
     --color-green-wash: #1e3128;
     --color-on-accent: #1c1917;
+    --color-bar-track: #2b2724;
   }
 }
 
@@ -116,6 +119,7 @@
   --color-green: #6fbf95;
   --color-green-wash: #1e3128;
   --color-on-accent: #1c1917;
+  --color-bar-track: #2b2724;
 }
 
 html,

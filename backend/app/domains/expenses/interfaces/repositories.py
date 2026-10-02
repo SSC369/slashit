@@ -6,6 +6,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.domains.expenses.interfaces.dtos import (
+    CategoryTotal,
     ExpenseCategory,
     ExpenseChanges,
     ExpenseDTO,
@@ -51,6 +52,18 @@ class ExpenseRepository(Protocol):
     ) -> ExpenseDTO | None:
         """Apply the set fields to one live expense, or None if there is none.
         A description change clears the vector (index §4)."""
+        ...
+
+    async def sum_by_category(
+        self,
+        *,
+        user_id: UUID,
+        start: date | None,
+        end: date | None,
+        category: ExpenseCategory | None,
+    ) -> list[CategoryTotal]:
+        """Live expenses summed per category over an inclusive range, one row
+        per category with anything in it, in no order."""
         ...
 
     async def soft_delete(self, *, user_id: UUID, expense_id: UUID) -> bool:

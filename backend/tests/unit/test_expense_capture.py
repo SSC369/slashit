@@ -19,7 +19,7 @@ from app.domains.capture.interfaces.dtos import (
     ExpenseRefusedDTO,
 )
 from app.domains.capture.services.expense_capture import ExpenseCaptureService
-from app.domains.expenses.public import ExpenseCategory, ExpenseDTO
+from app.domains.expenses.public import ExpenseCategory, ExpenseDTO, ExpenseSummaryDTO
 from app.domains.gateway.public import Extraction, ExtractionResult, ProviderUnavailable
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
@@ -479,3 +479,52 @@ async def test_unreadable_category_and_date_fall_back(
     assert isinstance(saved, ExpenseDTO)
     assert saved.category == expected_category
     assert saved.spent_on == expected_date
+
+
+# --- Sub-plan 4.2: `/expenses` ---
+
+
+async def test_expenses_sums_the_period_without_a_model_call() -> None:
+    """C-32, FR-23: no model call, no quota, one `expenses_summarised` turn."""
+    harness = Harness(
+        results=[
+            line(amounts=["850"], description="dinner", local_date="2026-10-01"),
+        ]
+    )
+    await harness.type_line("/add-expense ₹850 dinner yesterday")
+    calls_before = len(harness.extraction.calls)
+
+    summary = await harness.type_line("/expenses this month")
+
+    assert isinstance(summary, ExpenseSummaryDTO)
+    assert (summary.label, summary.grand_total_paise, summary.count) == (
+        "October 2026 so far",
+        85_000,
+        1,
+    )
+    assert len(harness.extraction.calls) == calls_before
+    assert [turn.outcome for turn in harness.turns.rows][-1] == "expenses_summarised"
+
+
+async def test_expenses_with_no_period_reads_this_month() -> None:
+    """FR-24."""
+    harness = Harness()
+
+    summary = await harness.type_line("/expenses")
+
+    assert isinstance(summary, ExpenseSummaryDTO)
+    assert summary.label == "October 2026 so far"
+    assert harness.expenses.summarised_texts == [""]
+
+
+async def test_a_period_off_the_list_refuses_and_quotes_it() -> None:
+    """FR-27."""
+    harness = Harness()
+
+    refused = await harness.type_line("/expenses since diwali")
+
+    assert refused == ExpenseRefusedDTO(
+        reason=ExpenseRefusalReason.PERIOD_NOT_UNDERSTOOD, period_text="since diwali"
+    )
+    assert harness.extraction.calls == []
+    assert [turn.outcome for turn in harness.turns.rows] == ["refused"]

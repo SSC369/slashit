@@ -40,10 +40,11 @@ class ExpenseQuestionKind(StrEnum):
 
 @strawberry.enum
 class ExpenseRefusalReason(StrEnum):
-    """FR-6 and FR-13. Slice 2 adds PERIOD_NOT_UNDERSTOOD."""
+    """FR-6, FR-13 and, from slice 2, FR-27."""
 
     FOREIGN_CURRENCY = "foreign_currency"
     DESCRIPTION_TOO_LONG = "description_too_long"
+    PERIOD_NOT_UNDERSTOOD = "period_not_understood"
 
 
 @dataclass(frozen=True)
@@ -112,6 +113,8 @@ class ExpenseRefusedDTO:
 
     reason: ExpenseRefusalReason
     length: int | None = None
+    # FR-27: the period text that was not understood, quoted back.
+    period_text: str | None = None
 
 
 @dataclass(frozen=True)

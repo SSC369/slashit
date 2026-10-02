@@ -51,8 +51,11 @@ from app.domains.capture.interfaces.dtos import (
 from app.domains.expenses.public import (
     MAX_DESCRIPTION_LENGTH,
     ExpenseDTO,
+    ExpenseSummary,
+    ExpenseSummaryDTO,
     Paise,
     expense_dto_to_type,
+    expense_summary_dto_to_type,
 )
 from app.domains.gateway.public import (
     MalformedResult,
@@ -101,6 +104,7 @@ CaptureResult = Annotated[
     | ExpenseSaved
     | ExpenseQuestionAsked
     | ExpenseRefused
+    | ExpenseSummary
     | PendingQuestionCreated
     | NonCommandGuidance
     | UnrecognisedCommand
@@ -227,7 +231,7 @@ def _memory_outcome_to_result(
 def _expense_outcome_to_result(
     *, outcome: CaptureOutcome | AnswerOutcome
 ) -> CaptureResult | None:
-    """Epic 006's three outcomes, or None for any other."""
+    """Epic 006's four outcomes, or None for any other."""
     if isinstance(outcome, ExpenseDTO):
         return cast(
             CaptureResult, ExpenseSaved(expense=expense_dto_to_type(expense=outcome))
@@ -245,6 +249,8 @@ def _expense_outcome_to_result(
                 read_date=outcome.read_date,
             ),
         )
+    if isinstance(outcome, ExpenseSummaryDTO):
+        return cast(CaptureResult, expense_summary_dto_to_type(summary=outcome))
     if isinstance(outcome, ExpenseRefusedDTO):
         return cast(
             CaptureResult,
@@ -258,11 +264,17 @@ def _expense_outcome_to_result(
 
 
 def _expense_refusal_message(*, refusal: ExpenseRefusedDTO) -> str:
-    """Design §8's copy for FR-6 and FR-13."""
+    """Design §8's copy for FR-6, FR-13 and FR-27."""
     if refusal.reason == ExpenseRefusalReason.FOREIGN_CURRENCY:
         return (
             "Slashit records rupees only for now. Enter the amount in ₹ and it "
             "will save."
+        )
+    if refusal.reason == ExpenseRefusalReason.PERIOD_NOT_UNDERSTOOD:
+        return (
+            f"Slashit did not understand “{refusal.period_text}”. Try today, this "
+            "week, last week, this month, last month, a month such as august, "
+            "or this year."
         )
     return (
         f"That description is {refusal.length} characters. "
