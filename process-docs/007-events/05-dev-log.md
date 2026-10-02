@@ -76,6 +76,22 @@ Backend: everything passes except eight, none caused by this slice:
 | D-6 | 2026-10-02 | `RecordsEvents` draws the search box on the Events tab | Hidden on the Events tab, and a search typed on another tab is ignored there | Events are not searchable until slice 2 (FR-30). Showing the box would list other types' matches under Events | — |
 | D-7 | 2026-10-02 | `EmptyEvents.tsx`; error states as a red note inside a card | Empty, error and signed-out use the shared notice card the Reminders tab and tasks already use | One notice component for every Records tab | — |
 | D-8 | 2026-10-02 | Design §6: `.grouphead` dark value | The shared group heading's ground moved from `--color-background` to the new `--color-group-head`, so the Reminders tab's headings change too | Design §6 gives `.grouphead` its own value in both themes, and the light one, `#fbf8f3`, is 003's drawn value | — |
+| D-9 | 2026-10-02 | Index §5 table: `pending_captures.candidate_event` jsonb | No column. The pending question keeps the typed sentence in `known_title`; the answer re-runs extraction on it, with the date appended or the chosen lead kept | The `/remind` pattern already does this, and no schema change is needed. Costs one extra model call per answer | — |
+| D-10 | 2026-10-02 | Index §5 table: analytics types `event_created`, `event_edited`, `event_alert_not_set` in slice 1 | Only `event_created` added in `0038` | Edit and the alert are slice 2; their types land with them | — |
+| D-11 | 2026-10-02 | Index §7, 4.1 §6: `event(id)` returns `null` for a missing or foreign id | Returns the union member `EventNotFound` | Matches reminders' `ReminderNotFound`; errors are data (backend repo rules §8) | — |
+| D-12 | 2026-10-02 | Index §7: a date range whose end cannot follow its start shows the not-saved card | The end is dropped and the event saves as a single day | The not-saved card is drawn for a model outage only; a dropped end is visible in the confirmation | — |
+| D-13 | 2026-10-02 | Not in the design | `/add-event` with no title asks "What is the event?" | Every capture command asks when its subject is missing (001's confirmation model); no artboard draws it | — |
+| D-14 | 2026-10-02 | Build plan §4: `events(include: EventScope = UPCOMING)` | `events(scope: EventScope = UPCOMING)` | Naming only | — |
+
+### Pending
+
+| # | Item | Blocks | Owner |
+|---|---|---|---|
+| P-1 | Review D-1 to D-14 and approve each, or ask for a change | Closing slice 1 | user |
+| P-2 | T-1.13: labelled 60-line set, live extraction and latency run, NFR-1 and NFR-2 | Shipping | Claude, needs a provider key in the build environment |
+| P-3 | T-1.14: browser pass against the canvas, Capture and Records pages | Shipping | Claude, needs a signed-in session against the hosted project |
+| P-4 | Draft sub-plan `04.2-alerts-and-manage.md`: alerts set, fire, re-arm yearly and follow edits; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
+| P-5 | The two `@rls-test.invalid` users left on the hosted database, see Defects | Nothing | user: delete or keep |
 
 ### Defects and incidents
 
@@ -89,3 +105,4 @@ Backend: everything passes except eight, none caused by this slice:
 |---|---|---|---|
 | 2026-10-02 | Created. Slice 1 recorded: T-1.1 to T-1.12 done, T-1.13 and T-1.14 owed, D-1 to D-8 | Slice 1 built | — |
 | 2026-10-02 | Slice 1 committed as `fb0a767` and merged to `main` | User: "commit changes and push to main" | user |
+| 2026-10-02 | D-9 to D-14 logged, found on review; Pending section added | User asked for the pending items in the dev log | user |

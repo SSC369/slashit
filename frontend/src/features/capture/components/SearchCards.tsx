@@ -57,7 +57,8 @@ export const SearchResultsCard = (props: SearchResultsCardProps): ReactElement =
     onOpenRecord(record, { kind: "SEARCH_RESULT_OPENED", position: positions.get(record.id) ?? 1 });
   const strips = (
     <>
-      {results.answerUnavailable && <AnswerUnavailableStrip />}
+      {results.answerUnavailable &&
+        (results.answerLimitReached ? <AnswerLimitStrip /> : <AnswerUnavailableStrip />)}
       {results.meaningUnavailable && <MeaningUnavailableStrip />}
     </>
   );
@@ -371,6 +372,14 @@ const AnswerUnavailableStrip = (): ReactElement => (
       No answer this time: Slashit’s AI model is unavailable right now. Your matching records are
       below. This is temporary.
     </span>
+  </div>
+);
+
+/** Dev log Q7: the answer was refused for the daily allowance, not an outage. */
+const AnswerLimitStrip = (): ReactElement => (
+  <div className={Styles.searchStripStyles}>
+    <AlertTriangle size={14} className="shrink-0" />
+    <span>You have used today’s AI answers. Your matching records are below.</span>
   </div>
 );
 

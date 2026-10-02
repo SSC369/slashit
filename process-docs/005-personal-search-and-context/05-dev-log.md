@@ -63,7 +63,7 @@ targets fail there and are parked by the user, so the feature is not shipped.
 | T-1.10 | 4.1 | Boundary tests | done | C-11 |
 | T-1.11 | 4.1 | Frontend card, palette, TurnCard routing, styles | done | C-16. Not yet compared against the canvas in a running app: T-1.14 |
 | T-1.12 | 4.1 | Frontend history Run again | done | C-17 |
-| T-1.13 | 4.1 | Latency and evaluation runs, thresholds tuned | done | NFR-3, NFR-6 and NFR-7 pass, with `MEANING_MAX_DISTANCE` at 0.48 from 2026-10-02 (Q3). See Live runs |
+| T-1.13 | 4.1 | Latency and evaluation runs, thresholds tuned | done | NFR-3, NFR-6 and NFR-7 pass. `MEANING_MAX_DISTANCE` 0.40 after D-22, 2026-10-02. See Live runs |
 | T-1.14 | 4.1 | Live browser pass against a real project | done | Artboards compared 2026-10-02. `SearchPassport` and the no-match state differ, Q6. See Live runs |
 
 ### Test cases
@@ -80,7 +80,7 @@ targets fail there and are parked by the user, so the feature is not shipped.
 | C-11 | `integration/test_search_boundary.py` | pass, 2: user B searches user A's exact title and its meaning, and gets nothing |
 | C-13 | `test_logging_redaction.py` | pass |
 | C-14 | `integration/test_search_latency_live.py` | pass, 2026-10-02: p95 2.69 s. The 2026-10-01 run's seed timed out |
-| C-15 | `integration/test_search_eval_live.py` | pass at 0.48: word 98%, meaning 87%. At 0.35 it failed, meaning 10% |
+| C-15 | `integration/test_search_eval_live.py` | pass at 0.40 after D-22: word 100%, meaning 90%. Before D-22: 10% at 0.35, 87% at 0.48 |
 | C-16 | `SearchCards.test.tsx`; response handler cases for both new union members | pass |
 | C-17 | `HistoryPanel.test.tsx` | pass |
 
@@ -197,7 +197,7 @@ six approved by the user on 2026-09-30.
 | T-3.6 | 4.3 | Boundary cases | done | C-3.8 |
 | T-3.7 | 4.3 | Frontend records view search | done | C-3.10. D-19, D-20. Not yet compared against the canvas in a running app: T-3.10 |
 | T-3.8 | 4.3 | Frontend related section on three details | done | C-3.11 |
-| T-3.9 | 4.3 | Related latency run; quality run and tuning | done | C-3.12 run here, no key needed: at 3,000 records, median 0.063 s, p95 0.075 s over 20 lists, against the local database. C-3.13 run 2026-10-01 and passes. `RELATED_MAX_DISTANCE` stays 0.30 (Q4). See Live runs |
+| T-3.9 | 4.3 | Related latency run; quality run and tuning | done | C-3.12 at 3,000 records: median 0.063 s, p95 0.075 s, local database. C-3.13 passes; `RELATED_MAX_DISTANCE` 0.20 after D-22, 2026-10-02. See Live runs |
 | T-3.10 | 4.3 | Live browser pass | done | Compared 2026-10-02. See Live runs |
 
 ### Test cases
@@ -212,7 +212,7 @@ six approved by the user on 2026-09-30.
 | C-3.10 | `RecordsController.test.tsx`; `RecordsStore.test.ts`; both new query handlers | pass, 8, 3 and 4 |
 | C-3.11 | `RelatedRecords.test.tsx`; `MemoryDetailController.test.tsx` | pass, 5 and 1 |
 | C-3.12 | `integration/test_search_related_latency.py` | pass, numbers above |
-| C-3.13 | `integration/test_search_related_eval_live.py` | pass: 29 listed at 0.30, all labelled related |
+| C-3.13 | `integration/test_search_related_eval_live.py` | pass at 0.20 after D-22: 55 listed, 80% labelled related, `m-mentor` empty |
 
 ### Deviations from the plan
 
@@ -386,6 +386,39 @@ passport set and the career set, 14 records. Each artboard was opened from
 | 2026-10-01 | The one-off `full=True` backfill was not queued | Claude Code's permission check blocked deferring jobs against the shared project | Queued 2026-10-02 at the user's request. 10 tasks embedded; the reminder and both memories already had vectors |
 | 2026-10-02 | `test_forgetting_a_kept_memory_deletes_its_whole_thread` failed: "Qatar" found in `memories.text` | 12 `@rls-test.invalid` users and their eval records were left by live and suite runs cut off before teardown. The test searches every user's rows | The leftover test users deleted; the test passes |
 
+### Embedding purpose and retuning, 2026-10-02
+
+| # | Planned | Actual | Why | Approved by |
+|---|---|---|---|---|
+| D-22 | Build plan AD-3 and AD-6: one embedding call for records and searches | Records are embedded as documents and searches as queries: `EmbedPurpose` in `gateway/constants.py`, mapped to the provider's `RETRIEVAL_DOCUMENT` and `RETRIEVAL_QUERY`, passed through `EmbedInteractor.embed(purpose=...)` by all four adapters. `tests/unit/test_embed_purpose.py` covers both | Every vector was embedded as a query, so a short search sat near every short record and 0.48 matched almost everything | user, Q6, 2026-10-02 |
+
+Search cutoff sweep with document vectors, eval set of 100 records:
+
+| `MEANING_MAX_DISTANCE` | Meaning hit rate | Unrelated records within the cutoff, per query |
+|---|---|---|
+| 0.38 | 70% | 1.2 |
+| **0.40** | **90%** | **3.4** |
+| 0.42 | 97% | 12.9 |
+
+Related cutoff sweep. Two documents sit closer than a query and a document, so 0.30 fell to 43% labelled related, 125 listed:
+
+| `RELATED_MAX_DISTANCE` | Labelled related | Labelled pairs found | Empty lists |
+|---|---|---|---|
+| 0.18 | 83% | 57% | 4 |
+| **0.20** | **80%** | **72%** | **1** |
+| 0.22 | 58% | 80% | 0 |
+
+| Check | Result |
+|---|---|
+| C-15 at 0.40 | pass: word 100%, meaning 90%. Misses: streaming, investment, marriage |
+| C-3.13 at 0.20 | pass: 55 listed, 80%, `m-mentor` empty. `test_search_related.py`'s fixture distances rescaled under the new cutoff |
+| 004 memory tests on document vectors | pass: 100% of 14 conflicts caught, 0.3% of 386 other pairs flagged; NFR-6 categorisation 87% |
+| Re-embed | Every live record in the Supabase project re-embedded as a document by a one-off script: 19 tasks, 2 reminders, 5 memories, none failed after one retry. A production database needs the same re-embed at deploy |
+| Q7, limit strip | The answer port returns `AnswerRefusedDTO(limit_reached)`; `SearchResults.answerLimitReached` is new; the card says "You have used today’s AI answers. Your matching records are below." Unit tests for the adapter, the service and `SearchCards`. Design change record 2026-10-02 |
+| Tests | Backend unit tests pass. Frontend 328 pass, `tsc` and `oxlint` clean. **The backend integration suite was not rerun after D-22 and Q7**: the user stopped that run |
+
+The 14 records seeded for the artboard comparison are still in the user's account.
+
 ### Questions for the user
 
 | # | Question | Blocks | Answer |
@@ -393,13 +426,17 @@ passport set and the career set, 14 records. Each artboard was opened from
 | ~~Q3~~ | NFR-7: (a) embed records and queries with separate task types, then rerun (Recommended); (b) set `MEANING_MAX_DISTANCE` to 0.48 and accept noise; (c) lower NFR-7's target | T-1.13 | **Answered 2026-10-02.** (b), 0.48. Set in `search/constants.py`; C-15 passes |
 | ~~Q4~~ | Set `RELATED_MAX_DISTANCE` to 0.35? (a) yes, accepting the pairs above (Recommended); (b) keep 0.30 | T-3.9 | **Answered 2026-10-02.** (b), keep 0.30 |
 | ~~Q5~~ | NFR-4's question latency: (a) rerun alone against Supabase, then profile the slower half (Recommended); (b) accept the miss for V1 | T-2.9 | **Answered 2026-10-02.** (b), accepted for V1 |
-| Q6 | The 0.48 noise: (a) embed records and queries with separate task types, re-embed, rerun C-15 and pick a tighter cutoff (Recommended); (b) keep 0.48 and change the design to match; (c) lower NFR-7's target and go back toward 0.35 | `SearchPassport`, FR-10 | Open |
-| Q7 | The daily-limit refusal copy: (a) give the limit its own strip, "You have used today's AI answers. Your matching records are below." (Recommended); (b) keep the unavailable strip for both | `SearchDegraded` | Open |
+| ~~Q6~~ | The 0.48 noise: (a) embed records and queries with separate task types, re-embed, rerun C-15 and pick a tighter cutoff (Recommended); (b) keep 0.48 and change the design to match; (c) lower NFR-7's target and go back toward 0.35 | `SearchPassport`, FR-10 | **Answered 2026-10-02.** (a). D-22; cutoffs 0.40 and 0.20 |
+| ~~Q7~~ | The daily-limit refusal copy: (a) give the limit its own strip, "You have used today's AI answers. Your matching records are below." (Recommended); (b) keep the unavailable strip for both | `SearchDegraded` | **Answered 2026-10-02.** (a). Built |
+| Q8 | The 14 artboard seed records in the user's account: (a) keep them as dev test data (Recommended); (b) delete them through the app | Nothing | Open |
 
 ## Remaining work
 
 | Item | Needs | Owner |
 |---|---|---|
-| T-2.9 | Judge the citations above | user |
-| Q6 | The user's answer | user |
-| Q7 | The user's answer | user |
+| Backend integration suite | Rerun after D-22 and Q7, with `REMINDER_EMAIL_ENABLED=false` and no worker running | Claude |
+| Local API and worker | Restart so they run D-22 and Q7 | Claude |
+| Browser check | The limit strip, and `/search passport` and "kayak" at 0.40 against `SearchPassport` and the no-match state | Claude |
+| T-2.9 | Judge the citations in Answer citations to judge | user |
+| Q8 | The user's answer | user |
+| Ship 005 | Every row above closed, then the user's approval to mark 005 `shipped` in the index | user |

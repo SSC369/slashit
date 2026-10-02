@@ -11,9 +11,14 @@ from app.domains.gateway.public import (
     ExtractInteractor,
     Extraction,
     ExtractionRequest,
+    UserLimitReached,
 )
 from app.domains.search.constants import ANSWER_INSTRUCTION, ANSWER_SCHEMA
-from app.domains.search.interfaces.dtos import AnswerDraftDTO, AnswerRecordDTO
+from app.domains.search.interfaces.dtos import (
+    AnswerDraftDTO,
+    AnswerRecordDTO,
+    AnswerRefusedDTO,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -29,8 +34,8 @@ class GatewayAnswerAdapter:
         question: str,
         today: date,
         records: Sequence[AnswerRecordDTO],
-    ) -> AnswerDraftDTO | None:
-        """None on any gateway failure: the unavailable line, not an error
+    ) -> AnswerDraftDTO | AnswerRefusedDTO:
+        """A refusal on any gateway failure: the unavailable line, not an error
         (FR-19). Counts against the per-user cap, as every generation does."""
         extraction_result = await self.extract_interactor.extract(
             user_id=user_id,
@@ -46,7 +51,9 @@ class GatewayAnswerAdapter:
             logger.warning(
                 "search.answer_refused", result=type(extraction_result).__name__
             )
-            return None
+            return AnswerRefusedDTO(
+                limit_reached=isinstance(extraction_result, UserLimitReached)
+            )
         return _read_draft(fields=cast(dict[str, Any], extraction_result.data))
 
 

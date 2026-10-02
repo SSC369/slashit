@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Stage | 5 Dev |
-| Status | draft |
+| Status | in progress |
 | Started | 2026-10-02 |
 | Owner | user |
 
@@ -16,7 +16,7 @@
 | 3 Build plan | [03-build-plan.md](./03-build-plan.md) | approved | 2026-10-02 |
 | 4 Implementation plan (index) | [04-implementation-plan.md](./04-implementation-plan.md) | approved | 2026-10-02 |
 | 4.1 Capture and browse | [04.1-capture-and-browse.md](./04.1-capture-and-browse.md) | approved | 2026-10-02 |
-| 5 Dev | [05-dev-log.md](./05-dev-log.md) | slice 1 building | |
+| 5 Dev | [05-dev-log.md](./05-dev-log.md) | slice 1 merged to `main` 2026-10-02; T-1.13, T-1.14 owed; slice 2 not started | |
 
 ## One-line summary
 Events as their own record type, captured with `/add-event`, all-day or timed

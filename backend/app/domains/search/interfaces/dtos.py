@@ -98,6 +98,14 @@ class AnswerDraftDTO:
 
 
 @dataclass(frozen=True)
+class AnswerRefusedDTO:
+    """No answer could be written (FR-19). `limit_reached` when the refusal was
+    the user's daily allowance rather than the model, so the card can say so."""
+
+    limit_reached: bool
+
+
+@dataclass(frozen=True)
 class SearchResultsDTO:
     """FR-7: groups ordered by each group's best hit; empty when nothing
     matched (FR-10). Slice 2: a question adds the checked answer, or says no
@@ -109,6 +117,7 @@ class SearchResultsDTO:
     answer: SearchAnswerDTO | None = None
     no_support: bool = False
     answer_unavailable: bool = False
+    answer_limit_reached: bool = False
 
 
 @dataclass(frozen=True)
@@ -175,6 +184,7 @@ class SearchResults:
     answer: SearchAnswer | None
     no_support: bool
     answer_unavailable: bool
+    answer_limit_reached: bool
 
 
 @strawberry.type
@@ -212,6 +222,7 @@ def search_results_to_type(*, results: SearchResultsDTO) -> SearchResults:
         ),
         no_support=results.no_support,
         answer_unavailable=results.answer_unavailable,
+        answer_limit_reached=results.answer_limit_reached,
     )
 
 

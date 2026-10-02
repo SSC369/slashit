@@ -22,6 +22,7 @@ from app.domains.search.constants import (
     RELATED_MAX_DISTANCE,
 )
 from app.domains.search.interfaces.dtos import (
+    AnswerRefusedDTO,
     CandidatePageDTO,
     RecordType,
     RelatedRecordDTO,
@@ -55,6 +56,7 @@ class _AnswerOutcome:
     citations: dict[UUID, int]
     no_support: bool
     answer_unavailable: bool
+    answer_limit_reached: bool = False
 
 
 _NO_ANSWER = _AnswerOutcome(
@@ -120,6 +122,7 @@ class SearchService:
             answer=outcome.answer,
             no_support=outcome.no_support,
             answer_unavailable=outcome.answer_unavailable,
+            answer_limit_reached=outcome.answer_limit_reached,
         )
         # Stage timings and counts only: never the text (AD-10).
         logger.info(
@@ -269,9 +272,13 @@ class SearchService:
                 for number, candidate in enumerate(top, start=1)
             ],
         )
-        if draft is None:
+        if isinstance(draft, AnswerRefusedDTO):
             return _AnswerOutcome(
-                answer=None, citations={}, no_support=False, answer_unavailable=True
+                answer=None,
+                citations={},
+                no_support=False,
+                answer_unavailable=True,
+                answer_limit_reached=draft.limit_reached,
             )
         checked = check_answer(draft=draft, record_count=len(top))
         if checked is None:

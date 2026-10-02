@@ -85,7 +85,7 @@ async def test_the_nearest_five_across_types_closest_first_without_itself() -> N
             (source, 0.0),
             (_task(title="Book visa"), 0.12),
             (_task(title="Scan passport"), 0.05),
-            (_task(title="Buy milk"), 0.29),
+            (_task(title="Buy milk"), 0.18),
         ],
         vectors={source.id: SOURCE_VECTOR},
     )
@@ -93,8 +93,8 @@ async def test_the_nearest_five_across_types_closest_first_without_itself() -> N
         record_type=RecordType.MEMORY,
         records=[
             (_task(title="Passport expires 2030"), 0.02),
-            (_task(title="Japan trip"), 0.2),
-            (_task(title="Shoe size"), 0.25),
+            (_task(title="Japan trip"), 0.14),
+            (_task(title="Shoe size"), 0.16),
             (_task(title="Too far"), RELATED_MAX_DISTANCE + 0.01),
         ],
     )

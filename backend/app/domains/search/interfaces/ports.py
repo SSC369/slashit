@@ -13,6 +13,7 @@ from uuid import UUID
 from app.domains.search.interfaces.dtos import (
     AnswerDraftDTO,
     AnswerRecordDTO,
+    AnswerRefusedDTO,
     CandidatePageDTO,
     RecordType,
 )
@@ -52,7 +53,7 @@ class QueryEmbeddingPort(Protocol):
 
 class AnswerPort(Protocol):
     """FR-16: a written answer from the numbered records and nothing else.
-    None on any gateway failure, the per-user cap included (FR-19)."""
+    A refusal on any gateway failure, the per-user cap included (FR-19)."""
 
     async def write_answer(
         self,
@@ -61,7 +62,7 @@ class AnswerPort(Protocol):
         question: str,
         today: date,
         records: Sequence[AnswerRecordDTO],
-    ) -> AnswerDraftDTO | None: ...
+    ) -> AnswerDraftDTO | AnswerRefusedDTO: ...
 
 
 class UserTimezonePort(Protocol):

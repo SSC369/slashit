@@ -62,7 +62,7 @@ built, as 003 and 004 did, so it is written against real code.
 
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
-| 1 | [04.1-capture-and-browse.md](./04.1-capture-and-browse.md) | `/add-event` saves with every date rule; the two questions and the cap; `/events` grouped by month; Events tab, All tab, detail with all states | none | draft |
+| 1 | [04.1-capture-and-browse.md](./04.1-capture-and-browse.md) | `/add-event` saves with every date rule; the two questions and the cap; `/events` grouped by month; Events tab, All tab, detail with all states | none | approved 2026-10-02; built and merged 2026-10-02 (`fb0a767`), T-1.13 and T-1.14 owed |
 | 2 | `04.2-alerts-and-manage.md` | Alerts set, fire, re-arm yearly and follow edits; edit and delete; search and related; timezone change | 1 | not started |
 
 ## 3. File-by-file plan

@@ -23,6 +23,7 @@ export const buildSearchResults = (
   meaningUnavailable: false,
   noSupport: false,
   answerUnavailable: false,
+  answerLimitReached: false,
   answer: null,
   groups: [
     {

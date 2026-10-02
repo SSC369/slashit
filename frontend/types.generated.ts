@@ -713,6 +713,7 @@ export type SearchRecord = Memory | Reminder | Task;
 export type SearchResults = {
   __typename?: 'SearchResults';
   answer?: Maybe<SearchAnswer>;
+  answerLimitReached: Scalars['Boolean']['output'];
   answerUnavailable: Scalars['Boolean']['output'];
   groups: Array<SearchGroup>;
   meaningUnavailable: Scalars['Boolean']['output'];

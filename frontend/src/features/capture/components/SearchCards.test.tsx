@@ -182,6 +182,19 @@ describe("SearchResultsCard with a question", () => {
     expect(screen.getByText("Renew passport")).toBeInTheDocument();
   });
 
+  it("names the daily limit when that is why the answer was refused (dev log Q7)", () => {
+    const results = buildSearchResults({
+      query: "when does my passport expire?",
+      answerUnavailable: true,
+      answerLimitReached: true,
+    });
+    render(<SearchResultsCard results={results} onOpenRecord={vi.fn()} onSeeAll={vi.fn()} />);
+
+    expect(screen.getByText(/You have used today’s AI answers/)).toBeInTheDocument();
+    expect(screen.queryByText(/AI model is unavailable/)).not.toBeInTheDocument();
+    expect(screen.getByText("Renew passport")).toBeInTheDocument();
+  });
+
   it("never shows an answer block for a word search (FR-15)", () => {
     render(<SearchResultsCard results={buildSearchResults()} onOpenRecord={vi.fn()} onSeeAll={vi.fn()} />);
 

@@ -507,6 +507,7 @@ type SearchResults {
   answer: SearchAnswer
   noSupport: Boolean!
   answerUnavailable: Boolean!
+  answerLimitReached: Boolean!
 }
 
 type SearchTooLong {

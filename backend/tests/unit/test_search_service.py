@@ -12,6 +12,7 @@ from app.domains.records.public import TaskDTO
 from app.domains.search.interfaces.dtos import (
     AnswerDraftDTO,
     AnswerRecordDTO,
+    AnswerRefusedDTO,
     CandidatePageDTO,
     RecordType,
     SearchCandidate,
@@ -113,9 +114,11 @@ class _Analytics:
 
 @dataclass
 class _Answerer:
-    """Cites the records it is told to, or returns None for a failure."""
+    """Cites the records it is told to, or refuses as the gateway would."""
 
-    draft: AnswerDraftDTO | None = None
+    draft: AnswerDraftDTO | AnswerRefusedDTO = field(
+        default_factory=lambda: AnswerRefusedDTO(limit_reached=False)
+    )
     calls: list[tuple[str, list[AnswerRecordDTO]]] = field(default_factory=list)
 
     async def write_answer(
@@ -125,7 +128,7 @@ class _Answerer:
         question: str,
         today: date,
         records: Sequence[AnswerRecordDTO],
-    ) -> AnswerDraftDTO | None:
+    ) -> AnswerDraftDTO | AnswerRefusedDTO:
         self.calls.append((question, list(records)))
         return self.draft
 
@@ -277,7 +280,7 @@ async def test_a_failed_answer_keeps_the_records() -> None:
     service = _service(
         ports=[_Port(record_type=RecordType.TASK, titles=["Renew passport"])],
         embedder=_Embedder(vector=None),
-        answerer=_Answerer(draft=None),
+        answerer=_Answerer(draft=AnswerRefusedDTO(limit_reached=False)),
     )
 
     results = await service.search_for_capture(
@@ -285,7 +288,25 @@ async def test_a_failed_answer_keeps_the_records() -> None:
     )
 
     assert results.answer_unavailable is True
+    assert results.answer_limit_reached is False
     assert results.answer is None
+    assert results.groups[0].hits[0].item.title == "Renew passport"
+
+
+async def test_an_answer_refused_for_the_daily_limit_says_so() -> None:
+    """Q7: the card names the daily limit, not an outage."""
+    service = _service(
+        ports=[_Port(record_type=RecordType.TASK, titles=["Renew passport"])],
+        embedder=_Embedder(vector=None),
+        answerer=_Answerer(draft=AnswerRefusedDTO(limit_reached=True)),
+    )
+
+    results = await service.search_for_capture(
+        user_id=uuid.uuid4(), text="when does my passport expire"
+    )
+
+    assert results.answer_unavailable is True
+    assert results.answer_limit_reached is True
     assert results.groups[0].hits[0].item.title == "Renew passport"
 
 

@@ -6,7 +6,7 @@ stage: 2
 status: approved
 owner: user
 created: 2026-09-30
-updated: 2026-09-30
+updated: 2026-10-02
 approved_on: 2026-09-30
 supersedes: null
 ---
@@ -192,3 +192,4 @@ No one-off styles outstanding.
 | 2026-09-30 | Q1 and Q2 answered, both as drawn. Offline states added to `SearchStates` and `RecordsSearchStates`. Canvas published | User answered the open questions | user |
 | 2026-09-30 | Approved | User: "Approved, commit and push" | user |
 | 2026-09-30 | No-support copy quotes the question as typed instead of rephrasing it. The `SearchNoSupport` artboard still shows the rephrased line | The server has no rephrasing, and writing one would be uncited model text, against FR-18. Dev log D-15 and Q2. No downstream doc is stale: 4.2 names the state, not its words | user |
+| 2026-10-02 | `SearchDegraded` gains a limit variant: an answer refused for the daily AI allowance says "You have used today’s AI answers. Your matching records are below." instead of the unavailable line. Not drawn on the canvas | The unavailable line called a daily limit a temporary outage. Dev log Q7 | user |
