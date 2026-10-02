@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 from app.core.settings import Settings, get_settings
+from app.domains.gateway.constants import EmbedPurpose
 from app.domains.gateway.errors import (
     ProviderTimeout,
     ProviderTimeoutError,
@@ -36,7 +37,9 @@ async def test_an_embed_records_one_embed_row_and_never_checks_the_cap() -> None
     usage = FakeUsageRepository(limit=20, used=20)
     interactor = _interactor(provider=FakeProvider(), usage=usage)
 
-    result = await interactor.embed(user_id=uuid.uuid4(), text="a fact")
+    result = await interactor.embed(
+        user_id=uuid.uuid4(), text="a fact", purpose=EmbedPurpose.DOCUMENT
+    )
 
     assert isinstance(result, Embedding)
     assert len(result.vector) == 768
@@ -59,7 +62,9 @@ async def test_each_failure_is_returned_and_recorded(
     usage = FakeUsageRepository()
     interactor = _interactor(provider=FakeProvider(raises=raised), usage=usage)
 
-    result = await interactor.embed(user_id=uuid.uuid4(), text="a fact")
+    result = await interactor.embed(
+        user_id=uuid.uuid4(), text="a fact", purpose=EmbedPurpose.DOCUMENT
+    )
 
     assert isinstance(result, expected)
     assert len(usage.records) == 1
@@ -72,7 +77,9 @@ async def test_the_kill_switch_refuses_without_calling_or_recording() -> None:
     settings = get_settings().model_copy(update={"gateway_enabled": False})
     interactor = _interactor(provider=provider, usage=usage, settings=settings)
 
-    result = await interactor.embed(user_id=uuid.uuid4(), text="a fact")
+    result = await interactor.embed(
+        user_id=uuid.uuid4(), text="a fact", purpose=EmbedPurpose.DOCUMENT
+    )
 
     assert isinstance(result, ProviderUnavailable)
     assert provider.calls == 0

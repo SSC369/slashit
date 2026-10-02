@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.domains.gateway.public import Embedding, EmbedInteractor
+from app.domains.gateway.public import Embedding, EmbedInteractor, EmbedPurpose
 
 
 class GatewayReminderEmbeddingAdapter:
@@ -13,7 +13,7 @@ class GatewayReminderEmbeddingAdapter:
         self, *, user_id: UUID, description: str
     ) -> tuple[float, ...] | None:
         embed_result = await self.embed_interactor.embed(
-            user_id=user_id, text=description
+            user_id=user_id, text=description, purpose=EmbedPurpose.DOCUMENT
         )
         if isinstance(embed_result, Embedding):
             return embed_result.vector

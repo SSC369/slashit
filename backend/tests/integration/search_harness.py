@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from app.core import auth as auth_module
 from app.core import deps as deps_module
 from app.core.settings import Settings
+from app.domains.gateway.constants import EmbedPurpose
 from app.domains.gateway.errors import ProviderUnavailableError
 from app.domains.gateway.interfaces.dtos import (
     ExtractionRequest,
@@ -116,7 +117,9 @@ def keyword_embedder(monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Embeds by keyword. Returns every text it was asked to embed."""
     embedded: list[str] = []
 
-    async def embed(self: LangChainGeminiProvider, *, text: str) -> ProviderEmbedding:
+    async def embed(
+        self: LangChainGeminiProvider, *, text: str, purpose: EmbedPurpose
+    ) -> ProviderEmbedding:
         embedded.append(text)
         return ProviderEmbedding(vector=embed_text(text), model="fake-embed")
 
@@ -128,7 +131,9 @@ def keyword_embedder(monkeypatch: pytest.MonkeyPatch) -> list[str]:
 def slow_embedder(monkeypatch: pytest.MonkeyPatch) -> None:
     """An embed that never answers inside the search's budget (FR-20)."""
 
-    async def embed(self: LangChainGeminiProvider, *, text: str) -> ProviderEmbedding:
+    async def embed(
+        self: LangChainGeminiProvider, *, text: str, purpose: EmbedPurpose
+    ) -> ProviderEmbedding:
         await asyncio.sleep(1)
         return ProviderEmbedding(vector=embed_text(text), model="fake-embed")
 

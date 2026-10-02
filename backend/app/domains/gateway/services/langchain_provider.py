@@ -40,6 +40,7 @@ from app.domains.gateway.constants import (
     MAX_ATTEMPTS,
     PROVIDER_TIMEOUT_SECONDS,
     RETRY_BACKOFF_SECONDS,
+    EmbedPurpose,
 )
 from app.domains.gateway.errors import (
     MalformedResultError,
@@ -54,6 +55,14 @@ from app.domains.gateway.interfaces.dtos import (
 )
 
 logger = structlog.get_logger(__name__)
+
+
+# The provider's task types for each purpose. A document and a query are
+# embedded differently, so they must never be mixed under one purpose.
+_TASK_TYPE_BY_PURPOSE: dict[EmbedPurpose, str] = {
+    EmbedPurpose.DOCUMENT: "RETRIEVAL_DOCUMENT",
+    EmbedPurpose.QUERY: "RETRIEVAL_QUERY",
+}
 
 
 class LangChainGeminiProvider:
@@ -71,7 +80,7 @@ class LangChainGeminiProvider:
             model=embedding_model, google_api_key=api_key
         )
 
-    async def embed(self, *, text: str) -> ProviderEmbedding:
+    async def embed(self, *, text: str, purpose: EmbedPurpose) -> ProviderEmbedding:
         """One meaning vector, under its own timeout. Epic 004.
 
         Never retried: an embedding is cheap, and the save it belongs to is a
@@ -80,7 +89,9 @@ class LangChainGeminiProvider:
         try:
             async with asyncio.timeout(EMBED_TIMEOUT_SECONDS):
                 vector = await self._embeddings.aembed_query(
-                    text, output_dimensionality=EMBEDDING_DIMENSIONS
+                    text,
+                    task_type=_TASK_TYPE_BY_PURPOSE[purpose],
+                    output_dimensionality=EMBEDDING_DIMENSIONS,
                 )
         except TimeoutError as error:
             raise ProviderTimeoutError(EMBED_TIMEOUT_SECONDS) from error

@@ -8,6 +8,7 @@ is then one file.
 
 from typing import Protocol
 
+from app.domains.gateway.constants import EmbedPurpose
 from app.domains.gateway.interfaces.dtos import (
     ExtractionRequest,
     ProviderEmbedding,
@@ -27,7 +28,7 @@ class ModelProvider(Protocol):
         """
         ...
 
-    async def embed(self, *, text: str) -> ProviderEmbedding:
+    async def embed(self, *, text: str, purpose: EmbedPurpose) -> ProviderEmbedding:
         """Return the meaning vector for one text. Epic 004.
 
         Raises:

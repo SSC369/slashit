@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.domains.gateway.public import Embedding, EmbedInteractor
+from app.domains.gateway.public import Embedding, EmbedInteractor, EmbedPurpose
 
 
 class GatewayTaskEmbeddingAdapter:
@@ -12,7 +12,9 @@ class GatewayTaskEmbeddingAdapter:
     async def embed_task_title(
         self, *, user_id: UUID, title: str
     ) -> tuple[float, ...] | None:
-        embed_result = await self.embed_interactor.embed(user_id=user_id, text=title)
+        embed_result = await self.embed_interactor.embed(
+            user_id=user_id, text=title, purpose=EmbedPurpose.DOCUMENT
+        )
         if isinstance(embed_result, Embedding):
             return embed_result.vector
         return None

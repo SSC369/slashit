@@ -6,6 +6,7 @@ from uuid import UUID
 from app.domains.gateway.public import (
     Embedding,
     EmbedInteractor,
+    EmbedPurpose,
     ExtractInteractor,
     Extraction,
     ExtractionRequest,
@@ -32,7 +33,9 @@ class GatewayMemoryModelAdapter:
     async def embed_fact(
         self, *, user_id: UUID, text: str
     ) -> tuple[float, ...] | ModelRefused:
-        embed_result = await self.embed_interactor.embed(user_id=user_id, text=text)
+        embed_result = await self.embed_interactor.embed(
+            user_id=user_id, text=text, purpose=EmbedPurpose.DOCUMENT
+        )
         if isinstance(embed_result, Embedding):
             return embed_result.vector
         return ModelRefused(gateway_result=embed_result)

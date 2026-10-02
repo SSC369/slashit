@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.sql import text
 
 from app.core.settings import Settings, get_settings
+from app.domains.gateway.constants import EmbedPurpose
 from app.domains.gateway.interfaces.dtos import (
     ExtractionRequest,
     ProviderEmbedding,
@@ -89,7 +90,9 @@ def conflict_model(monkeypatch: pytest.MonkeyPatch) -> Iterator[list[str]]:
             model="fake-flash",
         )
 
-    async def embed(self: LangChainGeminiProvider, *, text: str) -> ProviderEmbedding:
+    async def embed(
+        self: LangChainGeminiProvider, *, text: str, purpose: EmbedPurpose
+    ) -> ProviderEmbedding:
         return ProviderEmbedding(vector=tuple([0.02] * 768), model="fake-embed")
 
     monkeypatch.setattr(LangChainGeminiProvider, "generate", generate)

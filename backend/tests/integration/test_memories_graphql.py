@@ -23,6 +23,7 @@ from sqlalchemy.sql import text
 from app.core import auth as auth_module
 from app.core.db import user_transaction
 from app.core.settings import Settings
+from app.domains.gateway.constants import EmbedPurpose
 from app.domains.gateway.interfaces.dtos import (
     ExtractionRequest,
     ProviderEmbedding,
@@ -84,7 +85,9 @@ def fake_model(monkeypatch: pytest.MonkeyPatch) -> list[str]:
             model="fake-flash",
         )
 
-    async def embed(self: LangChainGeminiProvider, *, text: str) -> ProviderEmbedding:
+    async def embed(
+        self: LangChainGeminiProvider, *, text: str, purpose: EmbedPurpose
+    ) -> ProviderEmbedding:
         return ProviderEmbedding(vector=tuple([0.01] * 768), model="fake-embed")
 
     monkeypatch.setattr(LangChainGeminiProvider, "generate", generate)

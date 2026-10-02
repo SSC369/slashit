@@ -1,5 +1,6 @@
 """Limits, budgets and policy for the gateway. No magic values elsewhere."""
 
+from enum import StrEnum
 from typing import Final
 
 # Requirement NFR-4. `estimate`: chosen because a capture is a foreground action
@@ -30,3 +31,12 @@ EMBEDDING_DIMENSIONS: Final = 768
 # Epic 004. An embedding is short (one fact, at most 500 characters) and sits
 # inside the save's 8 second budget beside the generation. `estimate`.
 EMBED_TIMEOUT_SECONDS: Final = 3.0
+
+
+class EmbedPurpose(StrEnum):
+    """What a vector is for. Epic 005, D-22: a saved record is embedded as a
+    document and a search as a query, so the model places a query near the
+    records that answer it rather than near every short text."""
+
+    DOCUMENT = "document"
+    QUERY = "query"

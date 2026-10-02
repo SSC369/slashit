@@ -5,7 +5,7 @@ from uuid import UUID
 
 import structlog
 
-from app.domains.gateway.public import Embedding, EmbedInteractor
+from app.domains.gateway.public import Embedding, EmbedInteractor, EmbedPurpose
 
 logger = structlog.get_logger(__name__)
 
@@ -25,7 +25,9 @@ class GatewayQueryEmbeddingAdapter:
         the per-user cap (T9), so it is never refused for that."""
         try:
             embed_result = await asyncio.wait_for(
-                self.embed_interactor.embed(user_id=user_id, text=text),
+                self.embed_interactor.embed(
+                    user_id=user_id, text=text, purpose=EmbedPurpose.QUERY
+                ),
                 timeout=self.timeout_seconds,
             )
         except TimeoutError:

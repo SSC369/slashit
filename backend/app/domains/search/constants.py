@@ -13,13 +13,17 @@ GROUP_LIMIT: Final = 5
 PORT_LIMIT: Final = 50
 
 # AD-3: a record matched by meaning alone must be closer than this, by cosine
-# distance. `estimate` until the search evaluation set tunes it (T-1.13).
-MEANING_MAX_DISTANCE: Final = 0.35
+# distance. Tuned by T-1.13 on 2026-10-02 with records embedded as documents
+# and searches as queries (D-22): 90% of meaning targets fall inside, with 3.4
+# unrelated records per query on average. 0.38 found 70%.
+MEANING_MAX_DISTANCE: Final = 0.40
 
 # AD-6: a related record must be closer than this to the record it is listed
 # on, by cosine distance. Tighter than AD-3's bar: a related list has no words
-# to lean on. `estimate` until the related set tunes it (sub-plan 4.3, T-3.9).
-RELATED_MAX_DISTANCE: Final = 0.30
+# to lean on, and two documents sit closer than a query and a document. Tuned
+# by T-3.9 on 2026-10-02 after D-22: 80% of listed records labelled related,
+# 72% of labels found. 0.22 fell to 58%.
+RELATED_MAX_DISTANCE: Final = 0.20
 
 # FR-25: at most this many related records on a detail.
 RELATED_LIMIT: Final = 5

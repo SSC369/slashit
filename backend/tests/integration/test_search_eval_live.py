@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.deps import build_embed_interactor, build_search_service
 from app.core.settings import Settings
-from app.domains.gateway.public import Embedding
+from app.domains.gateway.public import Embedding, EmbedPurpose
 from app.domains.memories.interfaces.repositories import MemoryWrite
 from app.domains.memories.repositories.memory_repository import SqlMemoryRepository
 from app.domains.records.repositories.task_repository import SqlTaskRepository
@@ -81,7 +81,9 @@ async def _seed(
         reminders = SqlReminderRepository(session)
         memories = SqlMemoryRepository(session)
         for record in records:
-            embedding = await embed.embed(user_id=user_id, text=record["text"])
+            embedding = await embed.embed(
+                user_id=user_id, text=record["text"], purpose=EmbedPurpose.DOCUMENT
+            )
             assert isinstance(embedding, Embedding), embedding
             if record["type"] == "task":
                 task = await tasks.create_task(

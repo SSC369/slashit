@@ -13,7 +13,7 @@ class that exists only to forward to one would be ceremony. See ruleset
 section 6, amended 2026-09-12.
 """
 
-from app.domains.gateway.constants import EMBEDDING_DIMENSIONS
+from app.domains.gateway.constants import EMBEDDING_DIMENSIONS, EmbedPurpose
 from app.domains.gateway.errors import (
     Extraction,
     ExtractionResult,
@@ -30,6 +30,7 @@ from app.domains.gateway.interfaces.dtos import Embedding, ExtractionRequest
 __all__ = [
     "EMBEDDING_DIMENSIONS",
     "EmbedInteractor",
+    "EmbedPurpose",
     "EmbedResult",
     "Embedding",
     "ExtractInteractor",

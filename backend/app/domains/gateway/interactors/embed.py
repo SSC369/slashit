@@ -16,7 +16,7 @@ import structlog
 
 from app.core.errors import DomainError
 from app.core.settings import Settings
-from app.domains.gateway.constants import PROVIDER_NAME
+from app.domains.gateway.constants import PROVIDER_NAME, EmbedPurpose
 from app.domains.gateway.errors import (
     MalformedResultError,
     ProviderTimeout,
@@ -54,7 +54,9 @@ class EmbedInteractor:
         self.usage_repository = usage_repository
         self.settings = settings
 
-    async def embed(self, *, user_id: UUID, text: str) -> EmbedResult:
+    async def embed(
+        self, *, user_id: UUID, text: str, purpose: EmbedPurpose
+    ) -> EmbedResult:
         """Embed one text on behalf of one user.
 
         Every provider failure is returned as its union member, never raised,
@@ -67,7 +69,7 @@ class EmbedInteractor:
 
         started = time.perf_counter()
         try:
-            embedding = await self.provider.embed(text=text)
+            embedding = await self.provider.embed(text=text, purpose=purpose)
         except DomainError as error:
             await self._record_embed_usage(
                 user_id=user_id, error=error, started=started
