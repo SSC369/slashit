@@ -1,0 +1,250 @@
+{
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Capture"
+    },
+    {
+      "id": "page-2",
+      "name": "Records"
+    },
+    {
+      "id": "page-3",
+      "name": "Dark theme"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventResolved.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventResolvedMore.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventAsk.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventAlertNotSet.dc.html",
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventCaptureStates.dc.html",
+      "x": 1560,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventsList.dc.html",
+      "x": 3120,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventsListStates.dc.html",
+      "x": 4680,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventDiscovery.dc.html",
+      "x": 0,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "EventAlertToast.dc.html",
+      "x": 1560,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-1"
+    },
+    {
+      "file": "RecordsEvents.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "RecordsAllEvents.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "RecordsEventsStates.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventDetail.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventDetailTimed.dc.html",
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventDetailPast.dc.html",
+      "x": 1560,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventDetailStates.dc.html",
+      "x": 3120,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventEdit.dc.html",
+      "x": 4680,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventEditInvalid.dc.html",
+      "x": 0,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventEditAlertPast.dc.html",
+      "x": 1560,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventEditSaving.dc.html",
+      "x": 3120,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "EventEditFailed.dc.html",
+      "x": 4680,
+      "y": 2120,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "DeleteEvent.dc.html",
+      "x": 0,
+      "y": 3180,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "DeleteEventFailed.dc.html",
+      "x": 1560,
+      "y": 3180,
+      "w": 1440,
+      "h": 900,
+      "page": "page-2"
+    },
+    {
+      "file": "DarkMain.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
+    },
+    {
+      "file": "DarkEventsList.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
+    },
+    {
+      "file": "DarkRecordsEvents.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
+    },
+    {
+      "file": "DarkEventDetail.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
+    },
+    {
+      "file": "DarkEventAlertToast.dc.html",
+      "x": 0,
+      "y": 1060,
+      "w": 1440,
+      "h": 900,
+      "page": "page-3"
+    }
+  ]
+}

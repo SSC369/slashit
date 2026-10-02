@@ -40,6 +40,7 @@ Status values: `draft`, `in-review`, `approved`, `blocked`, `shipped`,
 | 002 | [Authentication](./002-authentication/) | P0, blocking | 5 Dev | in-review | All three slices built. Slices 1 and 3 live-verified against the real Supabase project; slice 2 (password reset) verified in a real browser against intercepted Supabase responses, since no project credentials are reachable from the build environment. Two real bugs found and fixed earlier: `me` threw instead of returning `username: null`; Google avatar backfill for pre-existing accounts, user-confirmed working. T-1.13 (SMTP + OTP email template) and T-1.4 (Before User Created hook) done, user-confirmed 2026-09-19. **AD-7 amended the same day:** the Password Verification Attempt hook is Teams/Enterprise only — FR-17's lockout moved into the app (new `signIn` mutation, `identity.SignInInteractor`), not yet live-verified. Manual follow-ups still needing the user's project access: T-1.10 live verification of the new sign-in path; T-3.5 (one Google sign-in against an email with an existing manual account, for FR-20's auto-link); T-2.4 and slice 2's end-to-end pass against a real mailbox, now unblocked by T-1.13. One design decision open: `VerifyEmailController`'s wrong-vs-expired OTP, which Supabase does not distinguish. **Change 2026-09-27:** FR-23, FR-24 (automatic sign-out on an expired or rejected session) added to the PRD; design, AD-8 and sub-plan `04.4-session-expiry.md` drafted, approved 2026-09-27 and built; live check passed, return-after-sign-in owed | 2026-09-27 |
 | 005 | [Personal Search and Context](./005-personal-search-and-context/) | P0 | 5 Dev | in progress | All three slices built and merged to main through PR #2, 2026-09-30: 501 backend and 271 frontend tests pass, against local PostgreSQL with the model faked. Every must FR is met in code. Owed before shipping: live quality and latency runs T-1.13, T-2.9 and T-3.9 (need a provider key), browser passes T-1.14, T-2.10 and T-3.10 (need project access), deploy backfill. Slice 3 deviations D-18 to D-21 approved 2026-09-30 | 2026-09-30 |
 | 006 | [Expenses](./006-expenses/) | P1 | 5 Dev | in progress | Plan index and sub-plan 4.1 approved 2026-10-02. Slice 1 building. Evaluation sets in `backend/tests/eval/`. Migrations `0037` to `0039` collide with 007's local numbers; whichever merges second renumbers | 2026-10-02 |
+| 007 | [Events](./007-events/) | P1 | 5 Dev | in progress | Slice 1 merged to `main` 2026-10-02 (`fb0a767`): T-1.1 to T-1.12 done, 327 frontend tests pass, backend passes but for 8 failures not caused by the slice ([dev log](./007-events/05-dev-log.md)). Owed: T-1.13 live run (needs a provider key), T-1.14 browser pass. Deviations D-1 to D-8 await review. Migrations `0037`, `0038` now on `main`, so 006 renumbers. 4.2 drafted next | 2026-10-02 |
 
 ## Planned
 
@@ -47,7 +48,6 @@ Confirmed in [V1 features](./product/v1-features.md), not yet opened.
 
 | # | Epic | Priority | Depends on |
 |---|---|---|---|
-| 007 | Events | P1 | 001, 002 |
 | 008 | Goals and Projects | P1 | 001, 002, 005 |
 | 009 | Notes | P1 | 001, 002 |
 | 010 | Daily Control | P1 | 001, 002, 003, 006, 007, 008 |
