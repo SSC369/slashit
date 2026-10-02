@@ -174,3 +174,32 @@ export const citeMarkerRowStyles = "ml-0 shrink-0";
 export const typeDotTaskStyles = "h-1.5 w-1.5 shrink-0 rounded-sm bg-command";
 export const typeDotReminderStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent";
 export const typeDotMemoryStyles = "h-1.5 w-1.5 shrink-0 rounded-full bg-accent ring-2 ring-accent-wash";
+
+// Event cards (007 design: Main, EventResolved, EventAsk, EventCaptureStates,
+// EventsList, EventsListStates). `.monthhead`, `.evrow`, `.datebox`, `.evmeta`.
+export const eventFieldsGridStyles = "grid grid-cols-2 gap-px bg-border";
+export const pillRepeatStyles = "border-accent-wash bg-accent-wash text-accent";
+export const monthHeadStyles =
+  "flex items-center justify-between border-b border-t border-b-border-strong border-t-border bg-group-head px-4 py-[9px] text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary first:border-t-0";
+export const monthCountStyles = "font-mono font-medium normal-case tracking-normal";
+export const eventRowStyles =
+  "grid cursor-pointer grid-cols-[76px_minmax(0,1fr)_210px_150px] items-center gap-3 border-b border-divider px-4 py-[11px] last:border-b-0 hover:bg-background";
+export const dateBoxStyles =
+  "flex h-[46px] w-[46px] flex-col items-center justify-center rounded-[9px] border border-border-strong bg-card leading-[1.1]";
+export const dateBoxDayStyles = "text-[17px] font-semibold text-foreground";
+export const dateBoxWeekdayStyles =
+  "text-[10px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
+export const eventTitleStyles = "truncate font-medium text-foreground";
+export const eventMetaStyles = "mt-0.5 flex items-center gap-2.5 text-[12.5px] text-foreground-secondary";
+export const eventMetaItemStyles = "inline-flex min-w-0 items-center gap-1 truncate";
+export const eventMetaAlertStyles = "inline-flex shrink-0 items-center gap-1 text-accent";
+export const eventWhenStyles = "text-[13px] text-foreground-secondary";
+export const eventPillsStyles = "flex justify-end gap-1.5";
+export const eventListHeadStyles =
+  "text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
+export const eventEmptyStyles = "flex flex-col items-center px-6 py-[34px] text-center";
+export const eventEmptyIconStyles = "mb-2 text-foreground-tertiary";
+export const eventEmptyTitleStyles = "font-medium text-foreground";
+export const eventEmptyBodyStyles = "max-w-[380px] text-[13px] text-foreground-secondary";
+export const eventSkeletonRowStyles = "flex items-center gap-3 border-b border-border px-4 py-[11px]";
+export const eventChoiceRowStyles = "mt-3 flex flex-wrap gap-2";

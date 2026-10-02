@@ -18,6 +18,7 @@ from app.domains.memories.public import (
 )
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
+from tests.fakes.fake_event_ports import FakeEventPort, fake_event_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -35,6 +36,8 @@ class Harness:
         self.memory_port = memory_port or FakeMemoryPort()
         extraction = FakeExtractionPort()
         self.submit = SubmitCaptureInteractor(
+            event_port=FakeEventPort(),
+            event_capture=fake_event_capture(extraction=FakeExtractionPort()),
             pending_capture_repository=self.pending,
             capture_turn_repository=self.turns,
             task_port=FakeTaskPort(),
@@ -46,6 +49,7 @@ class Harness:
             search_port=FakeSearchPort(),
         )
         self.answer = AnswerPendingCaptureInteractor(
+            event_capture=fake_event_capture(extraction=FakeExtractionPort()),
             pending_capture_repository=self.pending,
             capture_turn_repository=self.turns,
             task_port=FakeTaskPort(),

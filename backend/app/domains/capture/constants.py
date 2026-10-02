@@ -33,6 +33,9 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     # memory's detail page only, and `/forget` falls to FR-12's reply.
     # Epic 005, FR-1.
     "/search",
+    # Epic 007, FR-1 and FR-24.
+    "/add-event",
+    "/events",
 )
 
 # Epic 005. Like a memory save (AD-7 below), a search is measured on its text,
@@ -122,3 +125,40 @@ REMINDER_EXTRACTION_INSTRUCTION: Final = (
     "'every N'. repeat_weekdays: 0=Monday to 6=Sunday; weekdays means 0 to 4. "
     "day_of_month: for a monthly repeat on a numbered day."
 )
+
+# Epic 007. Build plan §5 and AD-6: the model reads what was said; every rule
+# that is arithmetic (next year, overnight, Feb 29, cap) is code. `has_year`
+# tells a stated past year (FR-5) from an omitted one (FR-4). Kept terse.
+ADD_EVENT_COMMAND: Final = "/add-event"
+EVENTS_COMMAND: Final = "/events"
+
+EVENT_EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "start_date": {"type": "string", "description": "YYYY-MM-DD"},
+        "has_year": {"type": "boolean"},
+        "start_time": {"type": "string", "description": "HH:MM, 24-hour"},
+        "end_date": {"type": "string", "description": "YYYY-MM-DD"},
+        "end_time": {"type": "string", "description": "HH:MM, 24-hour"},
+        "location": {"type": "string"},
+        "description": {"type": "string"},
+        "repeat_yearly": {"type": "boolean"},
+        "alert_leads_minutes": {"type": "array", "items": {"type": "integer"}},
+    },
+    "required": ["title"],
+}
+
+EVENT_EXTRACTION_INSTRUCTION: Final = (
+    "Extract an event. title: what it is, without date, time, place or alert "
+    "words. start_date, start_time, end_date, end_time: local, only if said; a "
+    "date with no year is this year. has_year: true only if a year was said. "
+    "location: only if a place was said. repeat_yearly: true for every year, "
+    "birthdays and anniversaries. alert_leads_minutes: for each 'remind me N "
+    "before', N in minutes."
+)
+
+# FR-16's one question.
+EVENT_ALERT_QUESTION: Final = "Which alert should I keep?"
+# The answer to FR-16's question that keeps no alert.
+NO_ALERT_ANSWER: Final = "none"

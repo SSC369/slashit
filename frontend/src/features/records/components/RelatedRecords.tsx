@@ -1,11 +1,14 @@
 import type { KeyboardEvent, ReactElement } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
+import EventMarker from "../../../components/EventMarker";
+import EventStatusPill from "../../../components/EventStatusPill";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Button from "../../../design-system/components/Button";
 import type { RecordRow } from "../../../stores/RecordsStore";
 import { cn } from "../../../utils/cn";
 import { formatShortDate } from "../../../utils/formatDate";
+import { formatEventStart } from "../../../utils/formatEvent";
 import * as Styles from "./styles";
 
 const SKELETON_ROW_COUNT = 3;
@@ -97,6 +100,8 @@ const rowId = (row: RecordRow): string => {
       return row.reminder.id;
     case "MEMORY":
       return row.memory.id;
+    case "EVENT":
+      return row.event.id;
   }
 };
 
@@ -160,6 +165,20 @@ const RelatedCells = (props: { row: RecordRow }): ReactElement => {
           <span className={Styles.relatedDateStyles}>{formatShortDate(row.memory.createdAt)}</span>
           <span className={Styles.relatedStatusStyles}>
             <CategoryTag category={row.memory.category} />
+          </span>
+        </>
+      );
+    case "EVENT":
+      return (
+        <>
+          <span className={Styles.relatedTypeStyles}>
+            <EventMarker />
+            Event
+          </span>
+          <span className={Styles.relatedTitleStyles}>{row.event.title}</span>
+          <span className={Styles.relatedDateStyles}>{formatEventStart(row.event)}</span>
+          <span className={Styles.relatedStatusStyles}>
+            <EventStatusPill status={row.event.eventStatus} />
           </span>
         </>
       );

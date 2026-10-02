@@ -19,10 +19,13 @@ export const CAPTURE_COMMANDS: CaptureCommand[] = [
   { name: "/remember", description: "Save a fact to remember" },
   { name: "/add-memory", description: "Save a fact to remember" },
   { name: "/memories", description: "List or look up your memories" },
+  // Epic 007, design §8.
+  { name: "/add-event", description: "Create an event" },
+  { name: "/events", description: "List your upcoming events" },
 ];
 
 /** Epic 004, FR-1: two names for one action. */
 export const MEMORY_SAVE_COMMANDS: readonly string[] = ["/remember", "/add-memory"];
 
 /** Commands that take no argument, so picking one runs it at once. */
-export const ARGUMENTLESS_COMMANDS: readonly string[] = ["/tasks", "/reminders", "/memories"];
+export const ARGUMENTLESS_COMMANDS: readonly string[] = ["/tasks", "/reminders", "/memories", "/events"];

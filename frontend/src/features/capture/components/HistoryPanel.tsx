@@ -1,6 +1,7 @@
 import {
   Bell,
   Bookmark,
+  CalendarDays,
   Check,
   Clock,
   Eraser,
@@ -46,6 +47,8 @@ const OUTCOME_PILL: Record<
     icon: <Scale size={12} />,
   },
   SEARCHED: { className: Styles.pillMutedStyles, label: "Searched", icon: <Search size={12} /> },
+  EVENT_CREATED: { className: Styles.pillDoneStyles, label: "Event saved", icon: <CalendarDays size={12} /> },
+  EVENTS_LISTED: { className: Styles.pillMutedStyles, label: "Events listed", icon: <CalendarDays size={12} /> },
 };
 
 /** FR-28: the `/forget` row names the count and nothing typed. */

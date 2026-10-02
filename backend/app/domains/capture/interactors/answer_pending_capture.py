@@ -7,13 +7,19 @@ from uuid import UUID
 import structlog
 
 from app.domains.capture.constants import (
+    ADD_EVENT_COMMAND,
     CONFLICT_QUESTION,
     DUE_AT_ONLY_INSTRUCTION,
     DUE_AT_ONLY_SCHEMA,
+    EVENT_ALERT_QUESTION,
     MEMORY_SAVE_COMMANDS,
+    NO_ALERT_ANSWER,
     SEARCH_COMMAND,
 )
-from app.domains.capture.interfaces.dtos import MemoryConflictAskedDTO
+from app.domains.capture.interfaces.dtos import (
+    EventAlertChoiceAskedDTO,
+    MemoryConflictAskedDTO,
+)
 from app.domains.capture.interfaces.ports import (
     ExtractionPort,
     MemoryPort,
@@ -25,10 +31,21 @@ from app.domains.capture.interfaces.repositories import (
     CaptureTurnRepository,
     PendingCaptureRepository,
 )
+from app.domains.capture.services.event_capture import (
+    ChosenAlert,
+    EventCaptureOutcome,
+    EventCaptureService,
+    EventNeedsTitle,
+)
 from app.domains.capture.services.reminder_capture import (
     ReminderCaptureOutcome,
     ReminderCaptureService,
     ReminderNeedsDescription,
+)
+from app.domains.events.public import (
+    EventDTO,
+    EventNeedsAlertChoice,
+    EventNeedsDate,
 )
 from app.domains.gateway.public import Extraction
 from app.domains.memories.public import MemoryConflictDTO, MemorySavedDTO
@@ -43,6 +60,8 @@ from app.domains.search.public import (
 AnswerOutcome = (
     TaskDTO
     | ReminderCaptureOutcome
+    | EventCaptureOutcome
+    | EventAlertChoiceAskedDTO
     | MemorySaveOutcome
     | MemoryConflictAskedDTO
     | SearchResultsDTO
@@ -75,6 +94,7 @@ class AnswerPendingCaptureInteractor:
         reminder_capture: ReminderCaptureService,
         memory_port: MemoryPort,
         search_port: SearchPort,
+        event_capture: EventCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -83,6 +103,7 @@ class AnswerPendingCaptureInteractor:
         self.reminder_capture = reminder_capture
         self.memory_port = memory_port
         self.search_port = search_port
+        self.event_capture = event_capture
 
     async def answer_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID, answer: str
@@ -116,6 +137,17 @@ class AnswerPendingCaptureInteractor:
                 user_id=user_id,
                 pending_capture_id=pending_capture_id,
                 known_description=pending_capture.known_title,
+                question_text=pending_capture.question_text,
+                original_input=pending_capture.original_input,
+                answer_text=answer_text,
+            )
+
+        if pending_capture.command_name == ADD_EVENT_COMMAND:
+            return await self._answer_add_event(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
+                known_text=pending_capture.known_title,
+                missing_field=pending_capture.missing_field,
                 question_text=pending_capture.question_text,
                 original_input=pending_capture.original_input,
                 answer_text=answer_text,
@@ -213,6 +245,104 @@ class AnswerPendingCaptureInteractor:
             user_id=user_id, pending_capture_id=pending_capture_id
         )
         return outcome
+
+    async def _answer_add_event(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        known_text: str | None,
+        missing_field: str,
+        question_text: str,
+        original_input: str,
+        answer_text: str,
+    ) -> EventCaptureOutcome | EventAlertChoiceAskedDTO:
+        """Epic 007. A date answer completes the sentence and is read whole
+        (FR-2). An alert answer re-reads the sentence and keeps the one lead
+        chosen (FR-16). An answer that still leaves the question open raises."""
+        chosen_alert: ChosenAlert | None = None
+        argument_text = known_text or answer_text
+        if missing_field == "event_alert_choice":
+            chosen_alert = _read_alert_choice(answer_text=answer_text)
+        elif known_text:
+            argument_text = f"{known_text} {answer_text}"
+        outcome = await self.event_capture.capture_event(
+            user_id=user_id,
+            argument_text=argument_text,
+            original_input=original_input,
+            chosen_alert=chosen_alert,
+        )
+        if isinstance(outcome, EventNeedsDate | EventNeedsTitle):
+            raise AnswerCouldNotBeUnderstoodError()
+        if isinstance(outcome, EventNeedsAlertChoice):
+            return await self._ask_alert_choice(
+                user_id=user_id,
+                pending_capture_id=pending_capture_id,
+                argument_text=argument_text,
+                choice=outcome,
+                original_input=original_input,
+                answer_text=answer_text,
+            )
+        if not isinstance(outcome, EventDTO):
+            return outcome
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="event_created",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending_capture_id,
+                question_text=question_text,
+                answer_text=answer_text,
+                resulting_event_id=outcome.id,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the event.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return outcome
+
+    async def _ask_alert_choice(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture_id: UUID,
+        argument_text: str,
+        choice: EventNeedsAlertChoice,
+        original_input: str,
+        answer_text: str,
+    ) -> EventAlertChoiceAskedDTO:
+        """The date question is answered; the alert question takes its place."""
+        pending = await self.pending_capture_repository.create_pending_capture(
+            user_id=user_id,
+            command_name=ADD_EVENT_COMMAND,
+            known_title=argument_text,
+            missing_field="event_alert_choice",
+            question_text=EVENT_ALERT_QUESTION,
+            original_input=original_input,
+        )
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=original_input,
+                outcome="question_asked",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending.id,
+                question_text=EVENT_ALERT_QUESTION,
+                answer_text=answer_text,
+            )
+        except Exception:
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture_id
+        )
+        return EventAlertChoiceAskedDTO(
+            pending_capture_id=pending.id,
+            question=EVENT_ALERT_QUESTION,
+            choices=choice.choices,
+        )
 
     async def _answer_fact(
         self,
@@ -387,3 +517,17 @@ class AnswerPendingCaptureInteractor:
             return datetime.fromisoformat(raw_due_at)
         except ValueError:
             return None
+
+
+def _read_alert_choice(*, answer_text: str) -> ChosenAlert:
+    """FR-16's answer is a choice's lead in minutes, or ``none``.
+
+    Raises:
+        AnswerCouldNotBeUnderstoodError: anything else.
+    """
+    if answer_text.lower() == NO_ALERT_ANSWER:
+        return ChosenAlert(lead_minutes=None)
+    try:
+        return ChosenAlert(lead_minutes=int(answer_text))
+    except ValueError as error:
+        raise AnswerCouldNotBeUnderstoodError() from error

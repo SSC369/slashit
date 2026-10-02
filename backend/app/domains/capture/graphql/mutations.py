@@ -19,6 +19,11 @@ from app.core.deps import (
     build_submit_capture_interactor,
 )
 from app.domains.capture.graphql.types import (
+    EventAlertChoice,
+    EventAlertChoiceAsked,
+    EventCreated,
+    EventLimitReached,
+    EventsListed,
     MemoriesListed,
     MemoryConflictAsked,
     MemoryDiscarded,
@@ -36,12 +41,16 @@ from app.domains.capture.graphql.types import (
 from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
+    EventAlertChoiceAskedDTO,
+    EventListDTO,
     MemoryConflictAskedDTO,
     NonCommandGuidanceDTO,
     PendingCaptureDTO,
     ReminderListDTO,
     UnrecognisedCommandDTO,
 )
+from app.domains.events.public import EventDTO, event_dto_to_type
+from app.domains.events.public import EventLimitReached as EventLimitReachedDTO
 from app.domains.gateway.public import (
     MalformedResult,
     ProviderTimeout,
@@ -80,6 +89,10 @@ CaptureResult = Annotated[
     | ReminderCreated
     | RemindersListed
     | ReminderLimitReached
+    | EventCreated
+    | EventsListed
+    | EventLimitReached
+    | EventAlertChoiceAsked
     | MemorySaved
     | MemoriesListed
     | MemoryTooLong
@@ -105,6 +118,9 @@ def _capture_outcome_to_result(
     memory_result = _memory_outcome_to_result(outcome=outcome)
     if memory_result is not None:
         return memory_result
+    event_result = _event_outcome_to_result(outcome=outcome)
+    if event_result is not None:
+        return event_result
     if isinstance(outcome, SearchResultsDTO):
         return cast(CaptureResult, search_results_to_type(results=outcome))
     if isinstance(outcome, SearchTooLongDTO):
@@ -164,6 +180,48 @@ def _capture_outcome_to_result(
         )
     # One of the gateway's five failure types, already a GraphQL type.
     return cast(CaptureResult, outcome)
+
+
+def _event_outcome_to_result(
+    *, outcome: CaptureOutcome | AnswerOutcome
+) -> CaptureResult | None:
+    """Epic 007's four outcomes, or None for any other."""
+    if isinstance(outcome, EventDTO):
+        return cast(CaptureResult, EventCreated(event=event_dto_to_type(event=outcome)))
+    if isinstance(outcome, EventListDTO):
+        return cast(
+            CaptureResult,
+            EventsListed(
+                events=[event_dto_to_type(event=event) for event in outcome.events]
+            ),
+        )
+    if isinstance(outcome, EventLimitReachedDTO):
+        return cast(
+            CaptureResult,
+            EventLimitReached(
+                message=(
+                    f"You have {outcome.limit} upcoming events, the most Slashit "
+                    "holds. Delete one you no longer need, then try again. Past "
+                    "events do not count."
+                ),
+                limit=outcome.limit,
+            ),
+        )
+    if isinstance(outcome, EventAlertChoiceAskedDTO):
+        return cast(
+            CaptureResult,
+            EventAlertChoiceAsked(
+                pending_capture_id=strawberry.ID(str(outcome.pending_capture_id)),
+                question=outcome.question,
+                choices=[
+                    EventAlertChoice(
+                        lead_minutes=choice.lead_minutes, label=choice.label
+                    )
+                    for choice in outcome.choices
+                ],
+            ),
+        )
+    return None
 
 
 def _memory_outcome_to_result(

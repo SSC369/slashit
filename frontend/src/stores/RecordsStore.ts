@@ -1,13 +1,15 @@
 import { makeAutoObservable } from "mobx";
 
 import type { RecordItem } from "../api/queries/GetRecords/responseHandler";
+import type { EventFieldsFragment } from "../fragments/EventFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
+import type { EventsStoreModel } from "./EventsStore";
 import type { MemoriesStoreModel } from "./MemoriesStore";
 import type { RemindersStoreModel } from "./RemindersStore";
 
-export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS" | "MEMORIES";
+export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS" | "MEMORIES" | "EVENTS";
 export type RecordsSortField = "CREATED_AT" | "DUE_AT";
 /** Epic 005, FR-23: a search lists best match first, or the same matches by date. */
 export type RecordsSearchSortMode = "BEST_MATCH" | "DATE";
@@ -24,7 +26,8 @@ export interface RecordsSearchPage {
 export type RecordRow =
   | { kind: "TASK"; task: TaskFieldsFragment }
   | { kind: "REMINDER"; reminder: ReminderFieldsFragment }
-  | { kind: "MEMORY"; memory: MemoryFieldsFragment };
+  | { kind: "MEMORY"; memory: MemoryFieldsFragment }
+  | { kind: "EVENT"; event: EventFieldsFragment };
 
 const createdAtOf = (row: RecordRow): string => {
   switch (row.kind) {
@@ -34,6 +37,8 @@ const createdAtOf = (row: RecordRow): string => {
       return row.reminder.createdAt;
     case "MEMORY":
       return row.memory.createdAt;
+    case "EVENT":
+      return row.event.createdAt;
   }
 };
 
@@ -43,7 +48,7 @@ export interface RecordRef {
 }
 
 export class RecordsStoreModel {
-  /** Tasks by id. Reminders and memories live in their own stores, never here. */
+  /** Tasks by id. Reminders, memories and events live in their own stores, never here. */
   records: Map<string, TaskFieldsFragment> = new Map();
   order: RecordRef[] = [];
   kindFilter: RecordsKindFilter = "ALL";
@@ -62,13 +67,19 @@ export class RecordsStoreModel {
 
   private readonly remindersStore: RemindersStoreModel;
   private readonly memoriesStore: MemoriesStoreModel;
+  private readonly eventsStore: EventsStoreModel;
 
-  constructor(remindersStore: RemindersStoreModel, memoriesStore: MemoriesStoreModel) {
+  constructor(
+    remindersStore: RemindersStoreModel,
+    memoriesStore: MemoriesStoreModel,
+    eventsStore: EventsStoreModel,
+  ) {
     this.remindersStore = remindersStore;
     this.memoriesStore = memoriesStore;
-    makeAutoObservable<RecordsStoreModel, "remindersStore" | "memoriesStore">(
+    this.eventsStore = eventsStore;
+    makeAutoObservable<RecordsStoreModel, "remindersStore" | "memoriesStore" | "eventsStore">(
       this,
-      { remindersStore: false, memoriesStore: false },
+      { remindersStore: false, memoriesStore: false, eventsStore: false },
       { autoBind: true },
     );
   }
@@ -90,6 +101,9 @@ export class RecordsStoreModel {
       } else if (ref.kind === "MEMORY") {
         const memory = this.memoriesStore.get(ref.id);
         if (memory !== null) rows.push({ kind: "MEMORY", memory });
+      } else if (ref.kind === "EVENT") {
+        const event = this.eventsStore.get(ref.id);
+        if (event !== null) rows.push({ kind: "EVENT", event });
       } else {
         const reminder = this.remindersStore.get(ref.id);
         if (reminder !== null) rows.push({ kind: "REMINDER", reminder });
@@ -103,8 +117,8 @@ export class RecordsStoreModel {
     this.order = items.map((item) => this.upsertItem(item));
   }
 
-  /** Puts a record where it lives: tasks here, reminders and memories in
-   * their own stores. Returns the reference an ordered list keeps. */
+  /** Puts a record where it lives: tasks here, reminders, memories and
+   * events in their own stores. Returns the reference an ordered list keeps. */
   upsertItem(item: RecordItem): RecordRef {
     if (item.__typename === "Task") {
       this.records.set(item.id, item);
@@ -113,6 +127,10 @@ export class RecordsStoreModel {
     if (item.__typename === "Memory") {
       this.memoriesStore.upsert(item);
       return { kind: "MEMORY", id: item.id };
+    }
+    if (item.__typename === "Event") {
+      this.eventsStore.upsert(item);
+      return { kind: "EVENT", id: item.id };
     }
     this.remindersStore.upsert(item);
     return { kind: "REMINDER", id: item.id };
@@ -192,7 +210,8 @@ export class RecordsStoreModel {
   static create(
     remindersStore: RemindersStoreModel,
     memoriesStore: MemoriesStoreModel,
+    eventsStore: EventsStoreModel,
   ): RecordsStoreModel {
-    return new RecordsStoreModel(remindersStore, memoriesStore);
+    return new RecordsStoreModel(remindersStore, memoriesStore, eventsStore);
   }
 }

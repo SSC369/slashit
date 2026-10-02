@@ -58,6 +58,7 @@ class CaptureTurnRepository(Protocol):
         answer_text: str | None,
         resulting_reminder_id: UUID | None = None,
         resulting_memory_id: UUID | None = None,
+        resulting_event_id: UUID | None = None,
         affected_count: int | None = None,
     ) -> None: ...
 

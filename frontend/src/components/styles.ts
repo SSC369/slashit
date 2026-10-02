@@ -52,3 +52,9 @@ export const pageTopbarActionsStyles = "flex items-center gap-1.5";
 export const categoryTagStyles =
   "inline-flex h-[23px] shrink-0 items-center rounded-full border border-border bg-sidebar px-2.5 text-[11.5px] font-medium text-foreground-secondary";
 export const categoryTagNoneStyles = "border-dashed border-border-strong bg-transparent text-foreground-tertiary";
+
+// Event status pill and marker (007 design §6: `.pill.past`, `.pill.alert`, `.dot.evt`)
+export const statusPillHappeningStyles = "border-accent-wash bg-accent-wash text-accent";
+export const statusPillPastStyles = "border-border-strong bg-past-wash text-foreground-tertiary";
+export const alertPillStyles = "border-accent-wash bg-accent-wash text-accent";
+export const eventMarkerStyles = "inline-block h-[7px] w-[7px] shrink-0 rotate-45 rounded-[2px] bg-success";

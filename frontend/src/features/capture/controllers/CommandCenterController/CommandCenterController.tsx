@@ -17,6 +17,7 @@ import {
   CAPTURE_COMMANDS,
   MEMORY_SAVE_COMMANDS,
 } from "../../../../constants/captureCommands";
+import { isWaiting } from "../../../../stores/CaptureStore";
 import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
@@ -44,6 +45,18 @@ const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !inpu
 const isMemorySave = (said: string): boolean =>
   MEMORY_SAVE_COMMANDS.some((command) => said === command || said.startsWith(`${command} `));
 
+const isEventsList = (said: string): boolean => said.trim() === "/events";
+
+/** A request that never reached a typed result: `/events` draws its own
+ * error (`EventsListStates`); every other command keeps 001's refusal. */
+const resolveRequestFailed = (store: RootStore, turnId: string, said: string, error: Error): void => {
+  if (isEventsList(said)) {
+    store.capture.resolveTurn(turnId, { status: "eventListFailed" });
+    return;
+  }
+  store.capture.resolveTurn(turnId, { status: "refused", message: error.message });
+};
+
 interface CaptureResultTarget {
   store: RootStore;
   turnId: string;
@@ -65,7 +78,8 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       restoreInput(said);
       return;
     }
-    if (said.startsWith("/remind")) {
+    // Epic 007, `EventCaptureStates`: the same not-saved card, command kept.
+    if (said.startsWith("/remind") || said.startsWith("/add-event")) {
       captureStore.resolveTurn(turnId, { status: "modelDown" });
       restoreInput(said);
       return;
@@ -91,6 +105,26 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "reminderLimit", limit });
       restoreInput(said);
     },
+    onEventCreated: (event) => {
+      store.events.upsert(event);
+      captureStore.resolveTurn(turnId, { status: "eventCreated", event });
+    },
+    onEventsListed: (events) => {
+      for (const event of events) store.events.upsert(event);
+      captureStore.resolveTurn(turnId, { status: "eventList", events });
+    },
+    onEventLimitReached: ({ limit }) => {
+      captureStore.resolveTurn(turnId, { status: "eventLimit", limit });
+      restoreInput(said);
+    },
+    onEventAlertChoiceAsked: ({ pendingCaptureId, question, choices }) =>
+      captureStore.resolveTurn(turnId, {
+        status: "eventAlertChoice",
+        pendingCaptureId,
+        question,
+        choices,
+        error: null,
+      }),
     onMemorySaved: ({ memory, secretCaution }) => {
       captureStore.resolveTurn(turnId, { status: "memorySaved", memory, secretCaution });
       store.memories.upsert(memory);
@@ -176,8 +210,7 @@ const CommandCenterController = (): ReactElement => {
     triggerSubmitCapture({
       rawInput: text,
       ...buildCaptureResultCallbacks({ store, turnId, said: text, restoreInput }),
-      onRequestFailed: (requestError) =>
-        store.capture.resolveTurn(turnId, { status: "refused", message: requestError.message }),
+      onRequestFailed: (requestError) => resolveRequestFailed(store, turnId, text, requestError),
     });
   };
 
@@ -255,6 +288,21 @@ const CommandCenterController = (): ReactElement => {
     });
   };
 
+  // FR-16: the chip's lead in minutes, or "none", answers the alert question.
+  const handleAlertChoice = (turnId: string, answer: string): void => {
+    const turn = store.capture.turns.get(turnId);
+    if (!turn || turn.status !== "eventAlertChoice" || !isOnline) return;
+
+    store.capture.setAlertChoiceError(turnId, null);
+    setSubmittingTurnId(turnId);
+    triggerAnswerPendingCapture({
+      pendingCaptureId: turn.pendingCaptureId,
+      answer,
+      ...buildCaptureResultCallbacks({ store, turnId, said: turn.said, restoreInput }),
+      onRequestFailed: (requestError) => store.capture.setAlertChoiceError(turnId, requestError.message),
+    });
+  };
+
   const handleQuickAnswer = (turnId: string, answer: string): void => {
     store.capture.setAnswerDraft(turnId, answer);
     handleAnswerSubmit(turnId);
@@ -317,9 +365,7 @@ const CommandCenterController = (): ReactElement => {
   };
 
   const handleShowWaiting = (): void => {
-    const waiting = store.capture
-      .getAll()
-      .find((turn) => turn.status === "pending" || turn.status === "memoryConflict");
+    const waiting = store.capture.getAll().find(isWaiting);
     if (!waiting) return;
     if (waiting.status === "memoryConflict") store.capture.setConflictDeferred(waiting.id, false);
     document.getElementById(`turn-${waiting.id}`)?.scrollIntoView({ block: "center" });
@@ -348,6 +394,15 @@ const CommandCenterController = (): ReactElement => {
 
   const handleOpenMemories = (): void => {
     store.records.setKindFilter("MEMORIES");
+    navigate("/records");
+  };
+
+  const handleOpenEvent = (id: string): void => {
+    navigate(`/records/events/${id}`);
+  };
+
+  const handleOpenEvents = (): void => {
+    store.records.setKindFilter("EVENTS");
     navigate("/records");
   };
 
@@ -450,6 +505,10 @@ const CommandCenterController = (): ReactElement => {
                 onConflictDefer={handleConflictDefer}
                 onOpenSearchRecord={handleOpenSearchRecord}
                 onSeeAllSearch={handleSeeAllSearch}
+                onOpenEvent={handleOpenEvent}
+                onOpenEvents={handleOpenEvents}
+                isChoosingAlert={submittingTurnId === turn.id && answerApiStatus === API_FETCHING}
+                onAlertChoice={handleAlertChoice}
               />
             ))}
           </div>

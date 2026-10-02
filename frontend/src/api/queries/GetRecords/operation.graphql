@@ -1,6 +1,7 @@
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
+#import "../../../fragments/EventFields.graphql"
 
 query GetRecords($filter: RecordsFilterInput) {
   records(filter: $filter) {
@@ -13,6 +14,9 @@ query GetRecords($filter: RecordsFilterInput) {
     }
     ... on Memory {
       ...MemoryFields
+    }
+    ... on Event {
+      ...EventFields
     }
   }
 }

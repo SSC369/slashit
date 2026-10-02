@@ -10,6 +10,7 @@ from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interfaces.dtos import TaskDTO
+from tests.fakes.fake_event_ports import FakeEventRecordsPort
 from tests.fakes.fake_memory_port import FakeMemoryRecordsPort
 from tests.fakes.fake_reminder_records_port import FakeReminderRecordsPort
 from tests.fakes.fake_task_repository import FakeTaskRepository
@@ -39,6 +40,7 @@ async def test_kind_filter_tasks_returns_every_row() -> None:
     user_id = uuid.uuid4()
     repository = await _seeded_repository(user_id=user_id)
     interactor = ListTasksInteractor(
+        event_records=FakeEventRecordsPort(),
         memory_records=FakeMemoryRecordsPort(),
         task_repository=repository,
         reminder_records=FakeReminderRecordsPort(),
@@ -76,6 +78,7 @@ async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
         original_input=None,
     )
     interactor = ListTasksInteractor(
+        event_records=FakeEventRecordsPort(),
         memory_records=FakeMemoryRecordsPort(),
         task_repository=repository,
         reminder_records=FakeReminderRecordsPort(),
@@ -133,6 +136,7 @@ async def test_the_all_tab_filter_includes_memories() -> None:
         updated_at=now,
     )
     interactor = ListTasksInteractor(
+        event_records=FakeEventRecordsPort(),
         memory_records=FakeMemoryRecordsPort(memories=[memory]),
         task_repository=await _seeded_repository(user_id=user_id),
         reminder_records=FakeReminderRecordsPort(),

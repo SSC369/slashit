@@ -7,8 +7,14 @@ import * as Types from '../../../../types.generated';
 import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
+import { EventFieldsFragmentDoc } from '../../../fragments/EventFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
 import { SearchResultsFieldsFragmentDoc } from '../../../fragments/SearchResultsFields.generated';
+export type EventStatusType =
+  | 'HAPPENING_NOW'
+  | 'PAST'
+  | 'UPCOMING';
+
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
@@ -50,6 +56,10 @@ export type AnswerPendingCaptureMutationVariables = Exact<{
 
 
 export type AnswerPendingCaptureMutation = { answerPendingCapture:
+    | { __typename: 'EventAlertChoiceAsked', pendingCaptureId: string, question: string, choices: Array<{ leadMinutes: number, label: string }> }
+    | { __typename: 'EventCreated', event: { id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType } }
+    | { __typename: 'EventLimitReached', message: string, limit: number }
+    | { __typename: 'EventsListed', events: Array<{ id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType }> }
     | { __typename: 'MalformedResult', message: string, reason: string }
     | { __typename: 'MemoriesListed', searchText: string | null, memories: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
     | { __typename: 'MemoryConflictAsked', pendingCaptureId: string, question: string, newText: string, category: Types.MemoryCategory | null, conflicting: Array<{ id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }> }
@@ -103,6 +113,28 @@ export const AnswerPendingCaptureDocument = gql`
     ... on ReminderLimitReached {
       message
       limit
+    }
+    ... on EventCreated {
+      event {
+        ...EventFields
+      }
+    }
+    ... on EventsListed {
+      events {
+        ...EventFields
+      }
+    }
+    ... on EventLimitReached {
+      message
+      limit
+    }
+    ... on EventAlertChoiceAsked {
+      pendingCaptureId
+      question
+      choices {
+        leadMinutes
+        label
+      }
     }
     ... on MemorySaved {
       memory {
@@ -171,5 +203,6 @@ export const AnswerPendingCaptureDocument = gql`
 }
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
+${EventFieldsFragmentDoc}
 ${MemoryFieldsFragmentDoc}
 ${SearchResultsFieldsFragmentDoc}`;

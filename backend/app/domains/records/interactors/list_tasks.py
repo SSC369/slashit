@@ -3,19 +3,25 @@
 Epic 003 (sub-plan 4.1) adds reminders: with no kind filter, the All tab
 merges both record types into one list, ordered by the requested field. Epic
 004 (sub-plan 4.1) adds memories the same way; a memory has no due date, so it
-sorts with the undated records when sorting by due date.
+sorts with the undated records when sorting by due date. Epic 007 (sub-plan
+4.1) adds events, dated by their next or only start.
 """
 
 from datetime import UTC, datetime
 
+from app.domains.events.public import EventDTO
 from app.domains.memories.public import MemoryDTO
 from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interfaces.dtos import TaskDTO
-from app.domains.records.interfaces.ports import MemoryRecordsPort, ReminderRecordsPort
+from app.domains.records.interfaces.ports import (
+    EventRecordsPort,
+    MemoryRecordsPort,
+    ReminderRecordsPort,
+)
 from app.domains.records.interfaces.repositories import TaskRepository
 from app.domains.reminders.public import ReminderDTO
 
-RecordItemDTO = TaskDTO | ReminderDTO | MemoryDTO
+RecordItemDTO = TaskDTO | ReminderDTO | MemoryDTO | EventDTO
 
 _ALL_KINDS = (None, "ALL")
 _TASKS_ONLY = "TASKS"
@@ -32,10 +38,12 @@ class ListTasksInteractor:
         task_repository: TaskRepository,
         reminder_records: ReminderRecordsPort,
         memory_records: MemoryRecordsPort,
+        event_records: EventRecordsPort,
     ) -> None:
         self.task_repository = task_repository
         self.reminder_records = reminder_records
         self.memory_records = memory_records
+        self.event_records = event_records
 
     async def list_tasks(self, *, dto: ListTasksInputDTO) -> list[RecordItemDTO]:
         """List the caller's records, filtered and sorted. A search goes
@@ -52,12 +60,16 @@ class ListTasksInteractor:
         if dto.kind_filter != _TASKS_ONLY:
             reminders = await self.reminder_records.list_reminders(user_id=dto.user_id)
         memories: list[MemoryDTO] = []
+        events: list[EventDTO] = []
         # The All tab sends "ALL"; an omitted filter means the same.
         if dto.kind_filter in _ALL_KINDS:
             memories = await self.memory_records.list_memories(user_id=dto.user_id)
-        if not reminders and not memories:
+            events = await self.event_records.list_events(user_id=dto.user_id)
+        if not reminders and not memories and not events:
             return list(tasks)
-        return self._merge_in_order(records=[*tasks, *reminders, *memories], dto=dto)
+        return self._merge_in_order(
+            records=[*tasks, *reminders, *memories, *events], dto=dto
+        )
 
     def _merge_in_order(
         self, *, records: list[RecordItemDTO], dto: ListTasksInputDTO
@@ -84,4 +96,6 @@ class ListTasksInteractor:
             return item.due_at
         if isinstance(item, MemoryDTO):
             return None
+        if isinstance(item, EventDTO):
+            return item.starts_at
         return item.next_fire_at

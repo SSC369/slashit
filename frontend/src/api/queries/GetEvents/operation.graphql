@@ -1,0 +1,7 @@
+#import "../../../fragments/EventFields.graphql"
+
+query GetEvents($scope: EventScope!) {
+  events(scope: $scope) {
+    ...EventFields
+  }
+}

@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
+from app.domains.events.public import AlertChoiceDTO, EventDTO
 from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
@@ -16,6 +17,9 @@ MissingField = Literal[
     "memory_conflict",
     # Epic 005, FR-2.
     "search_text",
+    # Epic 007, FR-2 and FR-16.
+    "event_date",
+    "event_alert_choice",
 ]
 
 
@@ -80,6 +84,9 @@ CaptureTurnOutcome = Literal[
     "memory_conflict_resolved",
     # Epic 005, migration 0034: the typed line only, never results (FR-21).
     "searched",
+    # Epic 007, migration 0038.
+    "event_created",
+    "events_listed",
 ]
 
 
@@ -100,6 +107,8 @@ class CaptureTurnDTO:
     resulting_reminder_id: UUID | None = None
     # Epic 004. Slice 3's forget scrubs the turns that point at a memory.
     resulting_memory_id: UUID | None = None
+    # Epic 007.
+    resulting_event_id: UUID | None = None
     # Epic 004, sub-plan 4.2: a scrubbed turn, and a `/forget` turn's count.
     forgotten: bool = False
     affected_count: int | None = None
@@ -116,3 +125,20 @@ class ReminderListDTO:
     """`/reminders`. Wrapped so it is not confused with `/tasks`' plain list."""
 
     reminders: list[ReminderDTO]
+
+
+@dataclass(frozen=True)
+class EventListDTO:
+    """`/events`. Wrapped so it is not confused with another list."""
+
+    events: list[EventDTO]
+
+
+@dataclass(frozen=True)
+class EventAlertChoiceAskedDTO:
+    """FR-16: more than one alert was said. Nothing saved; the choice waits
+    as a pending capture. ``choices`` are offered, never stored."""
+
+    pending_capture_id: UUID
+    question: str
+    choices: tuple[AlertChoiceDTO, ...]

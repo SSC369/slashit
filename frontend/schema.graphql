@@ -21,7 +21,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | EventCreated | EventsListed | EventLimitReached | EventAlertChoiceAsked | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -31,6 +31,7 @@ type CaptureTurn {
   resultingPendingCaptureId: ID
   resultingReminderId: ID
   resultingMemoryId: ID
+  resultingEventId: ID
   forgotten: Boolean!
   affectedCount: Int
   questionText: String
@@ -49,6 +50,8 @@ enum CaptureTurnOutcome {
   MEMORY_FORGOTTEN
   MEMORY_CONFLICT_RESOLVED
   SEARCHED
+  EVENT_CREATED
+  EVENTS_LISTED
 }
 
 enum ConflictAnswer {
@@ -64,6 +67,77 @@ scalar Date
 scalar DateTime
 
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
+
+type Event {
+  id: ID!
+  title: String!
+  location: String
+  description: String
+  startDate: Date!
+  startTime: String
+  endDate: Date
+  endTime: String
+  allDay: Boolean!
+  repeatYearly: Boolean!
+  scheduleTimezone: String!
+  startsAt: DateTime!
+  endsAt: DateTime!
+  occurrenceDate: Date!
+  occurrenceEndDate: Date!
+  status: EventStatusType!
+  whenText: String!
+  alertLeadMinutes: Int
+  alertText: String
+  alertFiresAt: DateTime
+  origin: String!
+  originalInput: String
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  """Why the schedule reads as it does. Only on create."""
+  whenNotes: [String!]!
+}
+
+type EventAlertChoice {
+  leadMinutes: Int!
+  label: String!
+}
+
+type EventAlertChoiceAsked {
+  pendingCaptureId: ID!
+  question: String!
+  choices: [EventAlertChoice!]!
+}
+
+type EventCreated {
+  event: Event!
+}
+
+type EventLimitReached {
+  message: String!
+  limit: Int!
+}
+
+type EventNotFound {
+  message: String!
+}
+
+union EventResult = Event | EventNotFound
+
+enum EventScope {
+  UPCOMING
+  ALL
+}
+
+enum EventStatusType {
+  UPCOMING
+  HAPPENING_NOW
+  PAST
+}
+
+type EventsListed {
+  events: [Event!]!
+}
 
 union ForgetMemoryResult = MemoriesForgotten | MemoryNotFound
 
@@ -271,10 +345,12 @@ type Query {
   memory(id: ID!): MemoryResult!
   search(text: String!, recordType: RecordType = null, offset: Int! = 0, limit: Int! = 50): SearchPageResult!
   relatedRecords(recordType: RecordType!, id: ID!): [SearchRecord!]!
+  events(scope: EventScope! = UPCOMING): [Event!]!
+  event(id: ID!): EventResult!
   apiVersion: String!
 }
 
-union RecordItem = Task | Reminder | Memory
+union RecordItem = Task | Reminder | Memory | Event
 
 type RecordNotFound {
   message: String!

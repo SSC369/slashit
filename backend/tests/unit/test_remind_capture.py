@@ -24,6 +24,7 @@ from app.domains.gateway.public import (
 from app.domains.reminders.public import ReminderDTO
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
+from tests.fakes.fake_event_ports import FakeEventPort, fake_event_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -53,6 +54,8 @@ def _submit(
     pending = FakePendingCaptureRepository()
     turns = FakeCaptureTurnRepository()
     interactor = SubmitCaptureInteractor(
+        event_port=FakeEventPort(),
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending,
@@ -124,6 +127,7 @@ async def test_answering_when_creates_the_reminder() -> None:
     )
     assert isinstance(question, PendingCaptureDTO)
     answer = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,

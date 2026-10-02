@@ -1,6 +1,8 @@
 import { makeAutoObservable } from "mobx";
 
 import type { MemoryCategory, SecretKind } from "../../types.generated";
+import type { EventAlertChoice } from "../constants/eventConstants";
+import type { EventFieldsFragment } from "../fragments/EventFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { SearchResultsFieldsFragment } from "../fragments/SearchResultsFields.generated";
@@ -14,6 +16,22 @@ export type CaptureTurn =
   | { id: string; said: string; status: "reminderList"; reminders: ReminderFieldsFragment[] }
   | { id: string; said: string; status: "reminderLimit"; limit: number }
   | { id: string; said: string; status: "modelDown" }
+  /** Epic 007. The event is also written to the events store. */
+  | { id: string; said: string; status: "eventCreated"; event: EventFieldsFragment }
+  | { id: string; said: string; status: "eventList"; events: EventFieldsFragment[] }
+  | { id: string; said: string; status: "eventLimit"; limit: number }
+  /** `/events` could not load (`EventsListStates`). */
+  | { id: string; said: string; status: "eventListFailed" }
+  /** FR-16: nothing saved until a lead, or no alert, is picked. */
+  | {
+      id: string;
+      said: string;
+      status: "eventAlertChoice";
+      pendingCaptureId: string;
+      question: string;
+      choices: EventAlertChoice[];
+      error: string | null;
+    }
   | {
       id: string;
       said: string;
@@ -89,6 +107,10 @@ const scrubTurn = (turn: CaptureTurn, isGone: (memoryId: string) => boolean): Ca
   }
 };
 
+/** A turn whose question still waits on the user. */
+export const isWaiting = (turn: CaptureTurn): boolean =>
+  turn.status === "pending" || turn.status === "memoryConflict" || turn.status === "eventAlertChoice";
+
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 type CaptureTurnPatch = DistributiveOmit<CaptureTurn, "id" | "said">;
@@ -126,6 +148,12 @@ export class CaptureStoreModel {
     this.turns.set(id, { ...turn, answerDraft });
   }
 
+  setAlertChoiceError(id: string, error: string | null): void {
+    const turn = this.turns.get(id);
+    if (!turn || turn.status !== "eventAlertChoice") return;
+    this.turns.set(id, { ...turn, error });
+  }
+
   setConflictDeferred(id: string, deferred: boolean): void {
     const turn = this.turns.get(id);
     if (!turn || turn.status !== "memoryConflict") return;
@@ -140,8 +168,7 @@ export class CaptureStoreModel {
 
   /** "1 question waiting": every question still open in the stream (Q2). */
   get waitingCount(): number {
-    return this.getAll().filter((turn) => turn.status === "pending" || turn.status === "memoryConflict")
-      .length;
+    return this.getAll().filter(isWaiting).length;
   }
 
   /**

@@ -19,6 +19,7 @@ from app.domains.analytics.repositories.event_repository import SqlEventReposito
 from app.domains.capture.adapters.analytics_event_adapter import (
     CaptureAnalyticsAdapter,
 )
+from app.domains.capture.adapters.events_adapter import EventsAdapter
 from app.domains.capture.adapters.gateway_extraction_adapter import (
     GatewayExtractionAdapter,
 )
@@ -48,8 +49,20 @@ from app.domains.capture.repositories.capture_turn_repository import (
 from app.domains.capture.repositories.pending_capture_repository import (
     SqlPendingCaptureRepository,
 )
+from app.domains.capture.services.event_capture import EventCaptureService
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
 from app.domains.capture.services.turn_scrubber import CaptureTurnScrubber
+from app.domains.events.adapters.analytics_adapter import EventAnalyticsAdapter
+from app.domains.events.adapters.identity_clock_adapter import (
+    IdentityUserClockAdapter as EventUserClockAdapter,
+)
+from app.domains.events.interactors.create_event import CreateEventInteractor
+from app.domains.events.interactors.get_event import GetEventInteractor
+from app.domains.events.interactors.list_events import ListEventsInteractor
+from app.domains.events.repositories.calendar_event_repository import (
+    SqlCalendarEventRepository,
+)
+from app.domains.events.services.event_service import EventService
 from app.domains.gateway.interactors.embed import EmbedInteractor
 from app.domains.gateway.interactors.extract import ExtractInteractor
 from app.domains.gateway.repositories.usage_repository import SqlUsageRepository
@@ -124,6 +137,7 @@ from app.domains.notifications.services.smtp_sender import SmtpEmailSender
 from app.domains.records.adapters.analytics_event_adapter import (
     RecordsAnalyticsAdapter,
 )
+from app.domains.records.adapters.events_adapter import EventRecordsAdapter
 from app.domains.records.adapters.gateway_adapter import GatewayTaskEmbeddingAdapter
 from app.domains.records.adapters.memories_adapter import MemoryRecordsAdapter
 from app.domains.records.adapters.reminders_adapter import ReminderRecordsAdapter
@@ -373,6 +387,15 @@ def build_submit_capture_interactor(context: Context) -> SubmitCaptureInteractor
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
         search_port=SearchAdapter(search_service=build_search_service(context)),
+        event_port=EventsAdapter(event_service=build_event_service(context)),
+        event_capture=_build_event_capture(context=context),
+    )
+
+
+def _build_event_capture(*, context: Context) -> EventCaptureService:
+    return EventCaptureService(
+        event_port=EventsAdapter(event_service=build_event_service(context)),
+        extraction=_build_extraction_port(context=context),
     )
 
 
@@ -387,6 +410,7 @@ def build_answer_pending_capture_interactor(
         reminder_capture=_build_reminder_capture(context=context),
         memory_port=MemoriesAdapter(memory_service=build_memory_service(context)),
         search_port=SearchAdapter(search_service=build_search_service(context)),
+        event_capture=_build_event_capture(context=context),
     )
 
 
@@ -456,6 +480,7 @@ def build_list_tasks_interactor(context: Context) -> ListTasksInteractor:
         memory_records=MemoryRecordsAdapter(
             memory_service=build_memory_service(context)
         ),
+        event_records=EventRecordsAdapter(event_service=build_event_service(context)),
     )
 
 
@@ -896,4 +921,40 @@ def build_record_search_event_interactor(
 ) -> RecordSearchEventInteractor:
     return RecordSearchEventInteractor(
         analytics=_build_search_analytics_port(context=context)
+    )
+
+
+def _build_event_user_clock_port(*, context: Context) -> EventUserClockAdapter:
+    return EventUserClockAdapter(
+        identity_service=_build_identity_service(context=context)
+    )
+
+
+def build_list_events_interactor(context: Context) -> ListEventsInteractor:
+    return ListEventsInteractor(
+        event_repository=SqlCalendarEventRepository(context.session),
+        user_clock=_build_event_user_clock_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_get_event_interactor(context: Context) -> GetEventInteractor:
+    return GetEventInteractor(
+        event_repository=SqlCalendarEventRepository(context.session),
+        user_clock=_build_event_user_clock_port(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_event_service(context: Context) -> EventService:
+    return EventService(
+        create_event_interactor=CreateEventInteractor(
+            event_repository=SqlCalendarEventRepository(context.session),
+            user_clock=_build_event_user_clock_port(context=context),
+            analytics=EventAnalyticsAdapter(
+                record_event_interactor=_build_record_event_interactor(context=context)
+            ),
+            now_provider=_utc_now,
+        ),
+        list_events_interactor=build_list_events_interactor(context),
     )

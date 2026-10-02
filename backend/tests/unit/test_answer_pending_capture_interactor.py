@@ -11,6 +11,7 @@ from app.domains.capture.interactors.answer_pending_capture import (
 )
 from app.domains.records.public import TaskDTO
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
+from tests.fakes.fake_event_ports import fake_event_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort, extraction
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -35,6 +36,7 @@ async def test_answering_a_title_question_creates_the_task() -> None:
     )
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
@@ -83,6 +85,7 @@ async def test_answering_a_due_date_question_resolves_it_and_creates_the_task() 
     )
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
@@ -119,6 +122,7 @@ async def test_unresolvable_due_date_answer_raises() -> None:
     )
     turn_repo = FakeCaptureTurnRepository()
     interactor = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,
@@ -141,6 +145,7 @@ async def test_unresolvable_due_date_answer_raises() -> None:
 async def test_answering_a_pending_capture_that_does_not_exist_raises() -> None:
     """T-1.11: not found is a plain error, not a screen."""
     interactor = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=FakePendingCaptureRepository(),
@@ -171,6 +176,7 @@ async def test_answering_another_users_pending_capture_raises_not_found() -> Non
         original_input="/add-task",
     )
     interactor = AnswerPendingCaptureInteractor(
+        event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
         pending_capture_repository=pending_repo,

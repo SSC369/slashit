@@ -8,6 +8,12 @@ import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+import { EventFieldsFragmentDoc } from '../../../fragments/EventFields.generated';
+export type EventStatusType =
+  | 'HAPPENING_NOW'
+  | 'PAST'
+  | 'UPCOMING';
+
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
@@ -47,6 +53,7 @@ export type GetRecordsQueryVariables = Exact<{
 
 
 export type GetRecordsQuery = { records: Array<
+    | { __typename: 'Event', id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType }
     | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
     | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
     | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
@@ -66,8 +73,12 @@ export const GetRecordsDocument = gql`
     ... on Memory {
       ...MemoryFields
     }
+    ... on Event {
+      ...EventFields
+    }
   }
 }
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
-${MemoryFieldsFragmentDoc}`;
+${MemoryFieldsFragmentDoc}
+${EventFieldsFragmentDoc}`;

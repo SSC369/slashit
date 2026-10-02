@@ -41,6 +41,11 @@
   --color-red-wash: #fbf0ee;
   --color-green: #2f7a52;
   --color-green-wash: #edf6f1;
+  /* Epic 007 design §6: the month and group heading ground, and a row
+     divider softer than --color-line. */
+  --color-head: #fbf8f3;
+  --color-line-soft: #f2ece2;
+  --color-past: #f5f1ea;
 
   /* Tier 2: semantics. Named for what they do. Reference tier 1 only. */
   --color-background: var(--color-paper);
@@ -59,6 +64,10 @@
   --color-destructive-wash: var(--color-red-wash);
   --color-success: var(--color-green);
   --color-success-wash: var(--color-green-wash);
+  --color-group-head: var(--color-head);
+  --color-divider: var(--color-line-soft);
+  /* Epic 007: a past event's pill, neutral because Done means finished. */
+  --color-past-wash: var(--color-past);
 
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -90,6 +99,9 @@
     --color-red-wash: #3a2320;
     --color-green: #6fbf95;
     --color-green-wash: #1e3128;
+    --color-head: #201d1a;
+    --color-line-soft: #2b2724;
+    --color-past: #2b2724;
   }
 }
 
@@ -112,6 +124,9 @@
   --color-red-wash: #3a2320;
   --color-green: #6fbf95;
   --color-green-wash: #1e3128;
+  --color-head: #201d1a;
+  --color-line-soft: #2b2724;
+  --color-past: #2b2724;
 }
 
 html,

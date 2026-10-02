@@ -1,0 +1,31 @@
+import type { EventFieldsFragment } from "../fragments/EventFields.generated";
+
+/** One event as the API returns it; tests override what they assert on. */
+export const buildEvent = (overrides: Partial<EventFieldsFragment> = {}): EventFieldsFragment => ({
+  id: "e0",
+  title: "Mom's birthday",
+  location: null,
+  eventDescription: null,
+  startDate: "2026-10-12",
+  startTime: null,
+  endDate: null,
+  endTime: null,
+  allDay: true,
+  repeatYearly: true,
+  scheduleTimezone: "Asia/Kolkata",
+  startsAt: "2026-10-11T18:30:00Z",
+  endsAt: "2026-10-12T18:30:00Z",
+  occurrenceDate: "2026-10-12",
+  occurrenceEndDate: "2026-10-12",
+  eventStatus: "UPCOMING",
+  whenText: "Mon 12 Oct, all day",
+  alertLeadMinutes: 1440,
+  alertText: "1 day before",
+  alertFiresAt: "2026-10-11T03:30:00Z",
+  origin: "command",
+  originalInput: "/add-event Mom's birthday October 12, remind me 1 day before",
+  createdAt: "2026-10-02T04:44:00Z",
+  updatedAt: "2026-10-02T04:44:00Z",
+  whenNotes: [],
+  ...overrides,
+});
