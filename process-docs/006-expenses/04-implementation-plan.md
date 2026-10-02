@@ -63,8 +63,8 @@ slice before each lands, as 004 and 005 did.
 
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
-| 1 | [04.1-record-and-browse.md](./04.1-record-and-browse.md) | `/add-expense` saves with amount, description, category and date; the four questions, the calendar and the refusals work; Expenses tab, All tab, detail, edit and delete work, with every drawn state | none | approved 2026-10-02; building |
-| 2 | `04.2-summaries.md` | `/expenses` with and without a period; the summary card and its states; period picker, category filter and band on the Expenses tab; totals match | 1 | not drafted |
+| 1 | [04.1-record-and-browse.md](./04.1-record-and-browse.md) | `/add-expense` saves with amount, description, category and date; the four questions, the calendar and the refusals work; Expenses tab, All tab, detail, edit and delete work, with every drawn state | none | approved 2026-10-02; built, see dev log |
+| 2 | [04.2-summaries.md](./04.2-summaries.md) | `/expenses` with and without a period; the summary card and its states; period picker, category filter and band on the Expenses tab; totals match | 1 | approved 2026-10-02; building |
 | 3 | `04.3-search.md` | Embed job fills vectors; `/search` and Records search find expenses by words, meaning and exact amount | 1 | not drafted |
 
 Slices 2 and 3 are independent of each other and may be built in either order.
@@ -177,7 +177,8 @@ against FR-2's no-limit rule.
 | `ExpenseSaved { expense }`, `ExpenseQuestionAsked { pendingId kind question amountCandidates readDate }`, `ExpenseRefused { reason length }` | 1 |
 | `ExpenseQuestionKind`: `AMOUNT`, `DESCRIPTION`, `AMOUNT_CHOICE`, `DATE`. `ExpenseRefusalReason`: `FOREIGN_CURRENCY`, `DESCRIPTION_TOO_LONG` | 1 |
 | `expenses(filter)`, `expense(id)`, `updateExpense`, `deleteExpense`, `ExpenseNotFound`, `ExpenseInvalid { field reason }` | 1 |
-| `ExpenseSummary { label start end totals { category totalPaise } grandTotalPaise count }`, `expenseSummary(range, category)`, refusal reason `PERIOD_NOT_UNDERSTOOD` | 2 |
+| `ExpenseSummary { label phrase start end totals { category totalPaise } grandTotalPaise count }`, `expenseSummary(range, category)`, refusal reason `PERIOD_NOT_UNDERSTOOD` | 2 |
+| `ExpensePeriod { key label phrase start end }`, `expensePeriods`: the picker's periods, resolved by the same parser as `/expenses` | 2 |
 | `search` union gains `Expense` | 3 |
 
 `ExpenseRefused` with `PERIOD_NOT_UNDERSTOOD` is added in slice 2, so the enum
@@ -224,3 +225,4 @@ code, and are the only repository files written before approval.
 |---|---|---|---|
 | 2026-10-02 | Created as the index, with sub-plan 4.1 drafted and both evaluation sets drafted | Build plan approved; user asked to proceed | pending |
 | 2026-10-02 | Approved | User: "approved, commit and start building slice 1" | user |
+| 2026-10-02 | §4 GraphQL gains `expensePeriods` and `ExpensePeriod`, and `ExpenseSummary` gains `phrase`. Re-opens sub-plan 4.2 only, which is drafted against it; 4.1 and 4.3 are unaffected | User decision 3A: the server resolves the picker's ranges so FR-28 holds by construction | user, 2026-10-02, with 4.2 |
