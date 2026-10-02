@@ -6,7 +6,7 @@ export const emptySubheadStyles = "mt-3 text-[15px] text-foreground-secondary";
 export const emptySuggestionsRowStyles = "mt-6 flex justify-center gap-2";
 
 // Turn stream
-export const streamContainerStyles = "flex flex-1 flex-col gap-5 overflow-y-auto px-10 pb-2 pt-8";
+export const streamContainerStyles = "flex flex-1 flex-col gap-5 scroll px-10 pb-2 pt-8";
 export const streamColumnStyles = "mx-auto flex w-full max-w-[760px] flex-col gap-[22px]";
 
 export const turnStyles = "flex flex-col gap-2.5";
@@ -81,7 +81,7 @@ export const historyHeadStyles =
 export const historyTitleStyles = "text-[15px] font-semibold text-foreground";
 export const historyCloseStyles =
   "flex h-8 w-8 items-center justify-center rounded-md text-foreground-secondary hover:bg-background hover:text-foreground";
-export const historyBodyStyles = "flex-1 overflow-y-auto px-5 py-4";
+export const historyBodyStyles = "flex-1 scroll px-5 py-4";
 export const historyRowStyles = "border-b border-border py-3.5 last:border-b-0";
 export const historyRowHeadStyles = "flex items-center justify-between gap-2.5";
 export const historyInputTextStyles = "font-mono text-[13px] text-foreground";

@@ -15,7 +15,7 @@ export const panelHeadActionsStyles = "ml-auto flex items-center gap-1";
 export const panelLinkButtonStyles = "text-[12.5px] font-medium text-accent disabled:opacity-60";
 export const panelCloseStyles =
   "flex h-8 w-8 items-center justify-center rounded-md text-foreground-secondary hover:bg-background hover:text-foreground";
-export const panelBodyStyles = "flex-1 overflow-y-auto";
+export const panelBodyStyles = "flex-1 scroll";
 export const panelFootStyles =
   "shrink-0 border-t border-border bg-background px-5 py-3 text-[12px] text-foreground-tertiary";
 export const panelStateStyles =

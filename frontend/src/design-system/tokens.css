@@ -125,3 +125,31 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
 }
+
+/* Every scrolling container takes the `scroll` class and nothing else: it
+   scrolls vertically, keeps the scroll inside itself, and draws one thin
+   scrollbar from the border tokens in both themes. rules/repo-rules.md §11.5. */
+@utility scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--color-foreground-tertiary);
+  }
+}

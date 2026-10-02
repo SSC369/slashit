@@ -465,6 +465,14 @@ Every primitive has a story. Not eventually.
 its shared layer and its applications, and its chat components built twice. A
 component nobody can see is a component somebody rebuilds.
 
+### 11.5 Scroll containers
+
+Every element that scrolls takes the `scroll` class, defined once in
+`design-system/tokens.css`. It sets vertical overflow, keeps the scroll inside
+the element, and draws the thin scrollbar from the border tokens in both themes.
+A feature never writes `overflow-y-auto` or styles a scrollbar itself. Added
+2026-10-02 at the user's direction, after the scrollbars drifted from the design.
+
 ## 12. Styling
 
 Class strings live in a colocated `styles.ts`, exported as named constants.

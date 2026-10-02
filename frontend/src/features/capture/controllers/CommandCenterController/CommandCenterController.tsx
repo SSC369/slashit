@@ -394,12 +394,15 @@ const CommandCenterController = (): ReactElement => {
   );
   const showEmpty = turns.length === 0 && !input;
   const streamRef = useRef<HTMLDivElement>(null);
+  // The newest turn grows when its loading card becomes a result, so a status
+  // change scrolls the feed as a new turn does.
+  const latestTurnStatus = turns.at(-1)?.status;
 
   useEffect(() => {
     const streamElement = streamRef.current;
     if (!streamElement) return;
     streamElement.scrollTop = streamElement.scrollHeight;
-  }, [turns.length]);
+  }, [turns.length, latestTurnStatus]);
 
   return (
     <div className={Styles.pageStyles}>

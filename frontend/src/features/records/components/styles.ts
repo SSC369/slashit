@@ -1,5 +1,5 @@
 // Records pane (shared by RecordsController / RecordDetailController)
-export const paneStyles = "flex-1 overflow-y-auto px-10 py-7";
+export const paneStyles = "flex-1 scroll px-10 py-7";
 
 // Toolbar: tabs + search + sort
 export const toolbarStyles = "mb-[18px] flex items-center justify-between";
