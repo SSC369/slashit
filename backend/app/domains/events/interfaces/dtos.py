@@ -135,6 +135,29 @@ class EventWrite:
 
 
 @dataclass(frozen=True)
+class EventEdit:
+    """The edit form, whole (FR-28), in the user's own local terms."""
+
+    title: str
+    location: str | None
+    description: str | None
+    start_date: date
+    start_time: time | None
+    end_date: date | None
+    end_time: time | None
+    repeat_yearly: bool
+    alert_leads_minutes: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class EventUpdatedDTO:
+    """FR-28, with each alert asked for and not set (FR-19, FR-33)."""
+
+    event: EventDTO
+    alerts_not_set: tuple[AlertNotSetDTO, ...]
+
+
+@dataclass(frozen=True)
 class EventLimitReached:
     """FR-31: the create was refused; nothing was written."""
 

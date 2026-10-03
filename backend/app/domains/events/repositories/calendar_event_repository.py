@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
 from app.domains.events.interfaces.dtos import (
+    EventLimitReached,
     EventWrite,
     RecordOriginValue,
     StoredEventDTO,
@@ -67,6 +68,59 @@ class SqlCalendarEventRepository:
             scoped.add(event)
         return _event_to_dto(event=event)
 
+    async def update_event_if_upcoming_below(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        write: EventWrite,
+        limit: int,
+        now: datetime,
+    ) -> StoredEventDTO | EventLimitReached | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+                {"key": f"calendar_events:{user_id}"},
+            )
+            event = await scoped.get(CalendarEvent, event_id)
+            if (
+                event is None
+                or event.user_id != user_id
+                or event.deleted_at is not None
+            ):
+                return None
+            other_upcoming = await scoped.scalar(
+                select(func.count())
+                .select_from(CalendarEvent)
+                .where(
+                    CalendarEvent.user_id == user_id,
+                    CalendarEvent.id != event_id,
+                    CalendarEvent.deleted_at.is_(None),
+                    or_(CalendarEvent.repeat_yearly, CalendarEvent.ends_at > now),
+                )
+            )
+            becomes_upcoming = write.schedule.repeat_yearly or write.ends_at > now
+            if becomes_upcoming and int(other_upcoming or 0) >= limit:
+                return EventLimitReached(limit=limit)
+            _apply_write(event=event, write=write)
+        return _event_to_dto(event=event)
+
+    async def soft_delete(self, *, user_id: uuid.UUID, event_id: uuid.UUID) -> bool:
+        now = datetime.now(UTC)
+        async with user_transaction(self.session, user_id) as scoped:
+            result = await scoped.execute(
+                update(CalendarEvent)
+                .where(
+                    CalendarEvent.id == event_id,
+                    CalendarEvent.user_id == user_id,
+                    CalendarEvent.deleted_at.is_(None),
+                )
+                .values(deleted_at=now, updated_at=now)
+                .returning(CalendarEvent.id)
+            )
+            deleted_id = result.scalar_one_or_none()
+        return deleted_id is not None
+
     async def list_for_user(self, *, user_id: uuid.UUID) -> list[StoredEventDTO]:
         statement = select(CalendarEvent).where(
             CalendarEvent.user_id == user_id, CalendarEvent.deleted_at.is_(None)
@@ -97,6 +151,24 @@ class SqlCalendarEventRepository:
                 )
                 .values(alert_leads_minutes=list(leads), updated_at=datetime.now(UTC))
             )
+
+
+def _apply_write(*, event: CalendarEvent, write: EventWrite) -> None:
+    """An edit replaces every column the form holds (FR-28). The origin and
+    the typed command stay: they say how the event began."""
+    event.title = write.title
+    event.location = write.location
+    event.description = write.description
+    event.start_date = write.schedule.start_date
+    event.start_time = write.schedule.start_time
+    event.end_date = write.schedule.end_date
+    event.end_time = write.schedule.end_time
+    event.repeat_yearly = write.schedule.repeat_yearly
+    event.schedule_timezone = write.schedule.timezone
+    event.starts_at = write.starts_at
+    event.ends_at = write.ends_at
+    event.alert_leads_minutes = list(write.alert_leads_minutes)
+    event.updated_at = datetime.now(UTC)
 
 
 def _event_to_dto(*, event: CalendarEvent) -> StoredEventDTO:

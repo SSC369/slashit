@@ -60,8 +60,10 @@ from app.domains.events.adapters.identity_clock_adapter import (
 )
 from app.domains.events.adapters.reminders_adapter import RemindersAlertsAdapter
 from app.domains.events.interactors.create_event import CreateEventInteractor
+from app.domains.events.interactors.delete_event import DeleteEventInteractor
 from app.domains.events.interactors.get_event import GetEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
+from app.domains.events.interactors.update_event import UpdateEventInteractor
 from app.domains.events.repositories.calendar_event_repository import (
     SqlCalendarEventRepository,
 )
@@ -1011,6 +1013,22 @@ def _build_event_alert_arming(*, context: Context) -> EventAlertArming:
     return EventAlertArming(
         alerts=RemindersAlertsAdapter(reminder_service=build_reminder_service(context)),
         event_repository=SqlCalendarEventRepository(context.session),
+    )
+
+
+def build_update_event_interactor(context: Context) -> UpdateEventInteractor:
+    return UpdateEventInteractor(
+        event_repository=SqlCalendarEventRepository(context.session),
+        user_clock=_build_event_user_clock_port(context=context),
+        alert_arming=_build_event_alert_arming(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_delete_event_interactor(context: Context) -> DeleteEventInteractor:
+    return DeleteEventInteractor(
+        event_repository=SqlCalendarEventRepository(context.session),
+        alerts=RemindersAlertsAdapter(reminder_service=build_reminder_service(context)),
     )
 
 

@@ -10,6 +10,7 @@ from strawberry.schema.config import StrawberryConfig
 
 from app.domains.capture.graphql.mutations import CaptureMutations
 from app.domains.capture.graphql.queries import CaptureQueries
+from app.domains.events.graphql.mutations import EventMutations
 from app.domains.events.graphql.queries import EventQueries
 from app.domains.expenses.graphql.mutations import ExpenseMutations
 from app.domains.expenses.graphql.queries import ExpenseQueries
@@ -59,6 +60,7 @@ class Mutation(
     NotificationMutations,
     MemoryMutations,
     SearchMutations,
+    EventMutations,
     ExpenseMutations,
 ):
     """Root mutation. Each domain's mutations class becomes a base here as it
