@@ -1,5 +1,5 @@
 import type { EventFieldsFragment } from "../fragments/EventFields.generated";
-import { formatCalendarDate, formatClockTime } from "./formatReminder";
+import { formatCalendarDate, formatClockTime, formatReminderDateTime } from "./formatReminder";
 
 const DAY_MS = 86_400_000;
 
@@ -106,4 +106,39 @@ export const detailWhen = (event: EventFieldsFragment): string => {
 export const dayMonth = (localDate: string): string => {
   const parts = partsOf(localDate);
   return `${parts.day} ${parts.month}`;
+};
+
+type EventAlertFragment = EventFieldsFragment["alerts"][number];
+
+const LEAD_SUFFIX = " before";
+
+/** The bell beside a title (design §7): "1 day before" read as "alert set,
+ * 1 day before"; two or more as "2 alerts", read as "2 alerts set, 1 day and
+ * 1 hour before". Null when the event has no alert. */
+export const alertSummary = (
+  alerts: readonly EventAlertFragment[],
+): { text: string; spoken: string } | null => {
+  const [firstAlert] = alerts;
+  if (firstAlert === undefined) return null;
+  if (alerts.length === 1) return { text: firstAlert.text, spoken: `alert set, ${firstAlert.text}` };
+  const leads = alerts.map((alert) => alert.text);
+  const isEveryLeadBefore = leads.every((lead) => lead.endsWith(LEAD_SUFFIX));
+  const spokenLeads = isEveryLeadBefore
+    ? `${leads
+        .map((lead) => lead.slice(0, -LEAD_SUFFIX.length))
+        .join(", ")
+        .replace(/, ([^,]*)$/, " and $1")}${LEAD_SUFFIX}`
+    : leads.join(", ");
+  return { text: `${alerts.length} alerts`, spoken: `${alerts.length} alerts set, ${spokenLeads}` };
+};
+
+/** When one alert fires, in the event's zone: "Sun 11 Oct, 9:00 AM". */
+export const alertFireText = (alert: EventAlertFragment, event: EventFieldsFragment): string =>
+  formatReminderDateTime(alert.firesAt, event.scheduleTimezone);
+
+/** The day an alert that was not set would have fired (design §8, "2 days
+ * before is Thu 1 Oct"): the occurrence's start counted back by the lead. */
+export const leadDate = (event: EventFieldsFragment, leadMinutes: number): string => {
+  const firesAt = new Date(new Date(event.startsAt).getTime() - leadMinutes * 60_000).toISOString();
+  return formatReminderDateTime(firesAt, event.scheduleTimezone).split(",")[0] ?? "";
 };

@@ -40,6 +40,7 @@ const SEARCH_KIND_FILTER: Record<RecordType, RecordsKindFilter> = {
   TASK: "TASKS",
   REMINDER: "REMINDERS",
   MEMORY: "MEMORIES",
+  EVENT: "EVENTS",
   EXPENSE: "EXPENSES",
 };
 
@@ -116,9 +117,9 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "reminderLimit", limit });
       restoreInput(said);
     },
-    onEventCreated: (event) => {
+    onEventCreated: ({ event, alertsNotSet }) => {
       store.events.upsert(event);
-      captureStore.resolveTurn(turnId, { status: "eventCreated", event });
+      captureStore.resolveTurn(turnId, { status: "eventCreated", event, alertsNotSet });
     },
     onEventsListed: (events) => {
       for (const event of events) store.events.upsert(event);
@@ -128,14 +129,6 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
       captureStore.resolveTurn(turnId, { status: "eventLimit", limit });
       restoreInput(said);
     },
-    onEventAlertChoiceAsked: ({ pendingCaptureId, question, choices }) =>
-      captureStore.resolveTurn(turnId, {
-        status: "eventAlertChoice",
-        pendingCaptureId,
-        question,
-        choices,
-        error: null,
-      }),
     onMemorySaved: ({ memory, secretCaution }) => {
       captureStore.resolveTurn(turnId, { status: "memorySaved", memory, secretCaution });
       store.memories.upsert(memory);
@@ -315,21 +308,6 @@ const CommandCenterController = (): ReactElement => {
     });
   };
 
-  // FR-16: the chip's lead in minutes, or "none", answers the alert question.
-  const handleAlertChoice = (turnId: string, answer: string): void => {
-    const turn = store.capture.turns.get(turnId);
-    if (!turn || turn.status !== "eventAlertChoice" || !isOnline) return;
-
-    store.capture.setAlertChoiceError(turnId, null);
-    setSubmittingTurnId(turnId);
-    triggerAnswerPendingCapture({
-      pendingCaptureId: turn.pendingCaptureId,
-      answer,
-      ...buildCaptureResultCallbacks({ store, turnId, said: turn.said, restoreInput }),
-      onRequestFailed: (requestError) => store.capture.setAlertChoiceError(turnId, requestError.message),
-    });
-  };
-
   const handleQuickAnswer = (turnId: string, answer: string): void => {
     store.capture.setAnswerDraft(turnId, answer);
     handleAnswerSubmit(turnId);
@@ -465,6 +443,9 @@ const CommandCenterController = (): ReactElement => {
       case "Memory":
         navigate(`/records/memories/${record.id}`);
         return;
+      case "Event":
+        navigate(`/records/events/${record.id}`);
+        return;
       case "Expense":
         navigate(`/records/expenses/${record.id}`);
         return;
@@ -566,8 +547,6 @@ const CommandCenterController = (): ReactElement => {
                 onSeeAllSearch={handleSeeAllSearch}
                 onOpenEvent={handleOpenEvent}
                 onOpenEvents={handleOpenEvents}
-                isChoosingAlert={submittingTurnId === turn.id && answerApiStatus === API_FETCHING}
-                onAlertChoice={handleAlertChoice}
               />
             ))}
           </div>

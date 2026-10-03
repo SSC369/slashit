@@ -35,9 +35,6 @@ def present_event(
         leads=stored.alert_leads_minutes,
         clock=clock,
     )
-    # The single fields repeat the soonest alert until the client reads the
-    # list (4.2, T-2.10).
-    first_alert = alerts[0] if alerts else None
     return EventDTO(
         id=stored.id,
         user_id=stored.user_id,
@@ -53,9 +50,6 @@ def present_event(
         when_text=describe_when(
             schedule=stored.schedule, resolved=resolved, local_today=local_today
         ),
-        alert_lead_minutes=first_alert.lead_minutes if first_alert else None,
-        alert_text=first_alert.text if first_alert else None,
-        alert_fires_at=first_alert.fires_at if first_alert else None,
         origin=stored.origin,
         original_input=stored.original_input,
         created_at=stored.created_at,

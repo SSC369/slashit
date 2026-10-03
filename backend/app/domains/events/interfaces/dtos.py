@@ -100,9 +100,6 @@ class EventDTO:
     occurrence_end_date: date
     status: EventStatus
     when_text: str
-    alert_lead_minutes: int | None
-    alert_text: str | None
-    alert_fires_at: datetime | None
     origin: RecordOriginValue
     original_input: str | None
     created_at: datetime
@@ -110,9 +107,7 @@ class EventDTO:
     # Set only on the event a create returns: each rule that changed or
     # inferred something (design §8). Never stored.
     when_notes: tuple[str, ...] = ()
-    # Every stored lead, soonest-firing first (FR-14). The single
-    # ``alert_*`` fields above repeat the first until the client reads this
-    # list (4.2, T-2.10).
+    # Every stored lead, soonest-firing first (FR-14, FR-27).
     alerts: tuple[EventAlertDTO, ...] = ()
     # Set only on a create or an edit: alerts asked for and not set (FR-19,
     # FR-33), and "named twice, kept once" (FR-34). Never stored.
@@ -290,9 +285,6 @@ class Event:
     occurrence_end_date: date
     status: EventStatusType
     when_text: str
-    alert_lead_minutes: int | None
-    alert_text: str | None
-    alert_fires_at: datetime | None
     origin: str
     original_input: str | None
     created_at: datetime
@@ -330,9 +322,6 @@ def event_dto_to_type(*, event: EventDTO) -> Event:
         occurrence_end_date=event.occurrence_end_date,
         status=EventStatusType(event.status.value),
         when_text=event.when_text,
-        alert_lead_minutes=event.alert_lead_minutes,
-        alert_text=event.alert_text,
-        alert_fires_at=event.alert_fires_at,
         origin=event.origin,
         original_input=event.original_input,
         created_at=event.created_at,

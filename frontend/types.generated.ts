@@ -26,6 +26,10 @@ export type AccountNotVerified = {
   message: Scalars['String']['output'];
 };
 
+export type AlertNotSetReason =
+  | 'CAP'
+  | 'PASSED';
+
 export type AnswerSentence = {
   __typename?: 'AnswerSentence';
   citations: Array<Scalars['Int']['output']>;
@@ -43,7 +47,7 @@ export type CaptureHistoryPage = {
   nextCursor?: Maybe<Scalars['String']['output']>;
 };
 
-export type CaptureResult = EventAlertChoiceAsked | EventCreated | EventLimitReached | EventsListed | ExpenseQuestionAsked | ExpenseRefused | ExpenseSaved | ExpenseSummary | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
+export type CaptureResult = EventCreated | EventLimitReached | EventsListed | ExpenseQuestionAsked | ExpenseRefused | ExpenseSaved | ExpenseSummary | MalformedResult | MemoriesListed | MemoryConflictAsked | MemorySaved | MemoryTooLong | NonCommandGuidance | PendingQuestionCreated | ProviderTimeout | ProviderUnavailable | ReminderCreated | ReminderLimitReached | RemindersListed | SearchResults | SearchTooLong | SharedQuotaExhausted | TaskCreated | TasksListed | UnrecognisedCommand | UserLimitReached;
 
 export type CaptureTurn = {
   __typename?: 'CaptureTurn';
@@ -84,15 +88,18 @@ export type ConflictAnswer =
   | 'KEEP_NEW'
   | 'KEEP_OLD';
 
+export type DeleteEventResult = EventDeleted | EventNotFound;
+
 export type DeleteExpenseResult = ExpenseDeleted | ExpenseNotFound;
 
 export type DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound;
 
 export type Event = {
   __typename?: 'Event';
-  alertFiresAt?: Maybe<Scalars['DateTime']['output']>;
-  alertLeadMinutes?: Maybe<Scalars['Int']['output']>;
-  alertText?: Maybe<Scalars['String']['output']>;
+  /** How the alerts were read, as a lead named twice. Only on create. */
+  alertNotes: Array<Scalars['String']['output']>;
+  /** Every alert, soonest-firing first. */
+  alerts: Array<EventAlert>;
   allDay: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
@@ -118,23 +125,62 @@ export type Event = {
   whenText: Scalars['String']['output'];
 };
 
-export type EventAlertChoice = {
-  __typename?: 'EventAlertChoice';
-  label: Scalars['String']['output'];
+export type EventAlert = {
+  __typename?: 'EventAlert';
+  firesAt: Scalars['DateTime']['output'];
   leadMinutes: Scalars['Int']['output'];
+  text: Scalars['String']['output'];
 };
 
-export type EventAlertChoiceAsked = {
-  __typename?: 'EventAlertChoiceAsked';
-  choices: Array<EventAlertChoice>;
-  pendingCaptureId: Scalars['ID']['output'];
-  question: Scalars['String']['output'];
+export type EventAlertNotSet = {
+  __typename?: 'EventAlertNotSet';
+  leadMinutes: Scalars['Int']['output'];
+  reason: AlertNotSetReason;
+  text: Scalars['String']['output'];
 };
 
 export type EventCreated = {
   __typename?: 'EventCreated';
+  alertsNotSet: Array<EventAlertNotSet>;
   event: Event;
 };
+
+export type EventDeleted = {
+  __typename?: 'EventDeleted';
+  id: Scalars['ID']['output'];
+};
+
+export type EventField =
+  | 'DATE'
+  | 'DESCRIPTION'
+  | 'END'
+  | 'LOCATION'
+  | 'TITLE';
+
+export type EventInput = {
+  alertLeadsMinutes: Array<Scalars['Int']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  endDate?: InputMaybe<Scalars['Date']['input']>;
+  endTime?: InputMaybe<Scalars['String']['input']>;
+  location?: InputMaybe<Scalars['String']['input']>;
+  repeatYearly: Scalars['Boolean']['input'];
+  startDate: Scalars['Date']['input'];
+  startTime?: InputMaybe<Scalars['String']['input']>;
+  title: Scalars['String']['input'];
+};
+
+export type EventInvalid = {
+  __typename?: 'EventInvalid';
+  field: EventField;
+  message: Scalars['String']['output'];
+  reason: EventInvalidReason;
+};
+
+export type EventInvalidReason =
+  | 'EMPTY'
+  | 'END_BEFORE_START'
+  | 'LIMIT'
+  | 'TOO_LONG';
 
 export type EventLimitReached = {
   __typename?: 'EventLimitReached';
@@ -157,6 +203,12 @@ export type EventStatusType =
   | 'HAPPENING_NOW'
   | 'PAST'
   | 'UPCOMING';
+
+export type EventUpdated = {
+  __typename?: 'EventUpdated';
+  alertsNotSet: Array<EventAlertNotSet>;
+  event: Event;
+};
 
 export type EventsListed = {
   __typename?: 'EventsListed';
@@ -412,6 +464,7 @@ export type Mutation = {
   __typename?: 'Mutation';
   answerPendingCapture: CaptureResult;
   completeTask: UpdateTaskResult;
+  deleteEvent: DeleteEventResult;
   deleteExpense: DeleteExpenseResult;
   deleteReminder: DeleteReminderResult;
   deleteTask: Scalars['Int']['output'];
@@ -426,6 +479,7 @@ export type Mutation = {
   signIn: SignInResult;
   snoozeReminder: ReminderActionResult;
   submitCapture: CaptureResult;
+  updateEvent: UpdateEventResult;
   updateExpense: UpdateExpenseResult;
   updateMemory: UpdateMemoryResult;
   updateReminder: UpdateReminderResult;
@@ -442,6 +496,11 @@ export type MutationAnswerPendingCaptureArgs = {
 
 
 export type MutationCompleteTaskArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteEventArgs = {
   id: Scalars['ID']['input'];
 };
 
@@ -508,6 +567,12 @@ export type MutationSubmitCaptureArgs = {
 };
 
 
+export type MutationUpdateEventArgs = {
+  id: Scalars['ID']['input'];
+  input: EventInput;
+};
+
+
 export type MutationUpdateExpenseArgs = {
   id: Scalars['ID']['input'];
   input: UpdateExpenseInput;
@@ -555,6 +620,8 @@ export type Notification = {
   __typename?: 'Notification';
   actedAt?: Maybe<Scalars['DateTime']['output']>;
   action?: Maybe<NotificationAction>;
+  /** Event alerts only: the alert Done and Snooze act on. */
+  actionTargetId?: Maybe<Scalars['ID']['output']>;
   createdAt: Scalars['DateTime']['output'];
   detail: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -573,6 +640,7 @@ export type NotificationAction =
 
 export type NotificationKind =
   | 'EMAIL_PAUSED'
+  | 'EVENT_ALERT'
   | 'REMINDER';
 
 export type NotificationMarker =
@@ -733,6 +801,7 @@ export type RecordSearchEventInput = {
 };
 
 export type RecordType =
+  | 'EVENT'
   | 'EXPENSE'
   | 'MEMORY'
   | 'REMINDER'
@@ -876,7 +945,7 @@ export type SearchPage = {
 
 export type SearchPageResult = SearchPage | SearchTooLong;
 
-export type SearchRecord = Expense | Memory | Reminder | Task;
+export type SearchRecord = Event | Expense | Memory | Reminder | Task;
 
 export type SearchResults = {
   __typename?: 'SearchResults';
@@ -975,6 +1044,8 @@ export type UnrecognisedCommand = {
   attemptedName: Scalars['String']['output'];
   closestMatches: Array<Scalars['String']['output']>;
 };
+
+export type UpdateEventResult = EventInvalid | EventNotFound | EventUpdated;
 
 export type UpdateExpenseInput = {
   amountPaise?: InputMaybe<Scalars['Paise']['input']>;

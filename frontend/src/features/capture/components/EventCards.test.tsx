@@ -1,9 +1,9 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
 import { buildEvent } from "../../../testing/eventFixture";
 import {
-  EventAlertChoiceCard,
   EventLimitNote,
   EventListCard,
   EventListFailedNote,
@@ -15,6 +15,7 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
     render(
       <EventSavedCard
         event={buildEvent({ whenNotes: ["No time given, so all day", "Read from “birthday”"] })}
+        alertsNotSet={[]}
         onOpenEvent={vi.fn()}
       />,
     );
@@ -22,7 +23,8 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
     expect(screen.getByText("Event saved")).toBeInTheDocument();
     expect(screen.getByText("Mon 12 Oct, all day").nextSibling).toHaveTextContent("No time given, so all day");
     expect(screen.getByText("Every year").nextSibling).toHaveTextContent("Read from “birthday”");
-    expect(screen.getByText("1 day before").nextSibling).toHaveTextContent("your default reminder time");
+    expect(screen.getByText("1 day before").nextSibling).toHaveTextContent("Sun 11 Oct, 9:00 AM");
+    expect(screen.getByText("At your default reminder time")).toBeInTheDocument();
   });
 
   it("shows location for a timed event and no default-time note on its alert", () => {
@@ -34,9 +36,9 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
           repeatYearly: false,
           location: "Apollo Clinic",
           startTime: "16:00",
-          alertText: "1 hour before",
-          alertFiresAt: "2026-10-09T09:30:00Z",
+          alerts: [{ leadMinutes: 60, text: "1 hour before", firesAt: "2026-10-09T09:30:00Z" }],
         })}
+        alertsNotSet={[]}
         onOpenEvent={vi.fn()}
       />,
     );
@@ -50,7 +52,8 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
   it("shows a past event's status where its repeat would go (FR-5)", () => {
     render(
       <EventSavedCard
-        event={buildEvent({ eventStatus: "PAST", repeatYearly: false, alertText: null, alertFiresAt: null })}
+        event={buildEvent({ eventStatus: "PAST", repeatYearly: false, alerts: [] })}
+        alertsNotSet={[]}
         onOpenEvent={vi.fn()}
       />,
     );
@@ -64,6 +67,7 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
     render(
       <EventSavedCard
         event={buildEvent({ occurrenceEndDate: "2026-10-16", whenText: "Mon 12 to Fri 16 Oct, all day" })}
+        alertsNotSet={[]}
         onOpenEvent={vi.fn()}
       />,
     );
@@ -73,7 +77,7 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
 
   it("opens the saved event in Records", () => {
     const onOpenEvent = vi.fn();
-    render(<EventSavedCard event={buildEvent({ id: "e9" })} onOpenEvent={onOpenEvent} />);
+    render(<EventSavedCard event={buildEvent({ id: "e9" })} alertsNotSet={[]} onOpenEvent={onOpenEvent} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Open in Records/ }));
 
@@ -116,43 +120,6 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
     expect(screen.getByText("/add-event Mom's birthday Oct 12")).toBeInTheDocument();
   });
 
-  it("asks which alert, offering each lead and No alert (FR-16)", () => {
-    const onChoose = vi.fn();
-    render(
-      <EventAlertChoiceCard
-        question="Which alert should I keep?"
-        choices={[
-          { leadMinutes: 10080, label: "1 week before · Sat 14 Nov" },
-          { leadMinutes: 1440, label: "1 day before · Fri 20 Nov" },
-        ]}
-        isBusy={false}
-        error={null}
-        onChoose={onChoose}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "1 day before · Fri 20 Nov" }));
-    fireEvent.click(screen.getByRole("button", { name: "No alert" }));
-
-    expect(onChoose).toHaveBeenNthCalledWith(1, "1440");
-    expect(onChoose).toHaveBeenNthCalledWith(2, "none");
-    expect(screen.getByText("An event can have one alert. The event is saved once you pick.")).toBeInTheDocument();
-  });
-
-  it("disables the choices while an answer is in flight", () => {
-    render(
-      <EventAlertChoiceCard
-        question="Which alert should I keep?"
-        choices={[{ leadMinutes: 60, label: "1 hour before" }]}
-        isBusy
-        error={null}
-        onChoose={vi.fn()}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: "No alert" })).toBeDisabled();
-  });
-
   it("refuses the 501st event with the design's copy (FR-31)", () => {
     render(<EventLimitNote />);
 
@@ -168,5 +135,114 @@ describe("Event capture cards, T-1.10 of sub-plan 4.1", () => {
 
     expect(screen.getByText("Couldn't load your events")).toBeInTheDocument();
     expect(onRetry).toHaveBeenCalled();
+  });
+});
+
+describe("Event alerts on the saved card, T-2.10 of sub-plan 4.2 (F-1)", () => {
+  const dentist = (overrides: Partial<EventFieldsFragment> = {}): EventFieldsFragment =>
+    buildEvent({
+      title: "Dentist",
+      allDay: false,
+      repeatYearly: false,
+      startTime: "16:00",
+      startsAt: "2026-10-09T10:30:00Z",
+      ...overrides,
+    });
+
+  it("lists every alert soonest first with when it fires (EventAlerts)", () => {
+    render(
+      <EventSavedCard
+        event={dentist({
+          alerts: [
+            { leadMinutes: 1440, text: "1 day before", firesAt: "2026-10-08T10:30:00Z" },
+            { leadMinutes: 60, text: "1 hour before", firesAt: "2026-10-09T09:30:00Z" },
+          ],
+          alertNotes: ["You named 1 hour before twice, so it is set once"],
+        })}
+        alertsNotSet={[]}
+        onOpenEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Alerts")).toBeInTheDocument();
+    expect(screen.getByText("1 day before").nextSibling).toHaveTextContent("Thu 8 Oct, 4:00 PM");
+    expect(screen.getByText("1 hour before").nextSibling).toHaveTextContent("Fri 9 Oct, 3:00 PM");
+    expect(screen.getByText("You named 1 hour before twice, so it is set once")).toBeInTheDocument();
+    expect(screen.queryByText(/not set/)).not.toBeInTheDocument();
+  });
+
+  it("says which alert passed and that the other is set (EventAlertsPassed)", () => {
+    render(
+      <EventSavedCard
+        event={dentist({
+          startsAt: "2026-10-02T18:30:00Z",
+          alerts: [{ leadMinutes: 60, text: "1 hour before", firesAt: "2026-10-02T17:30:00Z" }],
+        })}
+        alertsNotSet={[{ leadMinutes: 2880, text: "2 days before", reason: "PASSED" }]}
+        onOpenEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("2 days before").nextSibling).toHaveTextContent("Not set");
+    expect(screen.getByText("1 of 2 alerts was not set")).toBeInTheDocument();
+    expect(
+      screen.getByText("2 days before is Thu 1 Oct, which has already passed. The other alert is set."),
+    ).toBeInTheDocument();
+  });
+
+  it("asks for a later alert when the only one passed (EventAlertNotSet)", () => {
+    render(
+      <EventSavedCard
+        event={dentist({ startsAt: "2026-10-02T18:30:00Z", alerts: [] })}
+        alertsNotSet={[{ leadMinutes: 2880, text: "2 days before", reason: "PASSED" }]}
+        onOpenEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Alert")).toBeInTheDocument();
+    expect(screen.getByText("The alert was not set")).toBeInTheDocument();
+    expect(screen.getByText(/Edit the event to choose a later alert\./)).toBeInTheDocument();
+  });
+
+  it("names the alerts left over the reminder cap (EventAlertsCap)", () => {
+    render(
+      <EventSavedCard
+        event={dentist({
+          alerts: [{ leadMinutes: 60, text: "1 hour before", firesAt: "2026-10-09T09:30:00Z" }],
+        })}
+        alertsNotSet={[
+          { leadMinutes: 1440, text: "1 day before", reason: "CAP" },
+          { leadMinutes: 10080, text: "1 week before", reason: "CAP" },
+        ]}
+        onOpenEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("2 of 3 alerts were not set")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You have 100 active reminders and alerts, the most Slashit holds. The alerts that fire first were set. Free one up, then add 1 day before and 1 week before in Edit.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("tells the only alert over the cap how to free one up", () => {
+    render(
+      <EventSavedCard
+        event={dentist({ alerts: [] })}
+        alertsNotSet={[{ leadMinutes: 60, text: "1 hour before", reason: "CAP" }]}
+        onOpenEvent={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("The alert was not set")).toBeInTheDocument();
+    expect(screen.getByText(/Mark a reminder done or remove an alert, then add it here\./)).toBeInTheDocument();
+  });
+
+  it("draws no Alerts field for an event without one", () => {
+    render(<EventSavedCard event={dentist({ alerts: [] })} alertsNotSet={[]} onOpenEvent={vi.fn()} />);
+
+    expect(screen.queryByText("Alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("Alerts")).not.toBeInTheDocument();
   });
 });

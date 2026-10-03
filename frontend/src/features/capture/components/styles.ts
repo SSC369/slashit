@@ -29,6 +29,8 @@ export const fieldsGridStyles = "grid grid-cols-3 gap-px bg-border";
 export const fieldCellStyles = "flex flex-col gap-1 bg-card px-4 py-3.5";
 export const fieldLabelStyles = "text-[11px] font-semibold uppercase tracking-[0.07em] text-foreground-tertiary";
 export const fieldValueStyles = "text-[14.5px] font-medium text-foreground";
+/** An alert that was not set (`EventAlertsPassed`, `EventAlertsCap`). */
+export const fieldValueDimStyles = "text-[14.5px] font-medium text-foreground-tertiary";
 
 export const taskListRowStyles = "flex justify-between px-4 py-2.5";
 export const taskListDueStyles = "text-[13px] text-foreground-tertiary";
@@ -44,6 +46,8 @@ export const pendingAnswerFieldStyles =
 export const pendingAnswerInputStyles = "w-full border-0 bg-transparent text-[13.5px] text-foreground outline-none";
 
 export const noteBaseStyles = "flex items-start gap-2.5 rounded-[10px] border px-4 py-3.5";
+/** A note inside a card, under its fields (`EventAlertNotSet`). */
+export const cardNoteWrapStyles = "px-4 pb-3.5";
 export const noteWarnStyles = "border-command-wash bg-command-wash";
 export const noteErrStyles = "border-destructive-wash bg-destructive-wash";
 export const noteTitleStyles = "text-[14.5px] font-semibold text-foreground";
@@ -202,7 +206,6 @@ export const eventEmptyIconStyles = "mb-2 text-foreground-tertiary";
 export const eventEmptyTitleStyles = "font-medium text-foreground";
 export const eventEmptyBodyStyles = "max-w-[380px] text-[13px] text-foreground-secondary";
 export const eventSkeletonRowStyles = "flex items-center gap-3 border-b border-border px-4 py-[11px]";
-export const eventChoiceRowStyles = "mt-3 flex flex-wrap gap-2";
 
 // Expenses (006): `Main`, `ExpenseAsk`, `AmountPick`, `DatePick`, `CaptureStates`
 export const expenseFieldsGridStyles = "grid grid-cols-[150px_minmax(0,1fr)_150px_150px] gap-px bg-border";

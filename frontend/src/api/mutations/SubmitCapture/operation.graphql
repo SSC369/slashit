@@ -37,6 +37,11 @@ mutation SubmitCapture($rawInput: String!) {
       event {
         ...EventFields
       }
+      alertsNotSet {
+        leadMinutes
+        text
+        reason
+      }
     }
     ... on EventsListed {
       events {
@@ -46,14 +51,6 @@ mutation SubmitCapture($rawInput: String!) {
     ... on EventLimitReached {
       message
       limit
-    }
-    ... on EventAlertChoiceAsked {
-      pendingCaptureId
-      question
-      choices {
-        leadMinutes
-        label
-      }
     }
     ... on MemorySaved {
       memory {

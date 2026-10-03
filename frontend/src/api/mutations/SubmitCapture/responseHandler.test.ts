@@ -103,15 +103,18 @@ describe("SubmitCapture responseHandler, epic 005's members", () => {
 });
 
 describe("SubmitCapture responseHandler, epic 007's members", () => {
-  it("hands EventCreated's event to onEventCreated", () => {
+  it("hands EventCreated's event and the alerts not set to onEventCreated", () => {
     const { handleResponse } = useResponseHandler();
     const onEventCreated = vi.fn();
     const event = buildEvent();
-    const data: SubmitCaptureMutation = { submitCapture: { __typename: "EventCreated", event } };
+    const alertsNotSet = [{ leadMinutes: 2880, text: "2 days before", reason: "PASSED" as const }];
+    const data: SubmitCaptureMutation = {
+      submitCapture: { __typename: "EventCreated", event, alertsNotSet },
+    };
 
     handleResponse({ data, onEventCreated });
 
-    expect(onEventCreated).toHaveBeenCalledWith(event);
+    expect(onEventCreated).toHaveBeenCalledWith({ event, alertsNotSet });
   });
 
   it("hands EventsListed's events to onEventsListed", () => {
@@ -135,26 +138,5 @@ describe("SubmitCapture responseHandler, epic 007's members", () => {
     handleResponse({ data, onEventLimitReached });
 
     expect(onEventLimitReached).toHaveBeenCalledWith({ message: "full", limit: 500 });
-  });
-
-  it("hands EventAlertChoiceAsked's choices to onEventAlertChoiceAsked", () => {
-    const { handleResponse } = useResponseHandler();
-    const onEventAlertChoiceAsked = vi.fn();
-    const data: SubmitCaptureMutation = {
-      submitCapture: {
-        __typename: "EventAlertChoiceAsked",
-        pendingCaptureId: "pc-1",
-        question: "Which alert should I keep?",
-        choices: [{ leadMinutes: 60, label: "1 hour before" }],
-      },
-    };
-
-    handleResponse({ data, onEventAlertChoiceAsked });
-
-    expect(onEventAlertChoiceAsked).toHaveBeenCalledWith({
-      pendingCaptureId: "pc-1",
-      question: "Which alert should I keep?",
-      choices: [{ leadMinutes: 60, label: "1 hour before" }],
-    });
   });
 });

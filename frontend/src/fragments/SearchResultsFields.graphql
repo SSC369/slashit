@@ -1,6 +1,7 @@
 #import "./TaskFields.graphql"
 #import "./ReminderFields.graphql"
 #import "./MemoryFields.graphql"
+#import "./EventFields.graphql"
 
 fragment SearchResultsFields on SearchResults {
   query
@@ -29,6 +30,9 @@ fragment SearchResultsFields on SearchResults {
         }
         ... on Memory {
           ...MemoryFields
+        }
+        ... on Event {
+          ...EventFields
         }
         # Display fields only, none of which clash with Memory's (006 4.3).
         ... on Expense {

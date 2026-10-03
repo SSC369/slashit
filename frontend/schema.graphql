@@ -7,6 +7,11 @@ type AccountNotVerified {
   message: String!
 }
 
+enum AlertNotSetReason {
+  PASSED
+  CAP
+}
+
 type AnswerSentence {
   text: String!
   citations: [Int!]!
@@ -21,7 +26,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | EventCreated | EventsListed | EventLimitReached | EventAlertChoiceAsked | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | ExpenseSaved | ExpenseQuestionAsked | ExpenseRefused | ExpenseSummary | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | EventCreated | EventsListed | EventLimitReached | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | ExpenseSaved | ExpenseQuestionAsked | ExpenseRefused | ExpenseSummary | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -69,6 +74,8 @@ scalar Date
 """Date with time (isoformat)"""
 scalar DateTime
 
+union DeleteEventResult = EventDeleted | EventNotFound
+
 union DeleteExpenseResult = ExpenseDeleted | ExpenseNotFound
 
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
@@ -91,9 +98,6 @@ type Event {
   occurrenceEndDate: Date!
   status: EventStatusType!
   whenText: String!
-  alertLeadMinutes: Int
-  alertText: String
-  alertFiresAt: DateTime
   origin: String!
   originalInput: String
   createdAt: DateTime!
@@ -101,21 +105,66 @@ type Event {
 
   """Why the schedule reads as it does. Only on create."""
   whenNotes: [String!]!
+
+  """Every alert, soonest-firing first."""
+  alerts: [EventAlert!]!
+
+  """How the alerts were read, as a lead named twice. Only on create."""
+  alertNotes: [String!]!
 }
 
-type EventAlertChoice {
+type EventAlert {
   leadMinutes: Int!
-  label: String!
+  text: String!
+  firesAt: DateTime!
 }
 
-type EventAlertChoiceAsked {
-  pendingCaptureId: ID!
-  question: String!
-  choices: [EventAlertChoice!]!
+type EventAlertNotSet {
+  leadMinutes: Int!
+  text: String!
+  reason: AlertNotSetReason!
 }
 
 type EventCreated {
   event: Event!
+  alertsNotSet: [EventAlertNotSet!]!
+}
+
+type EventDeleted {
+  id: ID!
+}
+
+enum EventField {
+  TITLE
+  LOCATION
+  DESCRIPTION
+  END
+  DATE
+}
+
+input EventInput {
+  title: String!
+  location: String
+  description: String
+  startDate: Date!
+  startTime: String
+  endDate: Date
+  endTime: String
+  repeatYearly: Boolean!
+  alertLeadsMinutes: [Int!]!
+}
+
+type EventInvalid {
+  message: String!
+  field: EventField!
+  reason: EventInvalidReason!
+}
+
+enum EventInvalidReason {
+  EMPTY
+  TOO_LONG
+  END_BEFORE_START
+  LIMIT
 }
 
 type EventLimitReached {
@@ -138,6 +187,11 @@ enum EventStatusType {
   UPCOMING
   HAPPENING_NOW
   PAST
+}
+
+type EventUpdated {
+  event: Event!
+  alertsNotSet: [EventAlertNotSet!]!
 }
 
 type EventsListed {
@@ -391,6 +445,8 @@ type Mutation {
   updateMemory(id: ID!, input: UpdateMemoryInput!): UpdateMemoryResult!
   forgetMemory(id: ID!): ForgetMemoryResult!
   recordSearchEvent(input: RecordSearchEventInput!): Boolean!
+  updateEvent(id: ID!, input: EventInput!): UpdateEventResult!
+  deleteEvent(id: ID!): DeleteEventResult!
   updateExpense(id: ID!, input: UpdateExpenseInput!): UpdateExpenseResult!
   deleteExpense(id: ID!): DeleteExpenseResult!
 }
@@ -416,6 +472,9 @@ type Notification {
   action: NotificationAction
   actedAt: DateTime
   showPopup: Boolean!
+
+  """Event alerts only: the alert Done and Snooze act on."""
+  actionTargetId: ID
 }
 
 enum NotificationAction {
@@ -426,6 +485,7 @@ enum NotificationAction {
 enum NotificationKind {
   REMINDER
   EMAIL_PAUSED
+  EVENT_ALERT
 }
 
 enum NotificationMarker {
@@ -506,6 +566,7 @@ enum RecordType {
   REMINDER
   MEMORY
   EXPENSE
+  EVENT
 }
 
 input RecordsFilterInput {
@@ -637,7 +698,7 @@ type SearchPage {
 
 union SearchPageResult = SearchPage | SearchTooLong
 
-union SearchRecord = Task | Reminder | Memory | Expense
+union SearchRecord = Task | Reminder | Memory | Expense | Event
 
 type SearchResults {
   query: String!
@@ -730,6 +791,8 @@ type UnrecognisedCommand {
   attemptedName: String!
   closestMatches: [String!]!
 }
+
+union UpdateEventResult = EventUpdated | EventInvalid | EventNotFound
 
 input UpdateExpenseInput {
   amountPaise: Paise = null

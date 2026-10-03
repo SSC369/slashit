@@ -108,7 +108,7 @@ async def test_an_event_is_saved_with_its_words_and_one_alert() -> None:
     )
     assert isinstance(event, EventDTO)
     assert event.when_text == "Fri 9 Oct, 4:00 to 5:00 PM"
-    assert event.alert_text == "1 hour before"
+    assert [alert.text for alert in event.alerts] == ["1 hour before"]
     assert event.location == "Apollo Clinic"
     assert event.status == EventStatus.UPCOMING
     assert analytics.recorded == [

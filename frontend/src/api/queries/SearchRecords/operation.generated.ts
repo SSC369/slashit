@@ -8,7 +8,13 @@ import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+import { EventFieldsFragmentDoc } from '../../../fragments/EventFields.generated';
 import { ExpenseRecordFieldsFragmentDoc } from '../../../fragments/ExpenseRecordFields.generated';
+export type EventStatusType =
+  | 'HAPPENING_NOW'
+  | 'PAST'
+  | 'UPCOMING';
+
 export type ExpenseCategory =
   | 'BILLS'
   | 'ENTERTAINMENT'
@@ -26,6 +32,7 @@ export type MemoryCategory =
   | 'PROFESSIONAL';
 
 export type RecordType =
+  | 'EVENT'
   | 'EXPENSE'
   | 'MEMORY'
   | 'REMINDER'
@@ -58,6 +65,7 @@ export type SearchRecordsQueryVariables = Exact<{
 
 export type SearchRecordsQuery = { search:
     | { __typename: 'SearchPage', query: string, total: number, otherTypesTotal: number, meaningUnavailable: boolean, hits: Array<
+        | { __typename: 'Event', id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertNotes: Array<string>, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType, alerts: Array<{ leadMinutes: number, text: string, firesAt: string }> }
         | { __typename: 'Expense', id: string, amountPaise: string, description: string, spentOn: string, origin: string, createdAt: string, updatedAt: string, expenseCategory: Types.ExpenseCategory, expenseOriginalInput: string }
         | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
         | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
@@ -87,6 +95,9 @@ export const SearchRecordsDocument = gql`
         ... on Memory {
           ...MemoryFields
         }
+        ... on Event {
+          ...EventFields
+        }
         ... on Expense {
           ...ExpenseRecordFields
         }
@@ -101,4 +112,5 @@ export const SearchRecordsDocument = gql`
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
 ${MemoryFieldsFragmentDoc}
+${EventFieldsFragmentDoc}
 ${ExpenseRecordFieldsFragmentDoc}`;

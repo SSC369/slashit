@@ -91,7 +91,7 @@ describe("EventDetailController, T-1.11 of sub-plan 4.1", () => {
   });
 
   it("marks a past event and says where it is still listed (EventDetailPast)", () => {
-    loadedAs(buildEvent({ id: "e3", eventStatus: "PAST", repeatYearly: false, alertText: null, alertFiresAt: null }));
+    loadedAs(buildEvent({ id: "e3", eventStatus: "PAST", repeatYearly: false, alerts: [] }));
 
     renderAt("/records/events/e3");
 

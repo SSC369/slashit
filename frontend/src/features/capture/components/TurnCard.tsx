@@ -17,7 +17,6 @@ import {
 } from "./MemoryCards";
 import { ConflictCard, ConflictOutcomeNote } from "./ConflictCard";
 import {
-  EventAlertChoiceCard,
   EventLimitNote,
   EventListCard,
   EventListFailedNote,
@@ -70,8 +69,6 @@ interface TurnCardProps {
   onSeeAllSearch: (recordType: RecordType | null, query: string) => void;
   onOpenEvent: (id: string) => void;
   onOpenEvents: () => void;
-  isChoosingAlert?: boolean;
-  onAlertChoice: (id: string, answer: string) => void;
 }
 
 /** `RemindAsk`'s ready answers: one tap instead of typing a time. */
@@ -152,8 +149,6 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onSeeAllSearch,
     onOpenEvent,
     onOpenEvents,
-    isChoosingAlert = false,
-    onAlertChoice,
   } = props;
   const isRemind = isRemindCommand(turn.said);
   const isAddEvent = commandName(turn.said) === ADD_EVENT_COMMAND;
@@ -278,7 +273,9 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
       );
 
     case "eventCreated":
-      return <EventSavedCard event={turn.event} onOpenEvent={onOpenEvent} />;
+      return (
+        <EventSavedCard event={turn.event} alertsNotSet={turn.alertsNotSet} onOpenEvent={onOpenEvent} />
+      );
 
     case "eventList":
       return <EventListCard events={turn.events} onOpenEvent={onOpenEvent} onOpenEvents={onOpenEvents} />;
@@ -288,17 +285,6 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "eventListFailed":
       return <EventListFailedNote onRetry={() => onRetry(turn.said)} />;
-
-    case "eventAlertChoice":
-      return (
-        <EventAlertChoiceCard
-          question={turn.question}
-          choices={turn.choices}
-          isBusy={isChoosingAlert}
-          error={turn.error}
-          onChoose={(answer) => onAlertChoice(turn.id, answer)}
-        />
-      );
 
     case "memorySaved":
       return (

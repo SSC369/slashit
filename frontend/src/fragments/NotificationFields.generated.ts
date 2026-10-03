@@ -9,6 +9,7 @@ export type NotificationAction =
 
 export type NotificationKind =
   | 'EMAIL_PAUSED'
+  | 'EVENT_ALERT'
   | 'REMINDER';
 
 export type NotificationMarker =

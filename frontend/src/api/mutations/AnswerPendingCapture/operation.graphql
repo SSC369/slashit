@@ -37,6 +37,11 @@ mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
       event {
         ...EventFields
       }
+      alertsNotSet {
+        leadMinutes
+        text
+        reason
+      }
     }
     ... on EventsListed {
       events {
@@ -46,14 +51,6 @@ mutation AnswerPendingCapture($pendingCaptureId: ID!, $answer: String!) {
     ... on EventLimitReached {
       message
       limit
-    }
-    ... on EventAlertChoiceAsked {
-      pendingCaptureId
-      question
-      choices {
-        leadMinutes
-        label
-      }
     }
     ... on MemorySaved {
       memory {

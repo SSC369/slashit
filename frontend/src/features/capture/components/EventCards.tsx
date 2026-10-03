@@ -1,22 +1,27 @@
-import { AlertCircle, ArrowRight, Bell, CalendarDays, Check, Clock, MapPin, Repeat } from "lucide-react";
-import { Fragment, type ReactElement, type ReactNode } from "react";
+import { AlertCircle, ArrowRight, Bell, CalendarDays, Check, MapPin, Repeat } from "lucide-react";
+import { Fragment, type ReactElement } from "react";
 
 import EventStatusPill from "../../../components/EventStatusPill";
 import InlineSpinner from "../../../components/InlineSpinner";
 import Skeleton from "../../../components/Skeleton";
 import Button from "../../../design-system/components/Button";
 import {
-  EVENT_ALERT_HINT,
   EVENT_EXAMPLE_COMMAND,
   EVENT_LIMIT_BODY,
   EVENT_LIMIT_TITLE,
-  NO_ALERT_ANSWER,
+  MAX_ACTIVE_REMINDERS,
   REPEAT_NOTE_PREFIX,
-  type EventAlertChoice,
+  type EventAlertNotSet,
 } from "../../../constants/eventConstants";
 import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
-import { dateBoxParts, monthHeading, multiDayLength } from "../../../utils/formatEvent";
-import { formatReminderDateTime } from "../../../utils/formatReminder";
+import {
+  alertFireText,
+  alertSummary,
+  dateBoxParts,
+  leadDate,
+  monthHeading,
+  multiDayLength,
+} from "../../../utils/formatEvent";
 import * as Styles from "./styles";
 
 const FIELDS_PER_ROW = 3;
@@ -48,15 +53,75 @@ const savedFields = (event: EventFieldsFragment): EventFieldView[] => {
       note: repeatNote,
     });
   }
-  if (event.alertText !== null && event.alertFiresAt !== null) {
-    const firesAt = formatReminderDateTime(event.alertFiresAt, event.scheduleTimezone);
-    fields.push({
-      label: "Alert",
-      value: event.alertText,
-      note: event.allDay ? `${firesAt} · your default reminder time` : firesAt,
-    });
-  }
   return fields;
+};
+
+interface AlertLineView {
+  key: string;
+  lead: string;
+  note: string;
+  isSet: boolean;
+}
+
+/** The Alerts field (`EventAlerts`, `EventAlertsPassed`, `EventAlertsCap`):
+ * each alert set, soonest first, with when it fires, then each one not set. */
+const alertLines = (event: EventFieldsFragment, alertsNotSet: EventAlertNotSet[]): AlertLineView[] => [
+  ...event.alerts.map((alert) => ({
+    key: `set-${alert.leadMinutes}`,
+    lead: alert.text,
+    note: alertFireText(alert, event),
+    isSet: true,
+  })),
+  ...alertsNotSet.map((alert) => ({
+    key: `not-set-${alert.leadMinutes}`,
+    lead: alert.text,
+    note: "Not set",
+    isSet: false,
+  })),
+];
+
+/** Design §8's notes under the Alerts field: a lead named twice, and an
+ * all-day event's alerts at the default reminder time (FR-15, FR-34). */
+const alertFieldNotes = (event: EventFieldsFragment): string[] => [
+  ...event.alertNotes,
+  ...(event.allDay && event.alerts.length > 0 ? ["At your default reminder time"] : []),
+];
+
+const capitalised = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** Design §8, "Alert passed", "Reminder cap", "Some alerts not set" and
+ * "Some alerts over the cap". */
+const alertsNotSetCopy = (
+  event: EventFieldsFragment,
+  alertsNotSet: EventAlertNotSet[],
+): { title: string; body: string } => {
+  const askedCount = event.alerts.length + alertsNotSet.length;
+  const notSetCount = alertsNotSet.length;
+  const isOnlyAlert = askedCount === 1;
+  const passedSentences = alertsNotSet
+    .filter((alert) => alert.reason === "PASSED")
+    .map(
+      (alert) =>
+        `${capitalised(alert.text)} is ${leadDate(event, alert.leadMinutes)}, which has already passed.`,
+    );
+  const overCapLeads = alertsNotSet.filter((alert) => alert.reason === "CAP").map((alert) => alert.text);
+  const capPrefix = `You have ${MAX_ACTIVE_REMINDERS} active reminders and alerts, the most Slashit holds.`;
+  const sentences = [...passedSentences];
+  if (isOnlyAlert && overCapLeads.length > 0) {
+    sentences.push(`${capPrefix} Mark a reminder done or remove an alert, then add it here.`);
+  } else if (overCapLeads.length > 0) {
+    sentences.push(
+      `${capPrefix} The alerts that fire first were set. Free one up, then add ${overCapLeads.join(" and ")} in Edit.`,
+    );
+  } else if (isOnlyAlert) {
+    sentences.push("Edit the event to choose a later alert.");
+  } else if (event.alerts.length > 0) {
+    sentences.push(event.alerts.length === 1 ? "The other alert is set." : "The other alerts are set.");
+  }
+  const title = isOnlyAlert
+    ? "The alert was not set"
+    : `${notSetCount} of ${askedCount} alerts ${notSetCount === 1 ? "was" : "were"} not set`;
+  return { title, body: sentences.join(" ") };
 };
 
 /** A filler cell keeps the grid's hairlines whole on a short last row. */
@@ -64,14 +129,20 @@ const fillerCount = (fieldCount: number): number => (FIELDS_PER_ROW - (fieldCoun
 
 interface EventSavedCardProps {
   event: EventFieldsFragment;
+  alertsNotSet: EventAlertNotSet[];
   onOpenEvent: (id: string) => void;
 }
 
-/** `Main`, `EventResolved`, `EventResolvedMore`: the event as the server
- * understood it, with why each inferred field reads as it does. */
+/** `Main`, `EventResolved`, `EventResolvedMore`, `EventAlerts`,
+ * `EventAlertNotSet`, `EventAlertsPassed`, `EventAlertsCap`: the event as the
+ * server understood it, with why each inferred field reads as it does. */
 export const EventSavedCard = (props: EventSavedCardProps): ReactElement => {
-  const { event, onOpenEvent } = props;
+  const { event, alertsNotSet, onOpenEvent } = props;
   const fields = savedFields(event);
+  const lines = alertLines(event, alertsNotSet);
+  const hasAlertsField = lines.length > 0;
+  const cellCount = fields.length + (hasAlertsField ? 1 : 0);
+  const notSetCopy = alertsNotSet.length > 0 ? alertsNotSetCopy(event, alertsNotSet) : null;
 
   return (
     <div className={Styles.cardStyles}>
@@ -88,10 +159,39 @@ export const EventSavedCard = (props: EventSavedCardProps): ReactElement => {
             {field.note !== null && <span className={Styles.fieldSubStyles}>{field.note}</span>}
           </div>
         ))}
-        {Array.from({ length: fillerCount(fields.length) }, (_, index) => (
+        {hasAlertsField && (
+          <div className={Styles.fieldCellStyles}>
+            <span className={Styles.fieldLabelStyles}>{lines.length === 1 ? "Alert" : "Alerts"}</span>
+            {lines.map((line) => (
+              <Fragment key={line.key}>
+                <span className={line.isSet ? Styles.fieldValueStyles : Styles.fieldValueDimStyles}>
+                  {line.lead}
+                </span>
+                <span className={Styles.fieldSubStyles}>{line.note}</span>
+              </Fragment>
+            ))}
+            {alertFieldNotes(event).map((note) => (
+              <span key={note} className={Styles.fieldSubStyles}>
+                {note}
+              </span>
+            ))}
+          </div>
+        )}
+        {Array.from({ length: fillerCount(cellCount) }, (_, index) => (
           <div key={`filler-${index}`} className={Styles.fieldCellStyles} />
         ))}
       </div>
+      {notSetCopy !== null && (
+        <div className={Styles.cardNoteWrapStyles}>
+          <div className={`${Styles.noteBaseStyles} ${Styles.noteWarnStyles}`}>
+            <AlertCircle size={18} className="shrink-0 text-command" />
+            <div className="flex-1">
+              <div className={Styles.noteTitleStyles}>{notSetCopy.title}</div>
+              <div className={Styles.noteBodyStyles}>{notSetCopy.body}</div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={Styles.cardFootStyles}>
         <span>Created just now · via command</span>
         <Button size="sm" onClick={() => onOpenEvent(event.id)}>
@@ -218,7 +318,8 @@ interface EventRowProps {
 const EventRow = (props: EventRowProps): ReactElement => {
   const { event, onOpenEvent } = props;
   const dateBox = dateBoxParts(event.occurrenceDate);
-  const hasMeta = event.location !== null || event.alertText !== null;
+  const alerts = alertSummary(event.alerts);
+  const hasMeta = event.location !== null || alerts !== null;
 
   return (
     <div
@@ -248,10 +349,10 @@ const EventRow = (props: EventRowProps): ReactElement => {
                 {event.location}
               </span>
             )}
-            {event.alertText !== null && (
-              <span className={Styles.eventMetaAlertStyles} aria-label={`alert set, ${event.alertText}`}>
+            {alerts !== null && (
+              <span className={Styles.eventMetaAlertStyles} aria-label={alerts.spoken}>
                 <Bell size={13} />
-                {event.alertText}
+                {alerts.text}
               </span>
             )}
           </div>
@@ -265,60 +366,6 @@ const EventRow = (props: EventRowProps): ReactElement => {
           </span>
         )}
         <EventStatusPill status={event.eventStatus} />
-      </div>
-    </div>
-  );
-};
-
-interface EventAlertChoiceCardProps {
-  question: string;
-  choices: EventAlertChoice[];
-  isBusy: boolean;
-  error: string | null;
-  /** A lead in minutes as text, or NO_ALERT_ANSWER. */
-  onChoose: (answer: string) => void;
-}
-
-/** `EventAsk`, FR-16: an event keeps one alert, so two named ask which. */
-export const EventAlertChoiceCard = (props: EventAlertChoiceCardProps): ReactElement => {
-  const { question, choices, isBusy, error, onChoose } = props;
-
-  return (
-    <QuestionCard question={question} hint={EVENT_ALERT_HINT} error={error}>
-      {choices.map((choice) => (
-        <Button key={choice.leadMinutes} size="sm" disabled={isBusy} onClick={() => onChoose(String(choice.leadMinutes))}>
-          {choice.label}
-        </Button>
-      ))}
-      <Button size="sm" disabled={isBusy} onClick={() => onChoose(NO_ALERT_ANSWER)}>
-        No alert
-      </Button>
-      {isBusy && <InlineSpinner className="self-center" />}
-    </QuestionCard>
-  );
-};
-
-interface QuestionCardProps {
-  question: string;
-  hint: string;
-  error: string | null;
-  children: ReactNode;
-}
-
-const QuestionCard = (props: QuestionCardProps): ReactElement => {
-  const { question, hint, error, children } = props;
-  return (
-    <div className={Styles.pendingCardStyles}>
-      <div className={Styles.pendingHeadStyles}>
-        <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
-          <Clock size={13} /> One question
-        </span>
-      </div>
-      <div className={Styles.pendingBodyStyles}>
-        <div className={Styles.pendingQuestionStyles}>{question}</div>
-        <div className={Styles.pendingHintStyles}>{hint}</div>
-        <div className={Styles.eventChoiceRowStyles}>{children}</div>
-        {error !== null && <div className="mt-2.5 text-[13px] text-destructive">{error}</div>}
       </div>
     </div>
   );

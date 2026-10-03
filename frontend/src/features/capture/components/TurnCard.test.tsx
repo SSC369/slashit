@@ -39,7 +39,6 @@ const baseProps = {
   onSeeAllSearch: vi.fn(),
   onOpenEvent: vi.fn(),
   onOpenEvents: vi.fn(),
-  onAlertChoice: vi.fn(),
 };
 
 describe("TurnCard", () => {
@@ -103,23 +102,5 @@ describe("TurnCard", () => {
     render(<TurnCard turn={{ id: "t-6", said: "/events", status: "loading" }} {...baseProps} />);
     expect(screen.queryByText(/Saving event/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Reading your command/)).not.toBeInTheDocument();
-  });
-
-  it("007: answers the alert question through onAlertChoice with the turn's id", () => {
-    const onAlertChoice = vi.fn();
-    const turn: CaptureTurn = {
-      id: "t-7",
-      said: "/add-event Sam's wedding Nov 21, remind me 1 week before and 1 day before",
-      status: "eventAlertChoice",
-      pendingCaptureId: "pc-7",
-      question: "Which alert should I keep?",
-      choices: [{ leadMinutes: 10080, label: "1 week before" }],
-      error: null,
-    };
-    render(<TurnCard turn={turn} {...baseProps} onAlertChoice={onAlertChoice} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "1 week before" }));
-
-    expect(onAlertChoice).toHaveBeenCalledWith("t-7", "10080");
   });
 });

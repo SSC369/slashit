@@ -5,6 +5,7 @@ import EventStatusPill from "../../../components/EventStatusPill";
 import Skeleton from "../../../components/Skeleton";
 import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
 import { cn } from "../../../utils/cn";
+import { alertSummary } from "../../../utils/formatEvent";
 import * as Styles from "./styles";
 
 const COLUMN_COUNT = 4;
@@ -102,6 +103,7 @@ interface EventRowProps {
 const EventRow = (props: EventRowProps): ReactElement => {
   const { event, onOpenEvent } = props;
   const isPast = event.eventStatus === "PAST";
+  const alerts = alertSummary(event.alerts);
 
   return (
     <tr
@@ -114,8 +116,8 @@ const EventRow = (props: EventRowProps): ReactElement => {
     >
       <td className={cn(Styles.tdStyles, isPast ? Styles.eventPastTitleCellStyles : Styles.eventTitleCellStyles)}>
         {event.title}
-        {event.alertText !== null && (
-          <span className={Styles.eventAlertIconStyles} role="img" aria-label={`alert set, ${event.alertText}`}>
+        {alerts !== null && (
+          <span className={Styles.eventAlertIconStyles} role="img" aria-label={alerts.spoken}>
             <Bell size={13} />
           </span>
         )}

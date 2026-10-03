@@ -6,7 +6,14 @@ import Skeleton from "../../../components/Skeleton";
 import { EVENT_PAST_DETAIL_NOTE, EVENT_YEARLY_DETAIL_NOTE } from "../../../constants/eventConstants";
 import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
 import { cn } from "../../../utils/cn";
-import { dayMonth, detailWhen, multiDayLength, timedLength } from "../../../utils/formatEvent";
+import {
+  alertFireText,
+  alertSummary,
+  dayMonth,
+  detailWhen,
+  multiDayLength,
+  timedLength,
+} from "../../../utils/formatEvent";
 import { formatReminderDateTime } from "../../../utils/formatReminder";
 import * as Styles from "./styles";
 
@@ -36,9 +43,11 @@ const whenSub = (event: EventFieldsFragment): string | null => {
   return multiDayLength(event) ?? timedLength(event);
 };
 
+/** When each alert fires; a yearly event's fire again every year. T-2.11
+ * gives every alert its own line (`EventDetail`, design §4). */
 const alertSub = (event: EventFieldsFragment): string | null => {
-  if (event.alertFiresAt === null) return null;
-  const firesAt = `Fires ${formatReminderDateTime(event.alertFiresAt, event.scheduleTimezone)}`;
+  if (event.alerts.length === 0) return null;
+  const firesAt = event.alerts.map((alert) => `Fires ${alertFireText(alert, event)}`).join(" · ");
   return event.repeatYearly ? `${firesAt} · then every year` : firesAt;
 };
 
@@ -51,6 +60,7 @@ interface EventDetailViewProps {
 const EventDetailView = (props: EventDetailViewProps): ReactElement => {
   const { event } = props;
   const isPast = event.eventStatus === "PAST";
+  const alerts = alertSummary(event.alerts);
   const note = isPast ? EVENT_PAST_DETAIL_NOTE : event.repeatYearly ? EVENT_YEARLY_DETAIL_NOTE : null;
 
   return (
@@ -63,9 +73,9 @@ const EventDetailView = (props: EventDetailViewProps): ReactElement => {
             <Repeat size={12} /> Every year
           </span>
         )}
-        {event.alertText !== null && (
+        {alerts !== null && (
           <span className={cn(Styles.pillBaseStyles, Styles.pillAlertStyles)}>
-            <Bell size={12} /> Alert
+            <Bell size={12} /> {event.alerts.length === 1 ? "Alert" : alerts.text}
           </span>
         )}
       </div>
@@ -81,7 +91,11 @@ const EventDetailView = (props: EventDetailViewProps): ReactElement => {
             value={event.repeatYearly ? "Every year" : "Does not repeat"}
             sub={event.repeatYearly ? `On ${dayMonth(event.startDate)}` : null}
           />
-          <EventField label="Alert" value={event.alertText} sub={alertSub(event)} />
+          <EventField
+            label={event.alerts.length > 1 ? "Alerts" : "Alert"}
+            value={event.alerts.length === 0 ? null : event.alerts.map((alert) => alert.text).join(", ")}
+            sub={alertSub(event)}
+          />
           <EventField label="Location" value={event.location} sub={null} />
           <EventField label="Description" value={event.eventDescription} sub={null} />
           <EventField label="Timezone" value={event.scheduleTimezone} sub="From Settings" />

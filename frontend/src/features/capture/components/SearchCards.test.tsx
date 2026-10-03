@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { buildEvent } from "@/testing/eventFixture";
 import { buildMemory } from "@/testing/memoryFixture";
 import { buildAnsweredResults, buildSearchResults, buildTask } from "@/testing/searchFixture";
 import { SearchLoadingCard, SearchResultsCard, SearchTooLongNote } from "./SearchCards";
@@ -258,5 +259,40 @@ describe("SearchResultsCard with expenses", () => {
     render(<SearchResultsCard results={buildSearchResults()} onOpenRecord={vi.fn()} onSeeAll={vi.fn()} />);
 
     expect(screen.getByText("Best match first · only your records are searched")).toBeInTheDocument();
+  });
+});
+
+/** Epic 007, sub-plan 4.2, F-5 (FR-30): the search card's Events group. */
+describe("SearchResultsCard with events", () => {
+  it("draws an Events group with the diamond, the when and the status, and opens the event", () => {
+    const onOpenRecord = vi.fn();
+    const results = buildSearchResults({
+      query: "dentist",
+      groups: [
+        {
+          recordType: "EVENT",
+          total: 1,
+          hits: [
+            {
+              citation: null,
+              record: { __typename: "Event" as const, ...buildEvent({ id: "ev1", title: "Dentist" }) },
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SearchResultsCard results={results} onOpenRecord={onOpenRecord} onSeeAll={vi.fn()} />);
+
+    expect(screen.getByText("Events")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Event" })).toBeInTheDocument();
+    expect(screen.getByText("Mon 12 Oct, all day")).toBeInTheDocument();
+    expect(screen.getByText("Upcoming")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Dentist"));
+    expect(onOpenRecord).toHaveBeenCalledWith(expect.objectContaining({ __typename: "Event", id: "ev1" }), {
+      kind: "SEARCH_RESULT_OPENED",
+      position: 1,
+    });
   });
 });

@@ -18,9 +18,12 @@ fragment EventFields on Event {
   occurrenceEndDate
   eventStatus: status
   whenText
-  alertLeadMinutes
-  alertText
-  alertFiresAt
+  alerts {
+    leadMinutes
+    text
+    firesAt
+  }
+  alertNotes
   origin
   originalInput
   createdAt

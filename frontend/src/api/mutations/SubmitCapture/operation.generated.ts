@@ -12,6 +12,10 @@ import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generat
 import { SearchResultsFieldsFragmentDoc } from '../../../fragments/SearchResultsFields.generated';
 import { ExpenseFieldsFragmentDoc } from '../../../fragments/ExpenseFields.generated';
 import { ExpenseSummaryFieldsFragmentDoc } from '../../../fragments/ExpenseSummaryFields.generated';
+export type AlertNotSetReason =
+  | 'CAP'
+  | 'PASSED';
+
 export type EventStatusType =
   | 'HAPPENING_NOW'
   | 'PAST'
@@ -46,6 +50,7 @@ export type MemoryCategory =
   | 'PROFESSIONAL';
 
 export type RecordType =
+  | 'EVENT'
   | 'EXPENSE'
   | 'MEMORY'
   | 'REMINDER'
@@ -80,10 +85,9 @@ export type SubmitCaptureMutationVariables = Exact<{
 
 
 export type SubmitCaptureMutation = { submitCapture:
-    | { __typename: 'EventAlertChoiceAsked', pendingCaptureId: string, question: string, choices: Array<{ leadMinutes: number, label: string }> }
-    | { __typename: 'EventCreated', event: { id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType } }
+    | { __typename: 'EventCreated', event: { id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertNotes: Array<string>, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType, alerts: Array<{ leadMinutes: number, text: string, firesAt: string }> }, alertsNotSet: Array<{ leadMinutes: number, text: string, reason: Types.AlertNotSetReason }> }
     | { __typename: 'EventLimitReached', message: string, limit: number }
-    | { __typename: 'EventsListed', events: Array<{ id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType }> }
+    | { __typename: 'EventsListed', events: Array<{ id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertNotes: Array<string>, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType, alerts: Array<{ leadMinutes: number, text: string, firesAt: string }> }> }
     | { __typename: 'ExpenseQuestionAsked', pendingCaptureId: string, kind: Types.ExpenseQuestionKind, question: string, amountCandidates: Array<string>, readDate: string | null }
     | { __typename: 'ExpenseRefused', message: string, refusalReason: Types.ExpenseRefusalReason, descriptionLength: number | null }
     | { __typename: 'ExpenseSaved', expense: { id: string, amountPaise: string, description: string, category: Types.ExpenseCategory, spentOn: string, origin: string, originalInput: string, createdAt: string, updatedAt: string } }
@@ -101,6 +105,7 @@ export type SubmitCaptureMutation = { submitCapture:
     | { __typename: 'ReminderLimitReached', message: string, limit: number }
     | { __typename: 'RemindersListed', reminders: Array<{ id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }> }
     | { __typename: 'SearchResults', query: string, meaningUnavailable: boolean, noSupport: boolean, answerUnavailable: boolean, answerLimitReached: boolean, answer: { sentences: Array<{ text: string, citations: Array<number> }> } | null, groups: Array<{ recordType: Types.RecordType, total: number, hits: Array<{ citation: number | null, record:
+            | { __typename: 'Event', id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertNotes: Array<string>, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType, alerts: Array<{ leadMinutes: number, text: string, firesAt: string }> }
             | { __typename: 'Expense', id: string, amountPaise: string, description: string, spentOn: string }
             | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
             | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
@@ -147,6 +152,11 @@ export const SubmitCaptureDocument = gql`
       event {
         ...EventFields
       }
+      alertsNotSet {
+        leadMinutes
+        text
+        reason
+      }
     }
     ... on EventsListed {
       events {
@@ -156,14 +166,6 @@ export const SubmitCaptureDocument = gql`
     ... on EventLimitReached {
       message
       limit
-    }
-    ... on EventAlertChoiceAsked {
-      pendingCaptureId
-      question
-      choices {
-        leadMinutes
-        label
-      }
     }
     ... on MemorySaved {
       memory {

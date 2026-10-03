@@ -2,6 +2,8 @@ import { AlertCircle, AlertTriangle, ArrowRight, Check, Clock, Search, Sparkles 
 import { Fragment, type KeyboardEvent, type ReactElement } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
+import EventMarker from "../../../components/EventMarker";
+import EventStatusPill from "../../../components/EventStatusPill";
 import ExpenseMarker from "../../../components/ExpenseMarker";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Button from "../../../design-system/components/Button";
@@ -29,6 +31,7 @@ const GROUP_LABEL: Record<RecordType, string> = {
   TASK: "Tasks",
   REMINDER: "Reminders",
   MEMORY: "Memories",
+  EVENT: "Events",
   EXPENSE: "Expenses",
 };
 
@@ -36,6 +39,8 @@ const GROUP_MARKER: Record<RecordType, ReactElement> = {
   TASK: <span className={Styles.typeDotTaskStyles} />,
   REMINDER: <span className={Styles.typeDotReminderStyles} />,
   MEMORY: <span className={Styles.typeDotMemoryStyles} />,
+  // 007 FR-30: the green diamond, as in Records.
+  EVENT: <EventMarker />,
   // 006 design change 2026-10-03: the ₹ marker, as in Records.
   EXPENSE: <ExpenseMarker />,
 };
@@ -312,6 +317,8 @@ const recordTitle = (record: SearchRecordFragment): string => {
       return record.description;
     case "Memory":
       return record.text;
+    case "Event":
+      return record.title;
     case "Expense":
       return record.description;
     default:
@@ -365,6 +372,18 @@ const SearchHitCells = (props: {
           <span className={Styles.searchHitDateStyles}>{formatShortDate(record.createdAt)}</span>
           <span className={Styles.searchHitStatusStyles}>
             <CategoryTag category={record.category} />
+          </span>
+        </>
+      );
+    // 007 FR-30: the event's when, and its upcoming or passed status.
+    case "Event":
+      return (
+        <>
+          <span className={Styles.searchHitTitleStyles}>{record.title}</span>
+          <RowCitation citation={citation} />
+          <span className={Styles.searchHitDateStyles}>{record.whenText}</span>
+          <span className={Styles.searchHitStatusStyles}>
+            <EventStatusPill status={record.eventStatus} />
           </span>
         </>
       );
