@@ -244,7 +244,9 @@ const ExpenseDetailController = (props: ExpenseDetailControllerProps): ReactElem
             {expense !== null && (
               <>
                 <ChevronRight size={13} />
-                <span className={RecordsStyles.breadcrumbCurrentStyles}>{expense.description}</span>
+                <span className={RecordsStyles.breadcrumbDescriptionStyles} title={expense.description}>
+                  {expense.description}
+                </span>
                 {isEditing && (
                   <>
                     <ChevronRight size={13} />

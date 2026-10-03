@@ -71,6 +71,7 @@ not with this branch. Owner: 003's test harness, not 006.
 | E-5 | 4.1 | Chip answers carry a marker | done, 2026-10-03 | Decision 2A. See D-21 |
 | — | 4.1 | Expense marker is a ₹ glyph | done, 2026-10-03 | Decision 3A. See D-22 and the design change record |
 | — | 4.1 | NFR-5 amount set grows to 100 cases | done, 2026-10-03 | Decision 5A. Cases 51 to 100 approved by the user the same day. Live run owed: needs a provider key |
+| E-6 | 4.1, 4.2 | Edge-case pass in a browser | done, 2026-10-03 | Dark theme. Four defects found and fixed; see "Edge-case browser pass, 2026-10-03". Decision 4A's two items fixed |
 
 ## In progress
 
@@ -120,7 +121,6 @@ one wrong case in 50 fails the target. NFR-4's misses repeat across runs:
 
 | # | Sub-plan | Task | Blocked on |
 |---|---|---|---|
-| E-6 | 4.1, 4.2 | Finish the edge-case pass: frontend tests, then a browser pass for long descriptions in every view, very large amounts in card, band and detail, all eight categories in the band and the card, a malformed and a deleted detail URL, back navigation after delete, the edit form's odd inputs (`.5`, `1,2,3`, empty), the calendar across a year, Escape on the period menu, two questions waiting at once, and reload with a question open ; and, decision 4A, the band label that wraps at 210 px and the new-user empty-state copy from the slice 2 browser pass | Nothing: E-1 to E-4 are done |
 | — | 4.1 | NFR-2 at p95 over a real sample | Six live model calls in T-1.15 took 1.6 s to 3.3 s; not enough for a p95 |
 | — | 4.1 | Update `index.md`'s 006 row | End of slice 1 |
 | — | 4.2 | Draft sub-plan 4.2, summaries, then build it | Slice 1 |
@@ -176,6 +176,39 @@ purpose until fixed. All sixteen pass from 2026-10-03, after the E-1 to E-3 fixe
 | `ExpensesStates` | A new user on this month sees "No expenses recorded this month", not "No expenses yet"; the example command shows on All time | The tab knows only the picked period's count. Open, minor |
 | `SummaryStates` | The summary card's history row reruns the line, as a search's does | No artboard draws it; follows 005 |
 
+## Edge-case browser pass, 2026-10-03
+
+Run in Chromium against the app on a local PostgreSQL 16 with pgvector,
+dark theme, 1440 × 900. Signed in with a locally signed token the backend
+trusted through a local JWKS, and Supabase's auth calls intercepted, as 002
+did for slice 2; no Supabase project or model key was reachable. Expenses
+were seeded into the database: one per category, a 200-character
+description, an amount at the storage ceiling, and a deleted one.
+
+| Case | Result | Action |
+|---|---|---|
+| All tab: ₹ marker, ceiling amount, 200-character description, deleted expense hidden | As designed | — |
+| Band at the ceiling: total and Shopping cell clipped past their cells | Defect | Fixed: band amounts wrap (`bandMoneyStyles`) |
+| Band label "Spent · October 2026 so far" on two lines | Defect, decision 4A | Fixed: the cell grows from 210 px to at most 320 px, label on one line |
+| All eight categories in the band | As designed | — |
+| Period menu: 19 options scroll; Escape closes it | As designed | — |
+| Detail at the ceiling amount | As designed | — |
+| Detail with a 200-character description: the breadcrumb ran to three lines | Defect | Fixed: the breadcrumb truncates at 420 px, full text in its title |
+| `/records/expenses/abc` and a deleted expense's URL | "This expense no longer exists" | E-1 holds end to end |
+| Delete, then Back | The not-found card, with the toast | As designed |
+| Edit: `.5` | Refused, "Enter an amount above ₹0…" | As capture reads it: a leading digit is required |
+| Edit: `1,2,3` | Read as ₹123 | FR-2 accepts commas in any grouping |
+| Edit: empty | Save disabled | — |
+| Edit: 20 nines | "That amount is too large to save. Check it for an extra zero." from the server, cleared when corrected | E-2 holds end to end |
+| Calendar from October 2026 to January 2027 | Fri 1 Jan 2027 picked | — |
+| Two bare `/add-expense` lines | Two amount questions open side by side | — |
+| Reload with both open | Both leave the stream; History keeps them as "Question asked" | 001's design for every command: the stream is per session |
+| A user with other records and no expenses, on this month | "No expenses recorded this month" | Defect, decision 4A. Fixed: an empty period asks once for the all-time count; none gives "No expenses yet" with the example command |
+
+Not driven: anything that needs the model (a two-number line's chips, the
+too-large and long-description refusals from a typed line). Each has unit
+and integration tests. Light theme not checked in this pass.
+
 ## Decisions, 2026-10-03
 
 Asked as multiple choice; the user took every recommendation ("go with your
@@ -218,6 +251,7 @@ None of these is approved yet.
 | D-20 | 2026-10-03 | 4.1 file map: `features/records/utils/recordPath.ts` | Folded into 007's `src/utils/recordPath.ts`, which gains `EXPENSE` and `recordId`, with its `never` check on both | Both epics added a `recordPath` in different places; one module keeps frontend rule 3's exhaustiveness check. Merge-only changes besides: the Records search box is hidden on both the Events and Expenses tabs, and tests that build the capture and records interactors pass both epics' ports |
 | D-21 | 2026-10-03 | 4.1 §5: a chip sends the candidate's paise | A chip sends `chip:<paise>`, accepted only for a listed candidate; bare digits are rupees. The turn logs the chip as the amount it showed (`₹180`), not the marker; before this, history showed a chip answer as raw paise, "Answered: 18000" | Decision 2A (E-5). `format_rupees` added to `amount_reading.py` for the log |
 | D-22 | 2026-10-03 | Design §6 `.dot.exp`, a green diamond, drawn as a styled `span` | `src/components/ExpenseMarker.tsx`, lucide's `IndianRupee` at 12 px in `text-success`, beside 007's `EventMarker`; `typeDotExpenseStyles` removed | Decision 3A. Design change record |
+| D-23 | 2026-10-03 | 4.2: the Expenses tab loads periods, list and summary | An empty period also asks for the all-time summary once, into `ExpensesStore.hasAnyExpense`, to tell a new user's tab from an empty month | Decision 4A. No schema change: it reuses `expenseSummary` with no range |
 
 ## Deferred
 

@@ -22,9 +22,9 @@ const ExpenseSummaryBand = (props: ExpenseSummaryBandProps): ReactElement => {
   return (
     <section className={Styles.bandStyles} aria-label={`Spent, ${summary.label}`}>
       <div className={Styles.bandTotalStyles}>
-        <span className={Styles.formLabelStyles}>Spent · {summary.label}</span>
+        <span className={`${Styles.formLabelStyles} ${Styles.bandLabelStyles}`}>Spent · {summary.label}</span>
         <span
-          className={`${Styles.amountStyles} ${Styles.bandTotalAmountStyles}`}
+          className={`${Styles.bandMoneyStyles} ${Styles.bandTotalAmountStyles}`}
           aria-label={spokenRupees(summary.grandTotalPaise)}
         >
           {formatRupees(summary.grandTotalPaise)}
@@ -39,7 +39,7 @@ const ExpenseSummaryBand = (props: ExpenseSummaryBandProps): ReactElement => {
             <div className={Styles.bandCellTopStyles}>
               <span>{EXPENSE_CATEGORY_LABEL[total.category]}</span>
               <span
-                className={`${Styles.amountStyles} ${Styles.bandCellAmountStyles}`}
+                className={`${Styles.bandMoneyStyles} ${Styles.bandCellAmountStyles}`}
                 aria-label={spokenRupees(total.totalPaise)}
               >
                 {formatRupees(total.totalPaise)}

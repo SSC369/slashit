@@ -47,6 +47,8 @@ export const emptyActionStyles = "mt-5";
 // Detail
 export const breadcrumbStyles = "mb-5 flex items-center gap-2 text-[13px] text-foreground-tertiary";
 export const breadcrumbCurrentStyles = "text-foreground";
+// A 200-character description stays on one line in the trail (dev log E-6).
+export const breadcrumbDescriptionStyles = "min-w-0 max-w-[420px] truncate text-foreground";
 export const detailTitleStyles = "font-serif text-[32px] leading-[1.2] text-foreground";
 export const detailFieldsStyles = "mt-[22px]";
 export const detailRowStyles = "flex border-b border-border py-3.5";
@@ -212,13 +214,18 @@ export const periodOptionStyles =
   "flex w-full items-center justify-between px-3.5 py-2 text-left text-[13px] text-foreground hover:bg-background";
 export const periodOptionOnStyles = "font-semibold text-accent";
 export const bandStyles = "mb-4 flex items-stretch overflow-hidden rounded-lg border border-border bg-card";
-export const bandTotalStyles = "flex w-[210px] shrink-0 flex-col gap-0.5 border-r border-border px-[18px] py-3.5";
+// The cell grows past 210 px so its label stays on one line (dev log E-6).
+export const bandTotalStyles =
+  "flex min-w-[210px] max-w-[320px] shrink-0 flex-col gap-0.5 border-r border-border px-[18px] py-3.5";
+export const bandLabelStyles = "whitespace-nowrap";
+// Band amounts wrap rather than run out of their cell, up to the storage ceiling (E-6).
+export const bandMoneyStyles = "min-w-0 font-mono tabular-nums wrap-anywhere";
 export const bandTotalAmountStyles = "text-2xl font-medium tracking-[-0.01em] text-foreground";
 export const bandCountStyles = "text-xs text-foreground-tertiary";
 export const bandCellsStyles = "grid flex-1 grid-cols-4 gap-px bg-border";
 export const bandCellStyles = "flex flex-col gap-[5px] bg-card px-3.5 py-2.5";
 export const bandCellTopStyles = "flex justify-between gap-2 text-[12.5px] text-foreground-secondary";
-export const bandCellAmountStyles = "text-[13.5px] text-foreground";
+export const bandCellAmountStyles = "text-right text-[13.5px] text-foreground";
 export const emptyPeriodStyles = "rounded-lg border border-border bg-card p-[26px] text-center";
 export const emptyPeriodTitleStyles = "font-semibold text-foreground";
 export const emptyPeriodBodyStyles = "mt-1.5 text-[13px] text-foreground-secondary";

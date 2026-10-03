@@ -161,6 +161,37 @@ describe("ExpensesController, F-4 of 4.1 and F-8, F-9 of 4.2", () => {
     expect(screen.queryByRole("region")).not.toBeInTheDocument();
   });
 
+  it("asks for the all-time count when the picked period is empty (dev log E-6)", () => {
+    mockUseGetExpenses.mockReturnValue(withExpenses([]));
+    const summaryHook = withSummary(null);
+    mockUseGetExpenseSummary.mockReturnValue(summaryHook);
+
+    renderTab();
+
+    expect(summaryHook.triggerAPI).toHaveBeenCalledWith({ filter: { category: null, start: null, end: null } });
+  });
+
+  it("greets a user with no expenses at all as new, on any period (dev log E-6)", () => {
+    mockUseGetExpenses.mockReturnValue(withExpenses([]));
+    mockUseGetExpenseSummary.mockReturnValue(
+      withSummary(buildExpenseSummary({ count: 0, grandTotalPaise: "0", totals: [] })),
+    );
+
+    renderTab();
+
+    expect(screen.getByText("No expenses yet")).toBeInTheDocument();
+    expect(screen.queryByText("No expenses recorded this month")).not.toBeInTheDocument();
+  });
+
+  it("keeps the empty-period copy for a user who has expenses in other periods", () => {
+    mockUseGetExpenses.mockReturnValue(withExpenses([]));
+    mockUseGetExpenseSummary.mockReturnValue(withSummary(buildExpenseSummary({ count: 3 })));
+
+    renderTab();
+
+    expect(screen.getByText("No expenses recorded this month")).toBeInTheDocument();
+  });
+
   it("draws the empty state with an example command on All time", () => {
     mockUseGetExpenses.mockReturnValue(withExpenses([]));
     const store = new RootStore();

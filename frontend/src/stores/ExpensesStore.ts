@@ -30,6 +30,10 @@ export class ExpensesStoreModel {
   periodId: string | null = null;
   /** The band's totals for the picked period and category. */
   summary: ExpenseSummaryFieldsFragment | null = null;
+  /** Whether the account has any expense at all, asked only when a picked
+   * period is empty; null until asked. Tells a new user's empty tab from an
+   * empty month (`ExpensesStates`, dev log E-6). */
+  hasAnyExpense: boolean | null = null;
 
   constructor() {
     makeAutoObservable(this, {}, { autoBind: true });
@@ -90,6 +94,10 @@ export class ExpensesStoreModel {
     this.summary = summary;
   }
 
+  setHasAnyExpense(hasAnyExpense: boolean): void {
+    this.hasAnyExpense = hasAnyExpense;
+  }
+
   clear(): void {
     this.expenses.clear();
     this.order = [];
@@ -98,6 +106,7 @@ export class ExpensesStoreModel {
     this.periods = [];
     this.periodId = null;
     this.summary = null;
+    this.hasAnyExpense = null;
   }
 
   static create(): ExpensesStoreModel {

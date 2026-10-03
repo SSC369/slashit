@@ -65,7 +65,7 @@ slice before each lands, as 004 and 005 did.
 |---|---|---|---|---|
 | 1 | [04.1-record-and-browse.md](./04.1-record-and-browse.md) | `/add-expense` saves with amount, description, category and date; the four questions, the calendar and the refusals work; Expenses tab, All tab, detail, edit and delete work, with every drawn state | none | approved 2026-10-02; built, see dev log |
 | 2 | [04.2-summaries.md](./04.2-summaries.md) | `/expenses` with and without a period; the summary card and its states; period picker, category filter and band on the Expenses tab; totals match | 1 | approved 2026-10-02; building |
-| 3 | `04.3-search.md` | Embed job fills vectors; `/search` and Records search find expenses by words, meaning and exact amount | 1 | not drafted |
+| 3 | [04.3-search.md](./04.3-search.md) | Embed job fills vectors; `/search` and Records search find expenses by words, meaning and exact amount | 1 | approved 2026-10-03; building |
 
 Slices 2 and 3 are independent of each other and may be built in either order.
 
@@ -130,7 +130,8 @@ ExpenseService.delete_expense(*, user_id, expense_id) -> ExpenseDeleted | Expens
 until slice 2, so the signature never changes. Slice 2 adds
 `parse_period(*, text: str, today: date) -> Period | None` and
 `summarise(*, user_id, period: Period, category: ExpenseCategory | None) -> ExpenseSummaryDTO`.
-Slice 3 adds `search_candidates` and `embedding_of`, per 005's `SearchPort`.
+Slice 3 adds `search_candidates` and `embedding_of`, per 005's `SearchPort`,
+which gains a `text` keyword (4.3 Q1; change log 2026-10-03).
 
 ### Amount reading, slice 1, used by capture only
 
@@ -229,3 +230,5 @@ code, and are the only repository files written before approval.
 | 2026-10-03 | Migrations renumbered `0037`–`0039` to `0039_expenses`, `0040_capture_expense`, `0041_expense_events`, chained after 007's `0038_capture_events`. Names only; no migration's content changed. Nothing downstream is stale | Epic 007 reached `main` first with `0037_calendar_events` and `0038_capture_events`. Dev log D-18 | user, 2026-10-03: "pull feat/006-expenses into main" |
 | 2026-10-03 | §6: the amount set grows from 50 to 100 cases, so "over 98%" allows one miss rather than none. Pass bar unchanged. Cases 51 to 100 drafted by Claude, awaiting the user's approval | Runs 4 to 8 showed one wrong case in 50 fails NFR-5 at random. Decision 5A | user, 2026-10-03: "go with your recommendation" |
 | 2026-10-03 | §6: cases 51 to 100 approved | User: "2a" | user, 2026-10-03 |
+| 2026-10-03 | §2: sub-plan 4.3 drafted; slice table status only, no contract change | User asked to complete the remaining slice | pending, with 4.3 |
+| 2026-10-03 | §4: 005's `SearchPort.search_candidates` gains `text`, for 4.3 Q1. Re-opens no sub-plan: 4.1 and 4.2 do not use the port. 4.3 approved | User: "1a, 2a, 3a, 4a, 5a" | user |

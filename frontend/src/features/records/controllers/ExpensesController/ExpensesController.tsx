@@ -55,6 +55,7 @@ const ExpensesController = (): ReactElement => {
   const periodsQuery = useGetExpensePeriods();
   const listQuery = useGetExpenses();
   const summaryQuery = useGetExpenseSummary();
+  const allTimeQuery = useGetExpenseSummary();
   const { handleResponse: handlePeriods } = usePeriodsResponseHandler();
   const { handleResponse: handleList } = useResponseHandler();
   const { handleResponse: handleSummary } = useSummaryResponseHandler();
@@ -95,6 +96,15 @@ const ExpensesController = (): ReactElement => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [summaryQuery.data]);
 
+  useEffect(() => {
+    if (!allTimeQuery.data) return;
+    handleSummary({
+      data: allTimeQuery.data,
+      onSummaryLoaded: (summary) => store.expenses.setHasAnyExpense(summary.count > 0),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allTimeQuery.data]);
+
   const expenses = store.expenses.getVisible();
   const hasSyncedOnce = store.expenses.lastSyncedAt !== null;
   const failedQuery = [periodsQuery, listQuery].find((query) => query.apiStatus === API_FAILED);
@@ -108,7 +118,17 @@ const ExpensesController = (): ReactElement => {
   else if (!hasSyncedOnce || period === null) listState = "LOADING";
   else if (expenses.length > 0) listState = "LIST";
   else if (categoryFilter !== "ALL") listState = "NO_MATCH";
-  else listState = isAllTime ? "EMPTY" : "EMPTY_PERIOD";
+  else if (isAllTime || store.expenses.hasAnyExpense === false) listState = "EMPTY";
+  else listState = "EMPTY_PERIOD";
+
+  // An empty month for a new user is "No expenses yet" with the example
+  // command, not "No expenses recorded this month" (dev log E-6, decision 4A).
+  const isPeriodEmpty = listState === "EMPTY_PERIOD";
+  useEffect(() => {
+    if (!isPeriodEmpty) return;
+    allTimeQuery.triggerAPI({ filter: { category: null, start: null, end: null } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPeriodEmpty]);
 
   const handleRetry = (): void => {
     if (period === null) {

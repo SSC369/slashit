@@ -180,7 +180,7 @@ pending row and the table above is re-run on the draft.
 | AD-4 | Extraction runs in capture. The model lists candidate amounts; code keeps only numbers present in the text. More than one kept asks FR-5 | locked | no |
 | AD-5 | Periods are parsed by code from a closed list, in expenses, and shared by `/expenses` and the view as one `{start, end}` range | locked | no |
 | AD-6 | Expense questions live in `pending_captures` with typed `expense_` columns and four kinds, chained in §5's order | locked | no |
-| AD-7 | Expenses implement `SearchPort` with 005 AD-2's columns. A term that parses as a number also matches `amount_paise` exactly | locked | no |
+| AD-7 | Expenses implement `SearchPort` with 005 AD-2's columns. A search whose whole text reads as one rupee amount, with an expense line's rules, also matches `amount_paise` exactly; search passes its text to every port. Amended 2026-10-03, see change log | locked | no |
 | AD-8 | Currency is checked by code before the model and by the model's `currency` field after. Either refuses. No currency column until epic 012 | locked | no |
 | AD-9 | `amount` and `amount_paise` join the redacted log keys | locked | yes, tech stack §4 as an extension of T6 |
 
@@ -216,3 +216,4 @@ All six answered on 2026-10-02, each as recommended. Q1 to Q4 were asked before 
 | 2026-10-02 | Q5 and Q6 answered, both as recommended | User answered | user |
 | 2026-10-02 | Approved. Every AD locked. AD-2 and AD-9 graduated to `tech-stack.md` | User: "approved, proceed with next" | user |
 | 2026-10-03 | Migrations renumbered `0037`–`0039` to `0039_expenses`, `0040_capture_expense`, `0041_expense_events`, chained after 007's `0038_capture_events`. Names only; no migration's content changed. Nothing downstream is stale | Epic 007 reached `main` first with `0037_calendar_events` and `0038_capture_events`. Dev log D-18 | user, 2026-10-03: "pull feat/006-expenses into main" |
+| 2026-10-03 | AD-7: the amount match reads the whole search as one amount (`₹1,200`, `850.50`, `1.2k`), not a bare number term. 005's `SearchPort.search_candidates` gains `text`; tasks, reminders and memories ignore it. Stale: index §4, updated in the same change | Sub-plan 4.3 Q1, to meet PRD FR-30 as written | User: "1a, 2a, 3a, 4a, 5a" |
