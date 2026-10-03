@@ -5,9 +5,16 @@ from dataclasses import replace
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.domains.events.interfaces.dtos import EventDTO, StoredEventDTO, UserClockDTO
+from app.domains.events.interfaces.dtos import (
+    EventAlertDTO,
+    EventDTO,
+    StoredEventDTO,
+    UserClockDTO,
+)
 from app.domains.events.services.schedule import (
-    alert_fires_at,
+    LocalSchedule,
+    Resolved,
+    alert_fire_times,
     describe_alert,
     describe_when,
     event_status,
@@ -22,8 +29,15 @@ def present_event(
     moves them (AD-4); resolving here keeps every read correct regardless."""
     resolved = resolve(schedule=stored.schedule, now=now)
     local_today = now.astimezone(ZoneInfo(clock.timezone)).date()
-    # One lead until slice 2's alert list reaches the API (4.2, T-2.4).
-    lead = stored.alert_leads_minutes[0] if stored.alert_leads_minutes else None
+    alerts = present_alerts(
+        schedule=stored.schedule,
+        resolved=resolved,
+        leads=stored.alert_leads_minutes,
+        clock=clock,
+    )
+    # The single fields repeat the soonest alert until the client reads the
+    # list (4.2, T-2.10).
+    first_alert = alerts[0] if alerts else None
     return EventDTO(
         id=stored.id,
         user_id=stored.user_id,
@@ -39,22 +53,37 @@ def present_event(
         when_text=describe_when(
             schedule=stored.schedule, resolved=resolved, local_today=local_today
         ),
-        alert_lead_minutes=lead,
-        alert_text=describe_alert(lead_minutes=lead) if lead is not None else None,
-        alert_fires_at=(
-            alert_fires_at(
-                schedule=stored.schedule,
-                resolved=resolved,
-                lead_minutes=lead,
-                default_reminder_time=clock.default_reminder_time,
-            )
-            if lead is not None
-            else None
-        ),
+        alert_lead_minutes=first_alert.lead_minutes if first_alert else None,
+        alert_text=first_alert.text if first_alert else None,
+        alert_fires_at=first_alert.fires_at if first_alert else None,
         origin=stored.origin,
         original_input=stored.original_input,
         created_at=stored.created_at,
         updated_at=stored.updated_at,
+        alerts=alerts,
+    )
+
+
+def present_alerts(
+    *,
+    schedule: LocalSchedule,
+    resolved: Resolved,
+    leads: tuple[int, ...],
+    clock: UserClockDTO,
+) -> tuple[EventAlertDTO, ...]:
+    """Each lead with its words and its fire time, soonest first (FR-27)."""
+    return tuple(
+        EventAlertDTO(
+            lead_minutes=alert_time.lead_minutes,
+            text=describe_alert(lead_minutes=alert_time.lead_minutes),
+            fires_at=alert_time.fires_at,
+        )
+        for alert_time in alert_fire_times(
+            schedule=schedule,
+            resolved=resolved,
+            leads=leads,
+            default_reminder_time=clock.default_reminder_time,
+        )
     )
 
 

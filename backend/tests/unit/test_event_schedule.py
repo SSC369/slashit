@@ -266,18 +266,18 @@ def test_a_timed_alert_counts_back_from_the_start() -> None:
 def test_leads_are_kept_once_shortest_first() -> None:
     """Epic 007, 4.2 C-2: FR-14 and FR-34."""
     assert normalise_leads(leads=[1440, 120, 1440]) == NormalisedLeads(
-        leads=(120, 1440), had_repeat=True
+        leads=(120, 1440), repeated=(1440,)
     )
     assert normalise_leads(leads=[10080, 1440]) == NormalisedLeads(
-        leads=(1440, 10080), had_repeat=False
+        leads=(1440, 10080), repeated=()
     )
-    assert normalise_leads(leads=[]) == NormalisedLeads(leads=(), had_repeat=False)
+    assert normalise_leads(leads=[]) == NormalisedLeads(leads=(), repeated=())
 
 
 def test_a_lead_out_of_range_is_not_said_and_is_no_repeat() -> None:
     """A lead below zero or over a year is dropped, as slice 1 did."""
     assert normalise_leads(leads=[-5, 0, 525601, 525601]) == NormalisedLeads(
-        leads=(0,), had_repeat=False
+        leads=(0,), repeated=()
     )
 
 

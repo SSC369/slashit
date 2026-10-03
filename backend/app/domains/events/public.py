@@ -6,25 +6,27 @@ section 6.
 """
 
 from app.domains.events.interfaces.dtos import (
-    AlertChoiceDTO,
+    AlertNotSetDTO,
     Event,
+    EventAlertNotSet,
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
+    alert_not_set_to_type,
     event_dto_to_type,
 )
 from app.domains.events.services.event_service import EventService
 
 __all__ = [
-    "AlertChoiceDTO",
+    "AlertNotSetDTO",
     "Event",
+    "EventAlertNotSet",
     "EventDTO",
     "EventFields",
     "EventLimitReached",
-    "EventNeedsAlertChoice",
     "EventNeedsDate",
     "EventService",
+    "alert_not_set_to_type",
     "event_dto_to_type",
 ]

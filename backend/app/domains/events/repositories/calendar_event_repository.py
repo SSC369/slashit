@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, or_, select, text
+from sqlalchemy import func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
@@ -83,6 +83,20 @@ class SqlCalendarEventRepository:
         if event is None or event.user_id != user_id or event.deleted_at is not None:
             return None
         return _event_to_dto(event=event)
+
+    async def set_alert_leads(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID, leads: tuple[int, ...]
+    ) -> None:
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                update(CalendarEvent)
+                .where(
+                    CalendarEvent.id == event_id,
+                    CalendarEvent.user_id == user_id,
+                    CalendarEvent.deleted_at.is_(None),
+                )
+                .values(alert_leads_minutes=list(leads), updated_at=datetime.now(UTC))
+            )
 
 
 def _event_to_dto(*, event: CalendarEvent) -> StoredEventDTO:

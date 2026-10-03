@@ -22,7 +22,6 @@ from app.domains.capture.constants import (
     ADD_EVENT_COMMAND,
     ADD_EXPENSE_COMMAND,
     CONFLICT_QUESTION,
-    EVENT_ALERT_QUESTION,
     EVENTS_COMMAND,
     EXPENSES_COMMAND,
     FACT_QUESTION,
@@ -37,7 +36,6 @@ from app.domains.capture.constants import (
 )
 from app.domains.capture.interfaces.dtos import (
     CaptureTurnOutcome,
-    EventAlertChoiceAskedDTO,
     EventListDTO,
     ExpenseQuestionAskedDTO,
     ExpenseRefusedDTO,
@@ -77,7 +75,6 @@ from app.domains.capture.services.reminder_capture import (
 from app.domains.events.public import (
     EventDTO,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
 )
 from app.domains.expenses.public import ExpenseDTO, ExpenseSummaryDTO
@@ -119,7 +116,6 @@ CaptureOutcome = (
     | EventDTO
     | EventListDTO
     | EventLimitReached
-    | EventAlertChoiceAskedDTO
     | MemorySavedDTO
     | MemoryListDTO
     | MemoryTooLongDTO
@@ -385,7 +381,7 @@ class SubmitCaptureInteractor:
     async def _submit_add_event(
         self, *, user_id: UUID, argument_text: str, original_input: str
     ) -> CaptureOutcome:
-        """Epic 007, FR-1, FR-2, FR-16, FR-31. Reading and creating is the
+        """Epic 007, FR-1, FR-2, FR-31. Reading and creating is the
         shared EventCaptureService's; turning its outcome into a question, a
         turn and a result is this interactor's."""
         outcome = await self.event_capture.capture_event(
@@ -409,13 +405,6 @@ class SubmitCaptureInteractor:
                 question_text=event_date_question(title=outcome.title),
                 original_input=original_input,
             )
-        if isinstance(outcome, EventNeedsAlertChoice):
-            return await self._ask_alert_choice(
-                user_id=user_id,
-                argument_text=argument_text,
-                choice=outcome,
-                original_input=original_input,
-            )
         if isinstance(outcome, EventDTO):
             await self._record_turn(
                 user_id=user_id,
@@ -428,30 +417,6 @@ class SubmitCaptureInteractor:
             user_id=user_id, input_text=original_input, outcome="refused"
         )
         return outcome
-
-    async def _ask_alert_choice(
-        self,
-        *,
-        user_id: UUID,
-        argument_text: str,
-        choice: EventNeedsAlertChoice,
-        original_input: str,
-    ) -> EventAlertChoiceAskedDTO:
-        """FR-16: nothing saved. The sentence waits as the question's known
-        text; the answer re-reads it with one lead kept."""
-        pending = await self._ask_pending_question(
-            user_id=user_id,
-            command_name=ADD_EVENT_COMMAND,
-            known_title=argument_text,
-            missing_field="event_alert_choice",
-            question_text=EVENT_ALERT_QUESTION,
-            original_input=original_input,
-        )
-        return EventAlertChoiceAskedDTO(
-            pending_capture_id=pending.id,
-            question=EVENT_ALERT_QUESTION,
-            choices=choice.choices,
-        )
 
     async def _list_events(self, *, user_id: UUID, original_input: str) -> EventListDTO:
         """Epic 007, FR-24: upcoming events, soonest first."""

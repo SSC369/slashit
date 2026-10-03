@@ -18,15 +18,20 @@ from app.domains.events.interactors.dtos import (
 from app.domains.events.interactors.get_event import GetEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
 from app.domains.events.interfaces.dtos import (
+    AlertNotSetDTO,
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
 )
 from app.domains.events.services.schedule import EventStatus
 from tests.fakes.fake_calendar_event_repository import FakeCalendarEventRepository
-from tests.fakes.fake_event_ports import FakeEventAnalyticsPort, FakeEventUserClockPort
+from tests.fakes.fake_event_ports import (
+    FakeEventAlertsPort,
+    FakeEventAnalyticsPort,
+    FakeEventUserClockPort,
+    fake_alert_arming,
+)
 
 USER = uuid.uuid4()
 OTHER_USER = uuid.uuid4()
@@ -60,12 +65,15 @@ def _fields(
 
 def _interactors(
     repository: FakeCalendarEventRepository,
+    *,
+    alerts: FakeEventAlertsPort | None = None,
 ) -> tuple[CreateEventInteractor, ListEventsInteractor, FakeEventAnalyticsPort]:
     clock = FakeEventUserClockPort()
     analytics = FakeEventAnalyticsPort()
     create = CreateEventInteractor(
         event_repository=repository,
         user_clock=clock,
+        alert_arming=fake_alert_arming(repository=repository, alerts=alerts),
         analytics=analytics,
         now_provider=lambda: NOW,
     )
@@ -121,24 +129,78 @@ async def test_no_date_asks_and_writes_nothing() -> None:
     assert repository.rows == []
 
 
-async def test_two_alerts_ask_which_and_write_nothing() -> None:
-    """FR-16."""
+async def test_every_alert_said_is_set_soonest_first() -> None:
+    """4.2 C-1, FR-14: "remind me 1 week before and 1 day before" sets both."""
+    repository = FakeCalendarEventRepository()
+    alerts = FakeEventAlertsPort()
+    create, _, _ = _interactors(repository, alerts=alerts)
+
+    event = await _create(create, _fields(alert_leads_minutes=(1440, 10080)))
+
+    assert isinstance(event, EventDTO)
+    assert [alert.text for alert in event.alerts] == ["1 week before", "1 day before"]
+    assert [alert.fires_at for alert in event.alerts] == [
+        datetime(2026, 10, 2, 16, tzinfo=ZoneInfo("Asia/Kolkata")),
+        datetime(2026, 10, 8, 16, tzinfo=ZoneInfo("Asia/Kolkata")),
+    ]
+    assert event.alerts_not_set == ()
+    assert repository.rows[0].alert_leads_minutes == (1440, 10080)
+    assert [alert.detail for alert in alerts.alerts_by_event[event.id]] == [
+        "1 week before · Fri 9 Oct, 4:00 PM",
+        "1 day before · Fri 9 Oct, 4:00 PM",
+    ]
+
+
+async def test_the_same_alert_said_twice_is_one_alert_and_says_so() -> None:
+    """4.2 C-2, FR-34."""
     repository = FakeCalendarEventRepository()
     create, _, _ = _interactors(repository)
-    outcome = await _create(create, _fields(alert_leads_minutes=(10080, 1440)))
-    assert isinstance(outcome, EventNeedsAlertChoice)
-    assert [choice.label for choice in outcome.choices] == [
-        "1 week before",
-        "1 day before",
-    ]
-    assert repository.rows == []
-
-
-async def test_the_same_alert_said_twice_is_one_alert() -> None:
-    create, _, _ = _interactors(FakeCalendarEventRepository())
-    event = await _create(create, _fields(alert_leads_minutes=(60, 60)))
+    event = await _create(create, _fields(alert_leads_minutes=(1440, 120, 1440)))
     assert isinstance(event, EventDTO)
-    assert event.alert_lead_minutes == 60
+    assert [alert.lead_minutes for alert in event.alerts] == [1440, 120]
+    assert event.alert_notes == ("“1 day before” was named twice, kept once",)
+    assert repository.rows[0].alert_leads_minutes == (120, 1440)
+
+
+async def test_a_passed_alert_is_named_and_dropped_and_the_rest_set() -> None:
+    """4.2 C-4, FR-19: eight days before 9 Oct, 4 PM, has passed at 2 Oct, 10 AM."""
+    repository = FakeCalendarEventRepository()
+    create, _, _ = _interactors(repository)
+
+    event = await _create(create, _fields(alert_leads_minutes=(11520, 60)))
+
+    assert isinstance(event, EventDTO)
+    assert event.alerts_not_set == (
+        AlertNotSetDTO(lead_minutes=11520, text="8 days before", reason="passed"),
+    )
+    assert [alert.text for alert in event.alerts] == ["1 hour before"]
+    assert repository.rows[0].alert_leads_minutes == (60,)
+
+
+async def test_over_the_cap_the_soonest_firing_alerts_are_kept() -> None:
+    """FR-33 and AD-8, as events sees it: the later alert is named."""
+    repository = FakeCalendarEventRepository()
+    create, _, _ = _interactors(repository, alerts=FakeEventAlertsPort(room=1))
+
+    event = await _create(create, _fields(alert_leads_minutes=(1440, 60)))
+
+    assert isinstance(event, EventDTO)
+    assert event.alerts_not_set == (
+        AlertNotSetDTO(lead_minutes=60, text="1 hour before", reason="cap"),
+    )
+    assert repository.rows[0].alert_leads_minutes == (1440,)
+
+
+async def test_an_alerts_outage_saves_the_event_with_its_leads() -> None:
+    """4.2 Q1: the event stands; the sweep sets its alerts later (D-16)."""
+    repository = FakeCalendarEventRepository()
+    create, _, _ = _interactors(repository, alerts=FakeEventAlertsPort(fail=True))
+
+    event = await _create(create, _fields(alert_leads_minutes=(60,)))
+
+    assert isinstance(event, EventDTO)
+    assert event.alerts_not_set == ()
+    assert repository.rows[0].alert_leads_minutes == (60,)
 
 
 async def test_a_birthday_title_is_echoed_as_the_reason_for_yearly() -> None:

@@ -1,14 +1,15 @@
-"""Create one event from what a sentence said. FR-1 to FR-10, FR-16, FR-31."""
+"""Create one event from what a sentence said. FR-1 to FR-10, FR-14, FR-19,
+FR-31, FR-33, FR-34."""
 
 import re
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
 import structlog
 
 from app.domains.events.constants import (
-    MAX_ALERT_LEAD_MINUTES,
     MAX_DESCRIPTION_LENGTH,
     MAX_LOCATION_LENGTH,
     MAX_TITLE_LENGTH,
@@ -16,31 +17,29 @@ from app.domains.events.constants import (
 )
 from app.domains.events.interactors.dtos import CreateEventInputDTO
 from app.domains.events.interfaces.dtos import (
-    AlertChoiceDTO,
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
     EventWrite,
 )
 from app.domains.events.interfaces.ports import EventAnalyticsPort, UserClockPort
 from app.domains.events.interfaces.repositories import EventRepository
-from app.domains.events.services.presenter import present_event, with_notes
+from app.domains.events.services.alert_arming import EventAlertArming
+from app.domains.events.services.presenter import present_event
 from app.domains.events.services.schedule import (
     LocalSchedule,
     NormalisedSchedule,
     SaidSchedule,
     describe_alert,
+    normalise_leads,
     normalise_said_schedule,
     resolve,
 )
 
 logger = structlog.get_logger(__name__)
 
-CreateEventOutcome = (
-    EventDTO | EventLimitReached | EventNeedsDate | EventNeedsAlertChoice
-)
+CreateEventOutcome = EventDTO | EventLimitReached | EventNeedsDate
 
 # FR-9: a title naming one of these repeats yearly. Echoed so a wrong guess
 # is visible (design §8).
@@ -54,38 +53,30 @@ class CreateEventInteractor:
         *,
         event_repository: EventRepository,
         user_clock: UserClockPort,
+        alert_arming: EventAlertArming,
         analytics: EventAnalyticsPort,
         now_provider: Callable[[], datetime],
     ) -> None:
         self.event_repository = event_repository
         self.user_clock = user_clock
+        self.alert_arming = alert_arming
         self.analytics = analytics
         self.now_provider = now_provider
 
     async def create_event(self, *, dto: CreateEventInputDTO) -> CreateEventOutcome:
         """Apply the date rules and store the event.
 
-        Returns ``EventNeedsDate`` when no date was said, ``EventNeedsAlertChoice``
-        when more than one alert was, and ``EventLimitReached`` at the cap.
-        None of them writes. All are outcomes a capture renders, not errors,
+        Returns ``EventNeedsDate`` when no date was said and
+        ``EventLimitReached`` at the cap; neither writes. Every alert said is
+        set; one that is not comes back on the event's ``alerts_not_set``.
+        All are outcomes a capture renders, not errors,
         so nothing raises.
         """
         fields = dto.fields
         title = _shorten(text=fields.title, limit=MAX_TITLE_LENGTH)
         if fields.start_date is None:
             return EventNeedsDate(title=title)
-        leads = _read_leads(leads=fields.alert_leads_minutes)
-        if len(leads) > 1:
-            return EventNeedsAlertChoice(
-                title=title,
-                choices=tuple(
-                    AlertChoiceDTO(
-                        lead_minutes=lead, label=describe_alert(lead_minutes=lead)
-                    )
-                    for lead in leads
-                ),
-            )
-
+        leads = normalise_leads(leads=fields.alert_leads_minutes)
         clock = await self.user_clock.get_user_clock(user_id=dto.user_id)
         now = self.now_provider()
         normalised = normalise_said_schedule(
@@ -107,7 +98,7 @@ class CreateEventInteractor:
                 schedule=schedule,
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
-                alert_leads_minutes=tuple(leads[:1]),
+                alert_leads_minutes=leads.leads,
                 origin=dto.origin,
                 original_input=dto.original_input,
             ),
@@ -117,12 +108,21 @@ class CreateEventInteractor:
         if stored is None:
             return EventLimitReached(limit=MAX_UPCOMING_EVENTS)
 
-        event = present_event(stored=stored, clock=clock, now=now)
-        await self._record_event_created(event=event)
-        notes = normalised.notes + _yearly_note(
-            fields=fields, original_input=dto.original_input
+        armed = await self.alert_arming.arm_alerts(
+            stored=stored, clock=clock, origin=dto.origin, now=now
         )
-        return with_notes(event=event, notes=notes)
+        event = present_event(stored=armed.stored, clock=clock, now=now)
+        await self._record_event_created(event=event)
+        return replace(
+            event,
+            when_notes=normalised.notes
+            + _yearly_note(fields=fields, original_input=dto.original_input),
+            alerts_not_set=armed.alerts_not_set,
+            alert_notes=tuple(
+                f"“{describe_alert(lead_minutes=lead)}” was named twice, kept once"
+                for lead in leads.repeated
+            ),
+        )
 
     async def _record_event_created(self, *, event: EventDTO) -> None:
         """PRD §8. An instrumentation failure never undoes the event."""
@@ -135,7 +135,7 @@ class CreateEventInteractor:
                     or event.schedule.end_time is not None,
                     "has_location": event.location is not None,
                     "yearly": event.schedule.repeat_yearly,
-                    "has_alert": event.alert_lead_minutes is not None,
+                    "has_alert": bool(event.alerts),
                 },
             )
         except Exception:
@@ -165,16 +165,6 @@ def _local_schedule(*, normalised: NormalisedSchedule, timezone: str) -> LocalSc
         repeat_yearly=normalised.repeat_yearly,
         timezone=timezone,
     )
-
-
-def _read_leads(*, leads: tuple[int, ...]) -> list[int]:
-    """Legal leads, each once, in the order said. A lead over a year is read
-    as not said rather than refused."""
-    kept: list[int] = []
-    for lead in leads:
-        if 0 <= lead <= MAX_ALERT_LEAD_MINUTES and lead not in kept:
-            kept.append(lead)
-    return kept
 
 
 def _yearly_note(*, fields: EventFields, original_input: str | None) -> tuple[str, ...]:

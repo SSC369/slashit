@@ -8,7 +8,7 @@ from uuid import UUID
 
 import strawberry
 
-from app.domains.events.public import AlertChoiceDTO, EventDTO
+from app.domains.events.public import EventDTO
 from app.domains.expenses.public import ExpenseCategory
 from app.domains.memories.public import MemoryCategory, MemoryDTO
 from app.domains.reminders.public import ReminderDTO
@@ -205,13 +205,3 @@ class EventListDTO:
     """`/events`. Wrapped so it is not confused with another list."""
 
     events: list[EventDTO]
-
-
-@dataclass(frozen=True)
-class EventAlertChoiceAskedDTO:
-    """FR-16: more than one alert was said. Nothing saved; the choice waits
-    as a pending capture. ``choices`` are offered, never stored."""
-
-    pending_capture_id: UUID
-    question: str
-    choices: tuple[AlertChoiceDTO, ...]

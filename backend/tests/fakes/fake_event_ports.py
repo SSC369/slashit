@@ -1,23 +1,29 @@
 """In-memory ports around the events domain: its clock and analytics, and
 capture's and records' ports onto it."""
 
-from datetime import time
+from collections.abc import Sequence
+from datetime import datetime, time
 from uuid import UUID
 
 from app.domains.capture.interfaces.ports import ExtractionPort
 from app.domains.capture.services.event_capture import EventCaptureService
-from app.domains.events.interfaces.dtos import UserClockDTO
+from app.domains.events.interfaces.dtos import (
+    AlertNotSetDTO,
+    EventAlertToSet,
+    RecordOriginValue,
+    UserClockDTO,
+)
+from app.domains.events.interfaces.repositories import EventRepository
 from app.domains.events.public import (
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
 )
+from app.domains.events.services.alert_arming import EventAlertArming
+from app.domains.events.services.schedule import describe_alert
 
-EventCreateOutcome = (
-    EventDTO | EventLimitReached | EventNeedsDate | EventNeedsAlertChoice
-)
+EventCreateOutcome = EventDTO | EventLimitReached | EventNeedsDate
 
 
 class FakeEventUserClockPort:
@@ -80,4 +86,56 @@ def fake_event_capture(
 ) -> EventCaptureService:
     return EventCaptureService(
         event_port=event_port or FakeEventPort(), extraction=extraction
+    )
+
+
+class FakeEventAlertsPort:
+    """Events' EventAlertsPort, behaving as reminders does: a fire time not
+    after now is passed; past ``room`` alerts, the later ones are over the
+    cap. Keeps every event's set alerts by id."""
+
+    def __init__(self, *, room: int = 100, fail: bool = False) -> None:
+        self.room = room
+        self.fail = fail
+        self.alerts_by_event: dict[UUID, list[EventAlertToSet]] = {}
+        self.cleared: list[UUID] = []
+
+    async def set_alerts(
+        self,
+        *,
+        user_id: UUID,
+        event_id: UUID,
+        title: str,
+        alerts: Sequence[EventAlertToSet],
+        origin: RecordOriginValue,
+        now: datetime,
+    ) -> list[AlertNotSetDTO]:
+        if self.fail:
+            raise ConnectionError("reminders unavailable")
+        soonest_first = sorted(alerts, key=lambda alert: alert.fires_at)
+        upcoming = [alert for alert in soonest_first if alert.fires_at > now]
+        self.alerts_by_event[event_id] = upcoming[: self.room]
+        passed = [alert for alert in soonest_first if alert.fires_at <= now]
+        return [_not_set(alert=alert, reason="passed") for alert in passed] + [
+            _not_set(alert=alert, reason="cap") for alert in upcoming[self.room :]
+        ]
+
+    async def clear_alerts(self, *, user_id: UUID, event_id: UUID) -> None:
+        self.cleared.append(event_id)
+        self.alerts_by_event.pop(event_id, None)
+
+
+def _not_set(*, alert: EventAlertToSet, reason: str) -> AlertNotSetDTO:
+    return AlertNotSetDTO(
+        lead_minutes=alert.lead_minutes,
+        text=describe_alert(lead_minutes=alert.lead_minutes),
+        reason="passed" if reason == "passed" else "cap",
+    )
+
+
+def fake_alert_arming(
+    *, repository: EventRepository, alerts: FakeEventAlertsPort | None = None
+) -> EventAlertArming:
+    return EventAlertArming(
+        alerts=alerts or FakeEventAlertsPort(), event_repository=repository
     )

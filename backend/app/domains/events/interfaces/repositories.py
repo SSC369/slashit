@@ -23,3 +23,9 @@ class EventRepository(Protocol):
     async def get_by_id(
         self, *, user_id: UUID, event_id: UUID
     ) -> StoredEventDTO | None: ...
+
+    async def set_alert_leads(
+        self, *, user_id: UUID, event_id: UUID, leads: tuple[int, ...]
+    ) -> None:
+        """Store only the leads whose alerts were set (FR-19, FR-33)."""
+        ...

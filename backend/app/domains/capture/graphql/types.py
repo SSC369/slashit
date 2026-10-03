@@ -16,7 +16,7 @@ from app.domains.capture.interfaces.dtos import (
     ExpenseQuestionKind,
     ExpenseRefusalReason,
 )
-from app.domains.events.public import Event
+from app.domains.events.public import Event, EventAlertNotSet
 from app.domains.expenses.public import Expense, Paise
 from app.domains.memories.public import Memory, MemoryCategory, SecretKind
 from app.domains.records.public import Task
@@ -53,9 +53,11 @@ class RemindersListed:
 
 @strawberry.type
 class EventCreated:
-    """Epic 007, FR-8: the card reads `event.whenText` and `event.whenNotes`."""
+    """Epic 007, FR-8: the card reads `event.whenText` and `event.whenNotes`.
+    FR-19 and FR-33: each alert asked for and not set, with why."""
 
     event: Event
+    alerts_not_set: list[EventAlertNotSet]
 
 
 @strawberry.type
@@ -71,21 +73,6 @@ class EventLimitReached:
 
     message: str
     limit: int
-
-
-@strawberry.type
-class EventAlertChoice:
-    lead_minutes: int
-    label: str
-
-
-@strawberry.type
-class EventAlertChoiceAsked:
-    """FR-16: nothing saved. Answer with a choice's `leadMinutes`, or `none`."""
-
-    pending_capture_id: strawberry.ID
-    question: str
-    choices: list[EventAlertChoice]
 
 
 @strawberry.type

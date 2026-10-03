@@ -16,6 +16,8 @@ import strawberry
 from app.domains.events.services.schedule import EventStatus, LocalSchedule
 
 RecordOriginValue = Literal["command", "edit"]
+# FR-19 and FR-33: why an alert was not set.
+AlertNotSetReasonValue = Literal["passed", "cap"]
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,33 @@ class StoredEventDTO:
 
 
 @dataclass(frozen=True)
+class EventAlertDTO:
+    """One alert of the next or only occurrence (FR-14, FR-27)."""
+
+    lead_minutes: int
+    text: str
+    fires_at: datetime
+
+
+@dataclass(frozen=True)
+class AlertNotSetDTO:
+    """An alert asked for and not set, and why (FR-19, FR-33)."""
+
+    lead_minutes: int
+    text: str
+    reason: AlertNotSetReasonValue
+
+
+@dataclass(frozen=True)
+class EventAlertToSet:
+    """What events hands its alerts port for one alert."""
+
+    lead_minutes: int
+    fires_at: datetime
+    detail: str
+
+
+@dataclass(frozen=True)
 class EventDTO:
     """One event, as every layer above the repository sees it."""
 
@@ -80,6 +109,14 @@ class EventDTO:
     # Set only on the event a create returns: each rule that changed or
     # inferred something (design §8). Never stored.
     when_notes: tuple[str, ...] = ()
+    # Every stored lead, soonest-firing first (FR-14). The single
+    # ``alert_*`` fields above repeat the first until the client reads this
+    # list (4.2, T-2.10).
+    alerts: tuple[EventAlertDTO, ...] = ()
+    # Set only on a create or an edit: alerts asked for and not set (FR-19,
+    # FR-33), and "named twice, kept once" (FR-34). Never stored.
+    alerts_not_set: tuple[AlertNotSetDTO, ...] = ()
+    alert_notes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -112,21 +149,6 @@ class EventNeedsDate:
 
 
 @dataclass(frozen=True)
-class AlertChoiceDTO:
-    lead_minutes: int
-    label: str
-
-
-@dataclass(frozen=True)
-class EventNeedsAlertChoice:
-    """FR-16: more than one alert was said. Nothing was written; the caller
-    asks which one to keep."""
-
-    title: str
-    choices: tuple[AlertChoiceDTO, ...]
-
-
-@dataclass(frozen=True)
 class UserClockDTO:
     """What events needs from identity: where the user is, and the time an
     all-day event's alert counts back from (FR-15)."""
@@ -140,6 +162,28 @@ class EventStatusType(Enum):
     UPCOMING = "upcoming"
     HAPPENING_NOW = "happening_now"
     PAST = "past"
+
+
+@strawberry.enum
+class AlertNotSetReason(Enum):
+    PASSED = "passed"
+    CAP = "cap"
+
+
+@strawberry.type
+class EventAlert:
+    lead_minutes: int
+    text: str
+    fires_at: datetime
+
+
+@strawberry.type
+class EventAlertNotSet:
+    """FR-19 and FR-33: an alert asked for and not set. The event was saved."""
+
+    lead_minutes: int
+    text: str
+    reason: AlertNotSetReason
 
 
 @strawberry.type
@@ -174,6 +218,13 @@ class Event:
         default_factory=list,
         description="Why the schedule reads as it does. Only on create.",
     )
+    alerts: list[EventAlert] = strawberry.field(
+        default_factory=list, description="Every alert, soonest-firing first."
+    )
+    alert_notes: list[str] = strawberry.field(
+        default_factory=list,
+        description="How the alerts were read, as a lead named twice. Only on create.",
+    )
 
 
 def event_dto_to_type(*, event: EventDTO) -> Event:
@@ -204,6 +255,23 @@ def event_dto_to_type(*, event: EventDTO) -> Event:
         created_at=event.created_at,
         updated_at=event.updated_at,
         when_notes=list(event.when_notes),
+        alerts=[
+            EventAlert(
+                lead_minutes=alert.lead_minutes,
+                text=alert.text,
+                fires_at=alert.fires_at,
+            )
+            for alert in event.alerts
+        ],
+        alert_notes=list(event.alert_notes),
+    )
+
+
+def alert_not_set_to_type(*, alert_not_set: AlertNotSetDTO) -> EventAlertNotSet:
+    return EventAlertNotSet(
+        lead_minutes=alert_not_set.lead_minutes,
+        text=alert_not_set.text,
+        reason=AlertNotSetReason(alert_not_set.reason),
     )
 
 

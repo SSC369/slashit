@@ -58,12 +58,14 @@ from app.domains.events.adapters.analytics_adapter import EventAnalyticsAdapter
 from app.domains.events.adapters.identity_clock_adapter import (
     IdentityUserClockAdapter as EventUserClockAdapter,
 )
+from app.domains.events.adapters.reminders_adapter import RemindersAlertsAdapter
 from app.domains.events.interactors.create_event import CreateEventInteractor
 from app.domains.events.interactors.get_event import GetEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
 from app.domains.events.repositories.calendar_event_repository import (
     SqlCalendarEventRepository,
 )
+from app.domains.events.services.alert_arming import EventAlertArming
 from app.domains.events.services.event_service import EventService
 from app.domains.expenses.adapters.analytics_adapter import ExpenseAnalyticsAdapter
 from app.domains.expenses.adapters.gateway_adapter import GatewayExpenseEmbeddingAdapter
@@ -1004,11 +1006,20 @@ def build_get_event_interactor(context: Context) -> GetEventInteractor:
     )
 
 
+def _build_event_alert_arming(*, context: Context) -> EventAlertArming:
+    """Events arms alerts through reminders (build plan AD-3, AD-8)."""
+    return EventAlertArming(
+        alerts=RemindersAlertsAdapter(reminder_service=build_reminder_service(context)),
+        event_repository=SqlCalendarEventRepository(context.session),
+    )
+
+
 def build_event_service(context: Context) -> EventService:
     return EventService(
         create_event_interactor=CreateEventInteractor(
             event_repository=SqlCalendarEventRepository(context.session),
             user_clock=_build_event_user_clock_port(context=context),
+            alert_arming=_build_event_alert_arming(context=context),
             analytics=EventAnalyticsAdapter(
                 record_event_interactor=_build_record_event_interactor(context=context)
             ),

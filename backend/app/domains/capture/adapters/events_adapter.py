@@ -6,7 +6,6 @@ from app.domains.events.public import (
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
     EventService,
 )
@@ -18,7 +17,7 @@ class EventsAdapter:
 
     async def create_event(
         self, *, user_id: UUID, fields: EventFields, original_input: str
-    ) -> EventDTO | EventLimitReached | EventNeedsDate | EventNeedsAlertChoice:
+    ) -> EventDTO | EventLimitReached | EventNeedsDate:
         return await self.event_service.create_event(
             user_id=user_id,
             fields=fields,

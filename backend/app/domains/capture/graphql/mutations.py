@@ -20,8 +20,6 @@ from app.core.deps import (
 )
 from app.domains.capture.constants import EXPENSE_AMOUNT_TOO_LARGE
 from app.domains.capture.graphql.types import (
-    EventAlertChoice,
-    EventAlertChoiceAsked,
     EventCreated,
     EventLimitReached,
     EventsListed,
@@ -45,7 +43,6 @@ from app.domains.capture.graphql.types import (
 from app.domains.capture.interactors.answer_pending_capture import AnswerOutcome
 from app.domains.capture.interactors.submit_capture import CaptureOutcome
 from app.domains.capture.interfaces.dtos import (
-    EventAlertChoiceAskedDTO,
     EventListDTO,
     ExpenseQuestionAskedDTO,
     ExpenseRefusalReason,
@@ -56,7 +53,11 @@ from app.domains.capture.interfaces.dtos import (
     ReminderListDTO,
     UnrecognisedCommandDTO,
 )
-from app.domains.events.public import EventDTO, event_dto_to_type
+from app.domains.events.public import (
+    EventDTO,
+    alert_not_set_to_type,
+    event_dto_to_type,
+)
 from app.domains.events.public import EventLimitReached as EventLimitReachedDTO
 from app.domains.expenses.public import (
     MAX_DESCRIPTION_LENGTH,
@@ -108,7 +109,6 @@ CaptureResult = Annotated[
     | EventCreated
     | EventsListed
     | EventLimitReached
-    | EventAlertChoiceAsked
     | MemorySaved
     | MemoriesListed
     | MemoryTooLong
@@ -208,9 +208,18 @@ def _capture_outcome_to_result(
 def _event_outcome_to_result(
     *, outcome: CaptureOutcome | AnswerOutcome
 ) -> CaptureResult | None:
-    """Epic 007's four outcomes, or None for any other."""
+    """Epic 007's three outcomes, or None for any other."""
     if isinstance(outcome, EventDTO):
-        return cast(CaptureResult, EventCreated(event=event_dto_to_type(event=outcome)))
+        return cast(
+            CaptureResult,
+            EventCreated(
+                event=event_dto_to_type(event=outcome),
+                alerts_not_set=[
+                    alert_not_set_to_type(alert_not_set=alert_not_set)
+                    for alert_not_set in outcome.alerts_not_set
+                ],
+            ),
+        )
     if isinstance(outcome, EventListDTO):
         return cast(
             CaptureResult,
@@ -228,20 +237,6 @@ def _event_outcome_to_result(
                     "events do not count."
                 ),
                 limit=outcome.limit,
-            ),
-        )
-    if isinstance(outcome, EventAlertChoiceAskedDTO):
-        return cast(
-            CaptureResult,
-            EventAlertChoiceAsked(
-                pending_capture_id=strawberry.ID(str(outcome.pending_capture_id)),
-                question=outcome.question,
-                choices=[
-                    EventAlertChoice(
-                        lead_minutes=choice.lead_minutes, label=choice.label
-                    )
-                    for choice in outcome.choices
-                ],
             ),
         )
     return None

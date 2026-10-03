@@ -13,7 +13,6 @@ from app.domains.events.public import (
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
 )
 from app.domains.expenses.public import (
@@ -111,7 +110,7 @@ class EventPort(Protocol):
 
     async def create_event(
         self, *, user_id: UUID, fields: EventFields, original_input: str
-    ) -> EventDTO | EventLimitReached | EventNeedsDate | EventNeedsAlertChoice: ...
+    ) -> EventDTO | EventLimitReached | EventNeedsDate: ...
 
     async def list_upcoming(self, *, user_id: UUID) -> list[EventDTO]: ...
 

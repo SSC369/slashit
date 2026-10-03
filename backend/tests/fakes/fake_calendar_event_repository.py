@@ -1,6 +1,7 @@
 """An in-memory EventRepository for the events domain's calendar_events."""
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.domains.events.interfaces.dtos import EventWrite, StoredEventDTO
@@ -56,3 +57,13 @@ class FakeCalendarEventRepository:
             if row.id == event_id:
                 return row
         return None
+
+    async def set_alert_leads(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID, leads: tuple[int, ...]
+    ) -> None:
+        self.rows = [
+            replace(row, alert_leads_minutes=leads)
+            if row.id == event_id and row.user_id == user_id
+            else row
+            for row in self.rows
+        ]

@@ -21,7 +21,6 @@ from app.domains.events.public import (
     EventDTO,
     EventFields,
     EventLimitReached,
-    EventNeedsAlertChoice,
     EventNeedsDate,
 )
 from app.domains.gateway.public import (
@@ -42,18 +41,10 @@ class EventNeedsTitle:
     """`/add-event` with nothing to record. Capture asks what."""
 
 
-@dataclass(frozen=True)
-class ChosenAlert:
-    """FR-16's answer: keep this one lead, or none."""
-
-    lead_minutes: int | None
-
-
 EventCaptureOutcome = (
     EventDTO
     | EventLimitReached
     | EventNeedsDate
-    | EventNeedsAlertChoice
     | EventNeedsTitle
     | UserLimitReached
     | ProviderUnavailable
@@ -74,7 +65,6 @@ class EventCaptureService:
         user_id: UUID,
         argument_text: str,
         original_input: str,
-        chosen_alert: ChosenAlert | None = None,
     ) -> EventCaptureOutcome:
         """Extract the fields, then create. A gateway failure comes back as the
         gateway's own member, unmapped, as `/remind` returns it."""
@@ -94,13 +84,6 @@ class EventCaptureService:
         )
         if fields is None:
             return EventNeedsTitle()
-        if chosen_alert is not None:
-            leads = (
-                (chosen_alert.lead_minutes,)
-                if chosen_alert.lead_minutes is not None
-                else ()
-            )
-            fields = replace(fields, alert_leads_minutes=leads)
         return await self.event_port.create_event(
             user_id=user_id, fields=fields, original_input=original_input
         )

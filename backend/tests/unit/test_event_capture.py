@@ -9,12 +9,12 @@ from zoneinfo import ZoneInfo
 from strawberry.scalars import JSON
 
 from app.domains.capture.adapters.events_adapter import EventsAdapter
+from app.domains.capture.constants import ADD_EVENT_COMMAND
 from app.domains.capture.interactors.answer_pending_capture import (
     AnswerPendingCaptureInteractor,
 )
 from app.domains.capture.interactors.submit_capture import SubmitCaptureInteractor
 from app.domains.capture.interfaces.dtos import (
-    EventAlertChoiceAskedDTO,
     EventListDTO,
     PendingCaptureDTO,
 )
@@ -29,7 +29,11 @@ from app.domains.gateway.public import Extraction, ProviderUnavailable
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_calendar_event_repository import FakeCalendarEventRepository
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
-from tests.fakes.fake_event_ports import FakeEventAnalyticsPort, FakeEventUserClockPort
+from tests.fakes.fake_event_ports import (
+    FakeEventAnalyticsPort,
+    FakeEventUserClockPort,
+    fake_alert_arming,
+)
 from tests.fakes.fake_expense_port import fake_expense_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
@@ -64,6 +68,7 @@ def _harness(*, extraction: FakeExtractionPort) -> Harness:
         create_event_interactor=CreateEventInteractor(
             event_repository=events,
             user_clock=clock,
+            alert_arming=fake_alert_arming(repository=events),
             analytics=FakeEventAnalyticsPort(),
             now_provider=lambda: NOW,
         ),
@@ -115,7 +120,7 @@ async def test_add_event_creates_and_logs_the_turn() -> None:
     )
     assert isinstance(outcome, EventDTO)
     assert outcome.when_text == "Mon 12 Oct, all day"
-    assert outcome.alert_lead_minutes == 1440
+    assert [alert.lead_minutes for alert in outcome.alerts] == [1440]
     assert extraction.calls == ["Mom's birthday October 12, remind me 1 day before"]
     assert harness.turns.rows[0].outcome == "event_created"
     assert harness.turns.rows[0].resulting_event_id == outcome.id
@@ -146,8 +151,30 @@ async def test_no_date_asks_then_the_answer_creates() -> None:
     assert harness.pending.rows == {}
 
 
-async def test_two_alerts_ask_which_and_the_choice_keeps_one() -> None:
-    """FR-16."""
+async def test_two_alerts_are_both_set_with_no_question() -> None:
+    """4.2 C-1 through capture: FR-14; FR-16's question is gone."""
+    said = _said(
+        title="Sam's wedding",
+        start_date="2026-11-21",
+        alert_leads_minutes=[10080, 1440],
+    )
+    harness = _harness(extraction=FakeExtractionPort(result=said))
+
+    event = await harness.submit.submit_capture(
+        user_id=USER,
+        raw_input=(
+            "/add-event Sam's wedding Nov 21, remind me 1 week before and 1 day before"
+        ),
+    )
+
+    assert isinstance(event, EventDTO)
+    assert [alert.text for alert in event.alerts] == ["1 week before", "1 day before"]
+    assert harness.pending.rows == {}
+    assert harness.turns.rows[0].outcome == "event_created"
+
+
+async def test_a_which_alert_question_from_before_keeps_every_alert() -> None:
+    """4.2 C-20: a question asked before slice 2 shipped, answered after."""
     said = _said(
         title="Sam's wedding",
         start_date="2026-11-21",
@@ -155,35 +182,24 @@ async def test_two_alerts_ask_which_and_the_choice_keeps_one() -> None:
     )
     extraction = FakeExtractionPort(result=said)
     harness = _harness(extraction=extraction)
-    asked = await harness.submit.submit_capture(
+    sentence = "Sam's wedding Nov 21, remind me 1 week before and 1 day before"
+    pending = await harness.pending.create_pending_capture(
         user_id=USER,
-        raw_input=(
-            "/add-event Sam's wedding Nov 21, remind me 1 week before and 1 day before"
-        ),
+        command_name=ADD_EVENT_COMMAND,
+        known_title=sentence,
+        missing_field="event_alert_choice",
+        question_text="Which alert should I keep?",
+        original_input=f"/add-event {sentence}",
     )
-    assert isinstance(asked, EventAlertChoiceAskedDTO)
-    assert [choice.lead_minutes for choice in asked.choices] == [10080, 1440]
-    assert harness.events.rows == []
 
     event = await harness.answer.answer_pending_capture(
-        user_id=USER, pending_capture_id=asked.pending_capture_id, answer="1440"
+        user_id=USER, pending_capture_id=pending.id, answer="1440"
     )
-    assert isinstance(event, EventDTO)
-    assert event.alert_lead_minutes == 1440
 
-
-async def test_no_alert_is_a_choice() -> None:
-    said = _said(title="Wedding", start_date="2026-11-21", alert_leads_minutes=[60, 30])
-    harness = _harness(extraction=FakeExtractionPort(result=said))
-    asked = await harness.submit.submit_capture(
-        user_id=USER, raw_input="/add-event Wedding Nov 21"
-    )
-    assert isinstance(asked, EventAlertChoiceAskedDTO)
-    event = await harness.answer.answer_pending_capture(
-        user_id=USER, pending_capture_id=asked.pending_capture_id, answer="none"
-    )
     assert isinstance(event, EventDTO)
-    assert event.alert_lead_minutes is None
+    assert extraction.calls == [sentence]
+    assert [alert.lead_minutes for alert in event.alerts] == [10080, 1440]
+    assert harness.pending.rows == {}
 
 
 async def test_events_lists_upcoming_and_logs_the_turn() -> None:

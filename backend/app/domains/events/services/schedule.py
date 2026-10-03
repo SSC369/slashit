@@ -81,11 +81,11 @@ class NormalisedSchedule:
 @dataclass(frozen=True)
 class NormalisedLeads:
     """An event's alert leads as stored: legal, distinct, ascending (FR-34).
-    ``had_repeat`` is set when a lead was said more than once, so the
-    confirmation can say it was kept once (design §8)."""
+    ``repeated`` holds each lead said more than once, so the confirmation can
+    say it was kept once (design §8)."""
 
     leads: tuple[int, ...]
-    had_repeat: bool
+    repeated: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -166,10 +166,12 @@ def event_status(*, resolved: Resolved, now: datetime) -> EventStatus:
 
 
 def describe_when(
-    *, schedule: LocalSchedule, resolved: Resolved, local_today: date
+    *, schedule: LocalSchedule, resolved: Resolved, local_today: date | None
 ) -> str:
     """The When line, as design §8 writes it: "Mon 12 Oct, all day",
-    "Fri 9 Oct, 4:00 to 5:00 PM", "Sun 20 to Thu 24 Dec, all day"."""
+    "Fri 9 Oct, 4:00 to 5:00 PM", "Sun 20 to Thu 24 Dec, all day". With no
+    ``local_today`` it never says "Today" or "Tomorrow", for text stored for
+    later."""
     start_label = _day_label(day=resolved.occurrence_date, today=local_today)
     is_multi_day = resolved.occurrence_end_date != resolved.occurrence_date
     if schedule.start_time is None:
@@ -209,6 +211,16 @@ def describe_alert(*, lead_minutes: int) -> str:
     return f"{lead_minutes} minute{'' if lead_minutes == 1 else 's'} before"
 
 
+def describe_alert_detail(
+    *, schedule: LocalSchedule, resolved: Resolved, lead_minutes: int
+) -> str:
+    """The line an alert's notification shows under the event title (FR-18,
+    dev log D-18): "1 day before · Mon 12 Oct, all day". Stored when the alert
+    is set, so it carries no relative day."""
+    when_text = describe_when(schedule=schedule, resolved=resolved, local_today=None)
+    return f"{describe_alert(lead_minutes=lead_minutes)} · {when_text}"
+
+
 def alert_fires_at(
     *,
     schedule: LocalSchedule,
@@ -234,7 +246,8 @@ def normalise_leads(*, leads: Sequence[int]) -> NormalisedLeads:
     legal_leads = [lead for lead in leads if 0 <= lead <= MAX_ALERT_LEAD_MINUTES]
     distinct_leads = tuple(sorted(set(legal_leads)))
     return NormalisedLeads(
-        leads=distinct_leads, had_repeat=len(distinct_leads) < len(legal_leads)
+        leads=distinct_leads,
+        repeated=tuple(lead for lead in distinct_leads if legal_leads.count(lead) > 1),
     )
 
 
@@ -325,7 +338,7 @@ def _on_year(*, day: date, year: int) -> date:
         return date(year, _FEBRUARY, _LEAP_DAY - 1)
 
 
-def _range_label(*, start: date, end: date, today: date) -> str:
+def _range_label(*, start: date, end: date, today: date | None) -> str:
     if start.year == end.year and start.month == end.month and start != today:
         return f"{start:%a} {start.day} to {_day_label(day=end, today=today)}"
     return f"{_day_label(day=start, today=today)} to {_day_label(day=end, today=today)}"
