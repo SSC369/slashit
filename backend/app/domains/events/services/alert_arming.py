@@ -52,10 +52,11 @@ class EventAlertArming:
         origin: RecordOriginValue,
         now: datetime,
     ) -> ArmedEvent:
-        """Set one alert per stored lead for the next or only occurrence. A
-        lead that was not set is dropped from the event (FR-19, FR-33), so
-        the event only ever lists alerts that will fire. An outage leaves the
-        leads stored for the sweep to set, and reports nothing not set."""
+        """Set one alert per stored lead for the next or only occurrence, then
+        mark the event's alerts as no longer pending. A lead that was not set
+        is dropped from the event (FR-19, FR-33), so the event only ever lists
+        alerts that will fire. An outage leaves the event pending for the
+        sweep to arm (dev log D-20), and reports nothing not set."""
         try:
             not_set = await self.alerts.set_alerts(
                 user_id=stored.user_id,
@@ -69,18 +70,16 @@ class EventAlertArming:
             # Broad on purpose: the event is saved; the sweep sets its alerts.
             logger.exception("events.alerts_not_armed", event_id=str(stored.id))
             return ArmedEvent(stored=stored, alerts_not_set=())
-        return await self._drop_leads_not_set(stored=stored, not_set=not_set)
+        return await self._finish_arming(stored=stored, not_set=not_set)
 
-    async def _drop_leads_not_set(
+    async def _finish_arming(
         self, *, stored: StoredEventDTO, not_set: list[AlertNotSetDTO]
     ) -> ArmedEvent:
-        if not not_set:
-            return ArmedEvent(stored=stored, alerts_not_set=())
         dropped = {alert.lead_minutes for alert in not_set}
         kept_leads = tuple(
             lead for lead in stored.alert_leads_minutes if lead not in dropped
         )
-        await self.event_repository.set_alert_leads(
+        await self.event_repository.finish_arming(
             user_id=stored.user_id, event_id=stored.id, leads=kept_leads
         )
         return ArmedEvent(

@@ -49,6 +49,8 @@ class CalendarEvent(Base):
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # Distinct and ascending (FR-34); empty means no alert. Migration 0042.
     alert_leads_minutes: Mapped[list[int]] = mapped_column(ARRAY(Integer))
+    # True until reminders holds the alerts the leads ask for (dev log D-20).
+    alerts_pending: Mapped[bool] = mapped_column(Boolean)
     origin: Mapped[str] = mapped_column(
         Enum(*RECORD_ORIGINS, name="record_origin", create_type=False)
     )

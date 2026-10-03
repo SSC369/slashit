@@ -63,6 +63,9 @@ from app.domains.events.interactors.create_event import CreateEventInteractor
 from app.domains.events.interactors.delete_event import DeleteEventInteractor
 from app.domains.events.interactors.get_event import GetEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
+from app.domains.events.interactors.reconcile_alerts import ReconcileAlertsInteractor
+from app.domains.events.interactors.rezone_events import RezoneEventsInteractor
+from app.domains.events.interactors.roll_yearly import RollYearlyInteractor
 from app.domains.events.interactors.update_event import UpdateEventInteractor
 from app.domains.events.repositories.calendar_event_repository import (
     SqlCalendarEventRepository,
@@ -1013,6 +1016,57 @@ def _build_event_alert_arming(*, context: Context) -> EventAlertArming:
     return EventAlertArming(
         alerts=RemindersAlertsAdapter(reminder_service=build_reminder_service(context)),
         event_repository=SqlCalendarEventRepository(context.session),
+    )
+
+
+def _job_context(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> Context:
+    """A background job's stand-in for a request: no user, the job's own
+    session. Builders that take a ``Context`` read nothing else from it, and
+    every service call names its user explicitly (T3)."""
+    return Context(
+        user_id=None,
+        email=None,
+        session=session,
+        request_id="job",
+        session_factory=session_factory,
+    )
+
+
+def build_roll_yearly_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> RollYearlyInteractor:
+    """Wired outside a request, for `events.roll_yearly`."""
+    context = _job_context(session=session, session_factory=session_factory)
+    return RollYearlyInteractor(
+        event_repository=SqlCalendarEventRepository(session),
+        user_clock=_build_event_user_clock_port(context=context),
+        alert_arming=_build_event_alert_arming(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_rezone_events_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> RezoneEventsInteractor:
+    """Wired outside a request, for `events.timezone_changed`."""
+    context = _job_context(session=session, session_factory=session_factory)
+    return RezoneEventsInteractor(
+        event_repository=SqlCalendarEventRepository(session),
+        user_clock=_build_event_user_clock_port(context=context),
+        alert_arming=_build_event_alert_arming(context=context),
+        now_provider=_utc_now,
+    )
+
+
+def build_reconcile_event_alerts_interactor(
+    session: AsyncSession,
+) -> ReconcileAlertsInteractor:
+    """Wired outside a request, for `events.reconcile_alerts`."""
+    return ReconcileAlertsInteractor(
+        event_repository=SqlCalendarEventRepository(session),
+        now_provider=_utc_now,
     )
 
 

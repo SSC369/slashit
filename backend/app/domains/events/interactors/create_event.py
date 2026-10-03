@@ -22,10 +22,13 @@ from app.domains.events.interfaces.dtos import (
     EventLimitReached,
     EventNeedsDate,
     EventWrite,
+    RecordOriginValue,
+    StoredEventDTO,
+    UserClockDTO,
 )
 from app.domains.events.interfaces.ports import EventAnalyticsPort, UserClockPort
 from app.domains.events.interfaces.repositories import EventRepository
-from app.domains.events.services.alert_arming import EventAlertArming
+from app.domains.events.services.alert_arming import ArmedEvent, EventAlertArming
 from app.domains.events.services.presenter import present_event
 from app.domains.events.services.schedule import (
     LocalSchedule,
@@ -99,6 +102,7 @@ class CreateEventInteractor:
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
                 alert_leads_minutes=leads.leads,
+                alerts_pending=bool(leads.leads),
                 origin=dto.origin,
                 original_input=dto.original_input,
             ),
@@ -108,7 +112,7 @@ class CreateEventInteractor:
         if stored is None:
             return EventLimitReached(limit=MAX_UPCOMING_EVENTS)
 
-        armed = await self.alert_arming.arm_alerts(
+        armed = await self._arm_alerts_said(
             stored=stored, clock=clock, origin=dto.origin, now=now
         )
         event = present_event(stored=armed.stored, clock=clock, now=now)
@@ -122,6 +126,21 @@ class CreateEventInteractor:
                 f"“{describe_alert(lead_minutes=lead)}” was named twice, kept once"
                 for lead in leads.repeated
             ),
+        )
+
+    async def _arm_alerts_said(
+        self,
+        *,
+        stored: StoredEventDTO,
+        clock: UserClockDTO,
+        origin: RecordOriginValue,
+        now: datetime,
+    ) -> ArmedEvent:
+        """An event with no alert said has none to set."""
+        if not stored.alert_leads_minutes:
+            return ArmedEvent(stored=stored, alerts_not_set=())
+        return await self.alert_arming.arm_alerts(
+            stored=stored, clock=clock, origin=origin, now=now
         )
 
     async def _record_event_created(self, *, event: EventDTO) -> None:

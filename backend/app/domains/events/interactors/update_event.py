@@ -69,10 +69,10 @@ class UpdateEventInteractor:
         previous = await self._get_live_event(dto=dto)
         clock = await self.user_clock.get_user_clock(user_id=dto.user_id)
         now = self.now_provider()
-        updated = await self._store_edit(dto=dto, edit=edit, clock=clock, now=now)
-        armed = await self._rearm_if_alerts_changed(
-            previous=previous, updated=updated, clock=clock, now=now
+        updated = await self._store_edit(
+            dto=dto, edit=edit, previous=previous, clock=clock, now=now
         )
+        armed = await self._rearm_if_pending(updated=updated, clock=clock, now=now)
         return EventUpdatedDTO(
             event=present_event(stored=armed.stored, clock=clock, now=now),
             alerts_not_set=armed.alerts_not_set,
@@ -125,6 +125,7 @@ class UpdateEventInteractor:
         *,
         dto: UpdateEventInputDTO,
         edit: EventEdit,
+        previous: StoredEventDTO,
         clock: UserClockDTO,
         now: datetime,
     ) -> StoredEventDTO:
@@ -137,6 +138,7 @@ class UpdateEventInteractor:
             timezone=clock.timezone,
         )
         resolved = resolve(schedule=schedule, now=now)
+        leads = normalise_leads(leads=edit.alert_leads_minutes).leads
         outcome = await self.event_repository.update_event_if_upcoming_below(
             user_id=dto.user_id,
             event_id=dto.event_id,
@@ -147,11 +149,14 @@ class UpdateEventInteractor:
                 schedule=schedule,
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
-                alert_leads_minutes=normalise_leads(
-                    leads=edit.alert_leads_minutes
-                ).leads,
+                alert_leads_minutes=leads,
                 origin="edit",
                 original_input=None,
+                # A set still pending from an earlier failure stays pending.
+                alerts_pending=previous.alerts_pending
+                or _changes_alerts(
+                    previous=previous, title=edit.title, schedule=schedule, leads=leads
+                ),
             ),
             limit=MAX_UPCOMING_EVENTS,
             now=now,
@@ -164,23 +169,28 @@ class UpdateEventInteractor:
             raise EventNotFoundError()
         return outcome
 
-    async def _rearm_if_alerts_changed(
-        self,
-        *,
-        previous: StoredEventDTO,
-        updated: StoredEventDTO,
-        clock: UserClockDTO,
-        now: datetime,
+    async def _rearm_if_pending(
+        self, *, updated: StoredEventDTO, clock: UserClockDTO, now: datetime
     ) -> ArmedEvent:
-        """The alert rows carry the title and fire at times the schedule and
-        leads decide; nothing else an edit changes touches them."""
-        is_unchanged_for_alerts = (
-            previous.title == updated.title
-            and previous.schedule == updated.schedule
-            and previous.alert_leads_minutes == updated.alert_leads_minutes
-        )
-        if is_unchanged_for_alerts:
+        """A location or description edit leaves the alerts as they are."""
+        if not updated.alerts_pending:
             return ArmedEvent(stored=updated, alerts_not_set=())
         return await self.alert_arming.arm_alerts(
             stored=updated, clock=clock, origin="edit", now=now
         )
+
+
+def _changes_alerts(
+    *,
+    previous: StoredEventDTO,
+    title: str,
+    schedule: LocalSchedule,
+    leads: tuple[int, ...],
+) -> bool:
+    """The alert rows carry the title and fire at times the schedule and
+    leads decide; nothing else an edit changes touches them (FR-21, FR-22)."""
+    return (
+        previous.title != title
+        or previous.schedule != schedule
+        or previous.alert_leads_minutes != leads
+    )

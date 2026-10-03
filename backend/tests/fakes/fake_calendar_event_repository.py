@@ -6,9 +6,11 @@ from datetime import UTC, datetime
 
 from app.domains.events.interfaces.dtos import (
     EventLimitReached,
+    EventTargetDTO,
     EventWrite,
     StoredEventDTO,
 )
+from app.domains.events.services.schedule import LocalSchedule
 
 
 class FakeCalendarEventRepository:
@@ -43,6 +45,7 @@ class FakeCalendarEventRepository:
             original_input=write.original_input,
             created_at=created_at,
             updated_at=created_at,
+            alerts_pending=write.alerts_pending,
         )
         self.rows.append(stored)
         return stored
@@ -62,11 +65,75 @@ class FakeCalendarEventRepository:
                 return row
         return None
 
-    async def set_alert_leads(
+    async def finish_arming(
         self, *, user_id: uuid.UUID, event_id: uuid.UUID, leads: tuple[int, ...]
     ) -> None:
+        self._replace_row(
+            user_id=user_id,
+            event_id=event_id,
+            alert_leads_minutes=leads,
+            alerts_pending=False,
+        )
+
+    async def mark_alerts_pending(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> None:
+        self._replace_row(user_id=user_id, event_id=event_id, alerts_pending=True)
+
+    async def move_occurrence(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        schedule: LocalSchedule,
+        starts_at: datetime,
+        ends_at: datetime,
+    ) -> StoredEventDTO | None:
+        if await self.get_by_id(user_id=user_id, event_id=event_id) is None:
+            return None
+        self._replace_row(
+            user_id=user_id,
+            event_id=event_id,
+            schedule=schedule,
+            starts_at=starts_at,
+            ends_at=ends_at,
+            alerts_pending=True,
+        )
+        return await self.get_by_id(user_id=user_id, event_id=event_id)
+
+    async def select_yearly_to_roll(
+        self, *, now: datetime, limit: int
+    ) -> list[EventTargetDTO]:
+        return [
+            EventTargetDTO(user_id=row.user_id, event_id=row.id)
+            for row in self._live()
+            if row.schedule.repeat_yearly and row.ends_at <= now
+        ][:limit]
+
+    async def select_alerts_pending(
+        self, *, updated_before: datetime, limit: int
+    ) -> list[EventTargetDTO]:
+        return [
+            EventTargetDTO(user_id=row.user_id, event_id=row.id)
+            for row in self._live()
+            if row.alerts_pending and row.updated_at < updated_before
+        ][:limit]
+
+    async def count_alerts_pending(self, *, updated_before: datetime) -> int:
+        return len(
+            await self.select_alerts_pending(
+                updated_before=updated_before, limit=len(self.rows)
+            )
+        )
+
+    def _live(self) -> list[StoredEventDTO]:
+        return [row for row in self.rows if row.id not in self.deleted_ids]
+
+    def _replace_row(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID, **changes: object
+    ) -> None:
         self.rows = [
-            replace(row, alert_leads_minutes=leads)
+            replace(row, **changes)  # type: ignore[arg-type]
             if row.id == event_id and row.user_id == user_id
             else row
             for row in self.rows
@@ -101,6 +168,7 @@ class FakeCalendarEventRepository:
             starts_at=write.starts_at,
             ends_at=write.ends_at,
             alert_leads_minutes=write.alert_leads_minutes,
+            alerts_pending=write.alerts_pending,
             updated_at=datetime.now(UTC),
         )
         self.rows = [updated if row.id == event_id else row for row in self.rows]

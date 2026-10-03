@@ -88,6 +88,7 @@ async def _create(
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
                 alert_leads_minutes=(),
+                alerts_pending=False,
                 origin="command",
                 original_input=f"/add-event {title}",
             ),

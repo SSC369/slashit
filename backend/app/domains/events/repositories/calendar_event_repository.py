@@ -3,12 +3,13 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, or_, select, text, update
+from sqlalchemy import Update, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
 from app.domains.events.interfaces.dtos import (
     EventLimitReached,
+    EventTargetDTO,
     EventWrite,
     RecordOriginValue,
     StoredEventDTO,
@@ -42,6 +43,7 @@ class SqlCalendarEventRepository:
             starts_at=write.starts_at,
             ends_at=write.ends_at,
             alert_leads_minutes=list(write.alert_leads_minutes),
+            alerts_pending=write.alerts_pending,
             origin=write.origin,
             original_input=write.original_input,
             created_at=created_at,
@@ -138,19 +140,121 @@ class SqlCalendarEventRepository:
             return None
         return _event_to_dto(event=event)
 
-    async def set_alert_leads(
+    async def finish_arming(
         self, *, user_id: uuid.UUID, event_id: uuid.UUID, leads: tuple[int, ...]
     ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
             await scoped.execute(
-                update(CalendarEvent)
-                .where(
-                    CalendarEvent.id == event_id,
-                    CalendarEvent.user_id == user_id,
-                    CalendarEvent.deleted_at.is_(None),
+                _live_event_update(user_id=user_id, event_id=event_id).values(
+                    alert_leads_minutes=list(leads),
+                    alerts_pending=False,
+                    updated_at=datetime.now(UTC),
                 )
-                .values(alert_leads_minutes=list(leads), updated_at=datetime.now(UTC))
             )
+
+    async def mark_alerts_pending(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> None:
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                _live_event_update(user_id=user_id, event_id=event_id).values(
+                    alerts_pending=True, updated_at=datetime.now(UTC)
+                )
+            )
+
+    async def move_occurrence(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        schedule: LocalSchedule,
+        starts_at: datetime,
+        ends_at: datetime,
+    ) -> StoredEventDTO | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            moved_id = await scoped.scalar(
+                _live_event_update(user_id=user_id, event_id=event_id)
+                .values(
+                    start_date=schedule.start_date,
+                    start_time=schedule.start_time,
+                    end_date=schedule.end_date,
+                    end_time=schedule.end_time,
+                    schedule_timezone=schedule.timezone,
+                    starts_at=starts_at,
+                    ends_at=ends_at,
+                    alerts_pending=True,
+                    updated_at=datetime.now(UTC),
+                )
+                .returning(CalendarEvent.id)
+            )
+        if moved_id is None:
+            return None
+        return await self.get_by_id(user_id=user_id, event_id=event_id)
+
+    async def select_yearly_to_roll(
+        self, *, now: datetime, limit: int
+    ) -> list[EventTargetDTO]:
+        # No user_transaction: the job reads every user's rows on the service
+        # role (T3); each event is then moved in its own user's transaction.
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(
+                    select(CalendarEvent.user_id, CalendarEvent.id)
+                    .where(
+                        CalendarEvent.repeat_yearly,
+                        CalendarEvent.deleted_at.is_(None),
+                        CalendarEvent.ends_at <= now,
+                    )
+                    .order_by(CalendarEvent.ends_at)
+                    .limit(limit)
+                )
+            ).all()
+        return [
+            EventTargetDTO(user_id=user_id, event_id=event_id)
+            for user_id, event_id in rows
+        ]
+
+    async def select_alerts_pending(
+        self, *, updated_before: datetime, limit: int
+    ) -> list[EventTargetDTO]:
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(
+                    select(CalendarEvent.user_id, CalendarEvent.id)
+                    .where(
+                        CalendarEvent.alerts_pending,
+                        CalendarEvent.deleted_at.is_(None),
+                        CalendarEvent.updated_at < updated_before,
+                    )
+                    .order_by(CalendarEvent.updated_at)
+                    .limit(limit)
+                )
+            ).all()
+        return [
+            EventTargetDTO(user_id=user_id, event_id=event_id)
+            for user_id, event_id in rows
+        ]
+
+    async def count_alerts_pending(self, *, updated_before: datetime) -> int:
+        async with self.session.begin():
+            count = await self.session.scalar(
+                select(func.count())
+                .select_from(CalendarEvent)
+                .where(
+                    CalendarEvent.alerts_pending,
+                    CalendarEvent.deleted_at.is_(None),
+                    CalendarEvent.updated_at < updated_before,
+                )
+            )
+        return int(count or 0)
+
+
+def _live_event_update(*, user_id: uuid.UUID, event_id: uuid.UUID) -> Update:
+    return update(CalendarEvent).where(
+        CalendarEvent.id == event_id,
+        CalendarEvent.user_id == user_id,
+        CalendarEvent.deleted_at.is_(None),
+    )
 
 
 def _apply_write(*, event: CalendarEvent, write: EventWrite) -> None:
@@ -168,6 +272,7 @@ def _apply_write(*, event: CalendarEvent, write: EventWrite) -> None:
     event.starts_at = write.starts_at
     event.ends_at = write.ends_at
     event.alert_leads_minutes = list(write.alert_leads_minutes)
+    event.alerts_pending = write.alerts_pending
     event.updated_at = datetime.now(UTC)
 
 
@@ -190,6 +295,7 @@ def _event_to_dto(*, event: CalendarEvent) -> StoredEventDTO:
         starts_at=event.starts_at,
         ends_at=event.ends_at,
         alert_leads_minutes=tuple(event.alert_leads_minutes),
+        alerts_pending=event.alerts_pending,
         origin=origin,
         original_input=event.original_input,
         created_at=event.created_at,

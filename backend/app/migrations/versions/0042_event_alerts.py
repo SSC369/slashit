@@ -9,7 +9,10 @@ Epic 007, sub-plan 4.2, task T-2.1. An event may carry any number of alerts
 
 - ``calendar_events.alert_lead_minutes`` becomes ``alert_leads_minutes``, a
   distinct, ascending ``integer[]``. Slice 1's single stored lead is copied
-  into a one-element list.
+  into a one-element list. ``calendar_events.alerts_pending`` is true from
+  the moment an event's alerts must change until reminders holds the new
+  set; the 15-minute sweep re-arms any event left true (4.2 Q1, dev log
+  D-20).
 - ``reminders.event_id`` links an alert row to its event. Many rows per
   event, so the index is not unique. ``reminders.alert_detail`` is the line
   the alert's notification shows under the event title, such as "1 day
@@ -57,6 +60,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.drop_index("ix_calendar_events_alerts_pending", table_name="calendar_events")
+    op.drop_column("calendar_events", "alerts_pending")
     op.drop_index("uq_notifications_event_alert_source", table_name="notifications")
     op.drop_column("notifications", "action_target_id")
     op.drop_index("ix_reminders_event", table_name="reminders")
@@ -88,6 +93,22 @@ def _convert_event_leads_to_list() -> None:
         "calendar_events",
         f"0 <= ALL (alert_leads_minutes) "
         f"AND {MAX_ALERT_LEAD_MINUTES} >= ALL (alert_leads_minutes)",
+    )
+    op.add_column(
+        "calendar_events",
+        sa.Column(
+            "alerts_pending",
+            sa.Boolean(),
+            nullable=False,
+            server_default=sa.text("false"),
+        ),
+    )
+    # The sweep reads only the few events left pending.
+    op.create_index(
+        "ix_calendar_events_alerts_pending",
+        "calendar_events",
+        ["updated_at"],
+        postgresql_where=sa.text("alerts_pending AND deleted_at IS NULL"),
     )
 
 

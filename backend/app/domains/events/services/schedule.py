@@ -8,7 +8,7 @@ occurrence.
 """
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from enum import StrEnum
 from zoneinfo import ZoneInfo
@@ -273,6 +273,35 @@ def alert_fire_times(
         for lead in leads
     )
     return tuple(sorted(alert_times, key=lambda alert_time: alert_time.fires_at))
+
+
+def rezone_schedule(
+    *, schedule: LocalSchedule, resolved: Resolved, timezone: str
+) -> LocalSchedule:
+    """FR-12 and FR-13 after a timezone change. An all-day event and a yearly
+    one keep their local fields, now read in the new zone. A one-time timed
+    event keeps its instants, and its local fields are read again from them."""
+    if schedule.start_time is None or schedule.repeat_yearly:
+        return replace(schedule, timezone=timezone)
+    zone = ZoneInfo(timezone)
+    local_start = resolved.starts_at.astimezone(zone)
+    if schedule.end_time is None:
+        return replace(
+            schedule,
+            start_date=local_start.date(),
+            start_time=local_start.time(),
+            end_date=None,
+            timezone=timezone,
+        )
+    local_end = resolved.ends_at.astimezone(zone)
+    return replace(
+        schedule,
+        start_date=local_start.date(),
+        start_time=local_start.time(),
+        end_date=local_end.date() if local_end.date() != local_start.date() else None,
+        end_time=local_end.time(),
+        timezone=timezone,
+    )
 
 
 def _resolve_on(*, schedule: LocalSchedule, occurrence_date: date) -> Resolved:

@@ -28,6 +28,7 @@ from app.core.settings import Settings, get_settings
 # Imported for its side effect: decorating `purge_unverified_accounts` with
 # `@procrastinate_app.task`/`@procrastinate_app.periodic` registers it on
 # `procrastinate_app`. Nothing in this module calls the name directly.
+from app.domains.events import jobs as events_jobs  # noqa: F401
 from app.domains.identity import jobs as identity_jobs  # noqa: F401
 from app.domains.memories import jobs as memories_jobs  # noqa: F401
 from app.domains.notifications import jobs as notifications_jobs  # noqa: F401

@@ -38,5 +38,6 @@ procrastinate_app = App(
         "app.domains.memories.jobs",
         "app.domains.records.jobs",
         "app.domains.expenses.jobs",
+        "app.domains.events.jobs",
     ],
 )

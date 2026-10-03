@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import CursorResult, Update, case, func, select, update
+from sqlalchemy import CursorResult, Update, case, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -205,6 +205,7 @@ class SqlReminderRepository:
     ) -> None:
         now = datetime.now(UTC)
         async with user_transaction(self.session, user_id) as scoped:
+            await _lock_event_alerts(scoped=scoped, event_id=event_id)
             await scoped.execute(
                 _soft_delete_event_alerts_statement(
                     user_id=user_id, event_id=event_id, now=now
@@ -227,6 +228,7 @@ class SqlReminderRepository:
         self, *, user_id: uuid.UUID, event_id: uuid.UUID
     ) -> None:
         async with user_transaction(self.session, user_id) as scoped:
+            await _lock_event_alerts(scoped=scoped, event_id=event_id)
             await scoped.execute(
                 _soft_delete_event_alerts_statement(
                     user_id=user_id, event_id=event_id, now=datetime.now(UTC)
@@ -533,6 +535,15 @@ class SqlReminderRepository:
             ReminderEmbeddingTargetDTO(user_id=user_id, reminder_id=reminder_id)
             for user_id, reminder_id in rows
         ]
+
+
+async def _lock_event_alerts(*, scoped: AsyncSession, event_id: uuid.UUID) -> None:
+    """One writer per event's alerts at a time: a request and the sweep that
+    both replace the set would otherwise each keep their own rows (D-20)."""
+    await scoped.execute(
+        text("SELECT pg_advisory_xact_lock(hashtext(:key))"),
+        {"key": f"event_alerts:{event_id}"},
+    )
 
 
 def _soft_delete_event_alerts_statement(

@@ -106,7 +106,9 @@ async def job_queue(
 ) -> AsyncIterator[None]:
     """The real job queue, open as the API's lifespan opens it. Jobs the test
     queued for its two users are removed afterwards."""
-    locks = [f"tz:{user_id}" for user_id in two_users]
+    locks = [
+        f"{prefix}:{user_id}" for user_id in two_users for prefix in ("tz", "events-tz")
+    ]
     async with procrastinate_app.open_async():
         try:
             yield

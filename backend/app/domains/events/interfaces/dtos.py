@@ -54,6 +54,7 @@ class StoredEventDTO:
     original_input: str | None
     created_at: datetime
     updated_at: datetime
+    alerts_pending: bool = False
 
 
 @dataclass(frozen=True)
@@ -132,6 +133,16 @@ class EventWrite:
     alert_leads_minutes: tuple[int, ...]
     origin: RecordOriginValue
     original_input: str | None
+    # True when reminders must be given a new set of alerts (dev log D-20).
+    alerts_pending: bool
+
+
+@dataclass(frozen=True)
+class EventTargetDTO:
+    """One event a background job must act on, across users."""
+
+    user_id: UUID
+    event_id: UUID
 
 
 @dataclass(frozen=True)

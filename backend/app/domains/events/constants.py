@@ -1,5 +1,6 @@
 """Limits and defaults for events. No magic values elsewhere."""
 
+from datetime import timedelta
 from typing import Final
 
 # FR-31: at most this many upcoming events. Past one-time events do not count;
@@ -19,3 +20,12 @@ MINUTES_PER_WEEK: Final = 10080
 
 # Must equal the column in migration 0037 and the gateway's EMBEDDING_DIMENSIONS.
 EVENT_EMBEDDING_DIMENSIONS: Final = 768
+
+# Build plan AD-4: the roll job's batch, every 15 minutes.
+ROLL_BATCH: Final = 200
+# The sweep leaves an event this long after its write before arming it, so a
+# request still arming it is not raced (dev log D-20).
+ALERTS_PENDING_GRACE: Final = timedelta(minutes=2)
+# NFR-4: pending longer than this is out of step, and counted nightly.
+ALERTS_OUT_OF_STEP_AFTER: Final = timedelta(hours=1)
+REZONE_MAX_ATTEMPTS: Final = 5
