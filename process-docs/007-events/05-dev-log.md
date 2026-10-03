@@ -140,7 +140,7 @@ Backend: everything passes except eight, none caused by this slice:
 
 | # | Item | Blocks | Owner |
 |---|---|---|---|
-| P-0 | **Next task.** X-1: epic and PRD change records approved 2026-10-03, PRD Q3 and Q4 answered. Design change record and canvas redraw approved 2026-10-03. Next the build plan change record, then the index, each approved in turn, before sub-plan 4.2. Slice 1's built "which alert?" question (FR-16, now removed) goes in slice 2 | Slice 2 | Claude, then user approval |
+| P-0 | **Next task.** X-1: epic and PRD change records approved 2026-10-03, PRD Q3 and Q4 answered. Design change record and canvas redraw approved 2026-10-03. Build plan change record approved 2026-10-03, AD-8 locked. Next the implementation plan index and 4.1, before sub-plan 4.2. Slice 1's built "which alert?" question (FR-16, now removed) goes in slice 2 | Slice 2 | Claude, then user approval |
 | P-1 | Review D-1 to D-14 (D-15 approved) and approve each, or ask for a change | Closing slice 1 | user |
 | P-2 | Review the 60-line set `tests/eval/event_extraction.json` | Shipping | user |
 | P-3 | Decide B-1 to B-5 from the browser pass; B-6 light-theme pass in a browser without forced dark | Shipping | user, then Claude |
@@ -166,3 +166,4 @@ Backend: everything passes except eight, none caused by this slice:
 | 2026-10-02 | D-9 to D-14 logged, found on review; Pending section added | User asked for the pending items in the dev log | user |
 | 2026-10-03 | P-0 updated: epic and PRD change records for X-1 drafted, then approved with PRD Q3 and Q4 answered | User chose to start P-0, then approved | user |
 | 2026-10-03 | P-0 updated: design change record drafted, canvas republished with 3 new and 11 changed artboards | User chose to write the design change record, then approved | user |
+| 2026-10-03 | P-0 updated: build plan change record and tech stack §3 approved; AD-8 locked | User chose to write the build plan change record, then approved | user |

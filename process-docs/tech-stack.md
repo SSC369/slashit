@@ -4,7 +4,7 @@ title: Slashit Technical Stack
 status: current
 owner: user
 created: 2026-09-09
-updated: 2026-10-02
+updated: 2026-10-03
 ---
 
 # Slashit — Technical Stack
@@ -318,10 +318,14 @@ reminders. Epics 006 to 009 follow this unless their build plan argues otherwise
 ### Alerts on other record types: settled by epic 007
 
 Settled by [epic 007's build plan](./007-events/03-build-plan.md) on
-2026-10-02, decision AD-3.
+2026-10-02, decision AD-3, and widened to many alerts per record on 2026-10-03,
+AD-8.
 
-**A record type's alert is a one-time `reminders` row carrying that record's
-id** (`event_id` for events). Reminders hides such rows from its own lists and
+**Each of a record's alerts is a one-time `reminders` row carrying that
+record's id** (`event_id` for events). A record may carry any number. The
+owning domain holds the leads and hands reminders the full set of fire times;
+reminders replaces the record's open rows with that set, soonest first under
+the cap. Reminders hides such rows from its own lists and
 search, and fires them through 003's pipeline, so delivery, exactly-once and the
 per-user reminder cap apply unchanged. The owning domain re-arms a recurring
 record's alert; reminders never imports it.
@@ -472,6 +476,7 @@ Seven files sit there: decisions 0001 to 0006 and their README. Decisions 0004,
 | Date | Change | Why | Approved by |
 |---|---|---|---|
 | 2026-10-02 | T10 added: money as `bigint` minor units (006 AD-2). T6 extended to spend amounts (006 AD-9). Stale downstream: none; no built code stores money | Epic 006's build plan approved | user |
+| 2026-10-03 | Alerts on other record types in §3 widened: any number of `reminders` rows per record, replaced as a set, soonest first under the cap (007 AD-8). Stale downstream: none; 008 to 011 are not yet opened | Epic 007's build plan change approved | user |
 | 2026-10-02 | Alerts on other record types in §3: a one-time `reminders` row carrying the record's id, hidden from reminders' lists (007 AD-3). Stale downstream: none; 008 to 011 are not yet opened | Epic 007's build plan approved | user |
 | 2026-09-30 | Search row added and a Search section in §3: each record type answers search over its own rows, search columns on each record table (005 AD-1, AD-2). T-Q7 closed: one graph (005 AD-8). T6 extended to all record text, search queries and answers (005 AD-10). Stale downstream: none; epics 006 to 009 are not yet opened, and each inherits `SearchPort` | Epic 005's build plan approved | user |
 | 2026-09-25 | Embedding model row added and pgvector marked enabled (004 AD-4). T6 extended to logs and tracing for memory text (004 AD-9). T9 added: embeddings are attributed but uncounted against the per-user cap (004 AD-11). Stale downstream: none; no built code calls embeddings, and the cap's counting code changes in 004's build | Epic 004's build plan approved | user |
