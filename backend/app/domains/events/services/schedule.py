@@ -7,12 +7,14 @@ AD-6). The stored truth is the local fields plus the zone they were set in;
 occurrence.
 """
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from enum import StrEnum
 from zoneinfo import ZoneInfo
 
 from app.domains.events.constants import (
+    MAX_ALERT_LEAD_MINUTES,
     MINUTES_PER_DAY,
     MINUTES_PER_HOUR,
     MINUTES_PER_WEEK,
@@ -74,6 +76,24 @@ class NormalisedSchedule:
     end_time: time | None
     repeat_yearly: bool
     notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class NormalisedLeads:
+    """An event's alert leads as stored: legal, distinct, ascending (FR-34).
+    ``had_repeat`` is set when a lead was said more than once, so the
+    confirmation can say it was kept once (design §8)."""
+
+    leads: tuple[int, ...]
+    had_repeat: bool
+
+
+@dataclass(frozen=True)
+class AlertTime:
+    """One alert of one occurrence: its lead and the instant it fires."""
+
+    lead_minutes: int
+    fires_at: datetime
 
 
 def normalise_said_schedule(
@@ -206,6 +226,40 @@ def alert_fires_at(
         resolved.occurrence_date, default_reminder_time, tzinfo=zone
     )
     return reference - lead
+
+
+def normalise_leads(*, leads: Sequence[int]) -> NormalisedLeads:
+    """FR-14 and FR-34: every legal lead, once, shortest first. A lead below
+    zero or over a year is read as not said rather than refused."""
+    legal_leads = [lead for lead in leads if 0 <= lead <= MAX_ALERT_LEAD_MINUTES]
+    distinct_leads = tuple(sorted(set(legal_leads)))
+    return NormalisedLeads(
+        leads=distinct_leads, had_repeat=len(distinct_leads) < len(legal_leads)
+    )
+
+
+def alert_fire_times(
+    *,
+    schedule: LocalSchedule,
+    resolved: Resolved,
+    leads: Sequence[int],
+    default_reminder_time: time,
+) -> tuple[AlertTime, ...]:
+    """Each lead's instant for this occurrence, soonest first, which is the
+    order the reminder cap sets them in (FR-33, build plan AD-8)."""
+    alert_times = (
+        AlertTime(
+            lead_minutes=lead,
+            fires_at=alert_fires_at(
+                schedule=schedule,
+                resolved=resolved,
+                lead_minutes=lead,
+                default_reminder_time=default_reminder_time,
+            ),
+        )
+        for lead in leads
+    )
+    return tuple(sorted(alert_times, key=lambda alert_time: alert_time.fires_at))
 
 
 def _resolve_on(*, schedule: LocalSchedule, occurrence_date: date) -> Resolved:

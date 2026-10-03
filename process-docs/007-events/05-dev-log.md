@@ -166,6 +166,7 @@ revision at a time. Python 3.12 virtualenv; the model is faked.
 | # | Sub-plan | Task | Status | Note |
 |---|---|---|---|---|
 | T-2.1 | 4.2 | Migration `0042_event_alerts`, models | done | Up, down and up again on the local database with two events, one with a lead. Up gives `{1440}` and `{}`; a lead of -1 or 525601 is refused by `ck_event_alert_leads`; down keeps the first lead only, as documented. `test_event_alerts_schema.py` guards the result (C-18). See D-17. Storage now reads and writes the list; the API still shows one lead until T-2.4 |
+| T-2.2 | 4.2 | `normalise_leads`, `alert_fire_times` | done | Pure, in `schedule.py`. `NormalisedLeads.had_repeat` drives the "named twice, kept once" note; `AlertTime` pairs are sorted soonest first, the order the cap sets them in. Four unit cases (C-1 to C-3 and out-of-range leads). Slice 1's `_read_leads` in `create_event.py` goes in T-2.4 |
 
 ### Deviations
 

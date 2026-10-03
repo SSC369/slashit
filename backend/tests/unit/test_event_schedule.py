@@ -5,13 +5,17 @@ from datetime import UTC, date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from app.domains.events.services.schedule import (
+    AlertTime,
     EventStatus,
     LocalSchedule,
+    NormalisedLeads,
     SaidSchedule,
+    alert_fire_times,
     alert_fires_at,
     describe_alert,
     describe_when,
     event_status,
+    normalise_leads,
     normalise_said_schedule,
     resolve,
 )
@@ -257,6 +261,69 @@ def test_a_timed_alert_counts_back_from_the_start() -> None:
         default_reminder_time=time(9),
     )
     assert fires_at == datetime(2026, 10, 9, 15, tzinfo=ZoneInfo(KOLKATA))
+
+
+def test_leads_are_kept_once_shortest_first() -> None:
+    """Epic 007, 4.2 C-2: FR-14 and FR-34."""
+    assert normalise_leads(leads=[1440, 120, 1440]) == NormalisedLeads(
+        leads=(120, 1440), had_repeat=True
+    )
+    assert normalise_leads(leads=[10080, 1440]) == NormalisedLeads(
+        leads=(1440, 10080), had_repeat=False
+    )
+    assert normalise_leads(leads=[]) == NormalisedLeads(leads=(), had_repeat=False)
+
+
+def test_a_lead_out_of_range_is_not_said_and_is_no_repeat() -> None:
+    """A lead below zero or over a year is dropped, as slice 1 did."""
+    assert normalise_leads(leads=[-5, 0, 525601, 525601]) == NormalisedLeads(
+        leads=(0,), had_repeat=False
+    )
+
+
+def test_each_lead_fires_soonest_first_on_an_all_day_event() -> None:
+    """4.2 C-3: FR-15 for every lead, in the order the cap sets them."""
+    schedule = _schedule(start_date=date(2026, 11, 21))
+    alert_times = alert_fire_times(
+        schedule=schedule,
+        resolved=resolve(schedule=schedule, now=NOW),
+        leads=(1440, 10080),
+        default_reminder_time=time(9),
+    )
+    assert alert_times == (
+        AlertTime(
+            lead_minutes=10080,
+            fires_at=datetime(2026, 11, 14, 9, tzinfo=ZoneInfo(KOLKATA)),
+        ),
+        AlertTime(
+            lead_minutes=1440,
+            fires_at=datetime(2026, 11, 20, 9, tzinfo=ZoneInfo(KOLKATA)),
+        ),
+    )
+
+
+def test_each_lead_fires_soonest_first_on_a_timed_event() -> None:
+    """4.2 C-1: "remind me 1 day before and 1 hour before" on a 4 PM event."""
+    schedule = _schedule(start_date=date(2026, 10, 9), start_time=time(16))
+    alert_times = alert_fire_times(
+        schedule=schedule,
+        resolved=resolve(schedule=schedule, now=NOW),
+        leads=(60, 1440),
+        default_reminder_time=time(9),
+    )
+    assert [alert_time.fires_at for alert_time in alert_times] == [
+        datetime(2026, 10, 8, 16, tzinfo=ZoneInfo(KOLKATA)),
+        datetime(2026, 10, 9, 15, tzinfo=ZoneInfo(KOLKATA)),
+    ]
+    assert (
+        alert_fire_times(
+            schedule=schedule,
+            resolved=resolve(schedule=schedule, now=NOW),
+            leads=(),
+            default_reminder_time=time(9),
+        )
+        == ()
+    )
 
 
 def test_resolved_instants_hold_their_shape_over_random_schedules() -> None:
