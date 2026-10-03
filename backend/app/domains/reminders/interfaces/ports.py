@@ -41,6 +41,11 @@ class NotificationPort(Protocol):
         """The reminder is gone: every notification about it stops showing."""
         ...
 
+    async def hide_for_event(self, *, user_id: UUID, event_id: UUID) -> None:
+        """The event is gone: its alerts' notifications stop showing (epic 007
+        FR-23), as a deleted reminder's do."""
+        ...
+
 
 class FiringQueuePort(Protocol):
     """Queueing one firing job per due occurrence (AD-2)."""

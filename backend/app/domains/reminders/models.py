@@ -67,6 +67,8 @@ class Reminder(Base):
     # Epic 007, migration 0042: set on an event's alert row, which reminders'
     # own lists and search never show (FR-32).
     event_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # The alert notification's line under the title, from events (D-18).
+    alert_detail: Mapped[str | None] = mapped_column(Text)
     # A snooze is a one-off extra firing; the series stays in next_fire_at.
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Epic 005, migration 0033. NULL until reminders.embed_reminder fills it,

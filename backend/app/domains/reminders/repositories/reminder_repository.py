@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from typing import Any, cast
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import CursorResult, case, func, select, update
+from sqlalchemy import CursorResult, Update, case, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +26,7 @@ from app.domains.reminders.interfaces.dtos import (
     UserActionValue,
 )
 from app.domains.reminders.interfaces.repositories import (
+    EventAlertWrite,
     FiringWrite,
     RecordedFiring,
     ReminderStateWrite,
@@ -83,8 +84,11 @@ class SqlReminderRepository:
 
     async def list_for_user(self, *, user_id: uuid.UUID) -> list[ReminderDTO]:
         now = datetime.now(UTC)
+        # Event alert rows are shown on their event only (epic 007 FR-32).
         statement = select(Reminder).where(
-            Reminder.user_id == user_id, Reminder.deleted_at.is_(None)
+            Reminder.user_id == user_id,
+            Reminder.deleted_at.is_(None),
+            Reminder.event_id.is_(None),
         )
         async with user_transaction(self.session, user_id) as scoped:
             reminders = (await scoped.scalars(statement)).all()
@@ -174,6 +178,60 @@ class SqlReminderRepository:
             )
             moved_id = result.scalar_one_or_none()
         return moved_id is not None
+
+    async def count_active_for_user_outside_event(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> int:
+        async with user_transaction(self.session, user_id) as scoped:
+            count = await scoped.scalar(
+                select(func.count())
+                .select_from(Reminder)
+                .where(
+                    Reminder.user_id == user_id,
+                    Reminder.deleted_at.is_(None),
+                    Reminder.state != "done",
+                    Reminder.event_id.is_distinct_from(event_id),
+                )
+            )
+        return int(count or 0)
+
+    async def replace_event_alerts(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        writes: Sequence[EventAlertWrite],
+        origin: RecordOriginValue,
+    ) -> None:
+        now = datetime.now(UTC)
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                _soft_delete_event_alerts_statement(
+                    user_id=user_id, event_id=event_id, now=now
+                )
+            )
+            scoped.add_all(
+                [
+                    _event_alert_row(
+                        user_id=user_id,
+                        event_id=event_id,
+                        write=write,
+                        origin=origin,
+                        now=now,
+                    )
+                    for write in writes
+                ]
+            )
+
+    async def soft_delete_event_alerts(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> None:
+        async with user_transaction(self.session, user_id) as scoped:
+            await scoped.execute(
+                _soft_delete_event_alerts_statement(
+                    user_id=user_id, event_id=event_id, now=datetime.now(UTC)
+                )
+            )
 
     async def soft_delete(self, *, user_id: uuid.UUID, reminder_id: uuid.UUID) -> bool:
         now = datetime.now(UTC)
@@ -357,6 +415,7 @@ class SqlReminderRepository:
         live_matches = (
             Reminder.user_id == user_id,
             Reminder.deleted_at.is_(None),
+            Reminder.event_id.is_(None),
             expressions.matches,
         )
         statement = (
@@ -398,6 +457,7 @@ class SqlReminderRepository:
                     Reminder.id == reminder_id,
                     Reminder.user_id == user_id,
                     Reminder.deleted_at.is_(None),
+                    Reminder.event_id.is_(None),
                 )
             )
         return None if embedding is None else tuple(float(item) for item in embedding)
@@ -414,6 +474,7 @@ class SqlReminderRepository:
                     Reminder.user_id == user_id,
                     Reminder.deleted_at.is_(None),
                     Reminder.embedding.is_(None),
+                    Reminder.event_id.is_(None),
                 )
             )
         return None if description is None else str(description)
@@ -454,7 +515,9 @@ class SqlReminderRepository:
         """Every user's live reminders with no vector. ``updated_since`` None
         means every such reminder, for the full sweep at deploy (FR-13)."""
         statement = select(Reminder.user_id, Reminder.id).where(
-            Reminder.embedding.is_(None), Reminder.deleted_at.is_(None)
+            Reminder.embedding.is_(None),
+            Reminder.deleted_at.is_(None),
+            Reminder.event_id.is_(None),
         )
         if updated_since is not None:
             statement = statement.where(Reminder.updated_at >= updated_since)
@@ -470,6 +533,52 @@ class SqlReminderRepository:
             ReminderEmbeddingTargetDTO(user_id=user_id, reminder_id=reminder_id)
             for user_id, reminder_id in rows
         ]
+
+
+def _soft_delete_event_alerts_statement(
+    *, user_id: uuid.UUID, event_id: uuid.UUID, now: datetime
+) -> Update:
+    return (
+        update(Reminder)
+        .where(
+            Reminder.user_id == user_id,
+            Reminder.event_id == event_id,
+            Reminder.deleted_at.is_(None),
+        )
+        .values(deleted_at=now, updated_at=now, next_fire_at=None, snoozed_until=None)
+    )
+
+
+def _event_alert_row(
+    *,
+    user_id: uuid.UUID,
+    event_id: uuid.UUID,
+    write: EventAlertWrite,
+    origin: RecordOriginValue,
+    now: datetime,
+) -> Reminder:
+    return Reminder(
+        id=uuid.uuid4(),
+        user_id=user_id,
+        origin=origin,
+        original_input=None,
+        created_at=now,
+        updated_at=now,
+        last_fired_at=None,
+        last_action=None,
+        deleted_at=None,
+        event_id=event_id,
+        alert_detail=write.detail,
+        **_write_columns(
+            write=ReminderWrite(
+                description=write.title,
+                spec=write.spec,
+                schedule_timezone=write.schedule_timezone,
+                next_fire_at=write.spec.one_time_at,
+                state="upcoming",
+            )
+        ),
+    )
 
 
 def _due_at(*, reminder: Reminder) -> datetime | None:
@@ -558,4 +667,6 @@ def _reminder_to_dto(*, reminder: Reminder, now: datetime) -> ReminderDTO:
         created_at=reminder.created_at,
         updated_at=reminder.updated_at,
         snoozed_until=reminder.snoozed_until,
+        event_id=reminder.event_id,
+        alert_detail=reminder.alert_detail,
     )

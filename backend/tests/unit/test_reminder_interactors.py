@@ -14,6 +14,9 @@ from app.domains.reminders.graphql.errors import (
     ReminderNotFoundError,
     ReminderTimePassedError,
 )
+from app.domains.reminders.interactors.clear_event_alerts import (
+    ClearEventAlertsInteractor,
+)
 from app.domains.reminders.interactors.create_reminder import CreateReminderInteractor
 from app.domains.reminders.interactors.delete_reminder import DeleteReminderInteractor
 from app.domains.reminders.interactors.dtos import (
@@ -22,6 +25,9 @@ from app.domains.reminders.interactors.dtos import (
     UpdateReminderInputDTO,
 )
 from app.domains.reminders.interactors.list_reminders import ListRemindersInteractor
+from app.domains.reminders.interactors.set_event_alerts import (
+    SetEventAlertsInteractor,
+)
 from app.domains.reminders.interactors.update_reminder import UpdateReminderInteractor
 from app.domains.reminders.interfaces.dtos import (
     ReminderDTO,
@@ -408,6 +414,12 @@ async def test_creating_through_the_service_queues_one_embed() -> None:
     service = ReminderService(
         reminder_repository=repository,
         create_reminder_interactor=_create(repository),
+        set_event_alerts_interactor=SetEventAlertsInteractor(
+            reminder_repository=repository, user_clock=FakeUserClockPort()
+        ),
+        clear_event_alerts_interactor=ClearEventAlertsInteractor(
+            reminder_repository=repository, notifications=FakeNotificationPort()
+        ),
         embed_queue=queue,
     )
     user_id = uuid.uuid4()
@@ -427,6 +439,12 @@ async def test_a_refused_create_queues_nothing() -> None:
     service = ReminderService(
         reminder_repository=repository,
         create_reminder_interactor=_create(repository),
+        set_event_alerts_interactor=SetEventAlertsInteractor(
+            reminder_repository=repository, user_clock=FakeUserClockPort()
+        ),
+        clear_event_alerts_interactor=ClearEventAlertsInteractor(
+            reminder_repository=repository, notifications=FakeNotificationPort()
+        ),
         embed_queue=queue,
     )
 

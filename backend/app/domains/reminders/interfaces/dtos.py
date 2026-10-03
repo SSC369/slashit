@@ -24,6 +24,8 @@ ReminderActionValue = Literal["done", "snoozed", "missed"]
 RecordOriginValue = Literal["command", "edit"]
 LatenessValue = Literal["on_time", "late", "missed"]
 UserActionValue = Literal["done", "snoozed"]
+# Epic 007 FR-19 and FR-33: why an event alert was not set.
+AlertNotSetReasonValue = Literal["passed", "cap"]
 
 
 @dataclass(frozen=True)
@@ -49,6 +51,10 @@ class ReminderDTO:
     when_note: str | None = None
     # A pending snooze: one extra firing, the series untouched (4.2 decision 1).
     snoozed_until: datetime | None = None
+    # Epic 007: set on an event's alert row, which reminders' own lists never
+    # show (FR-32), with the line its notification shows (dev log D-18).
+    event_id: UUID | None = None
+    alert_detail: str | None = None
 
     @property
     def next_due_at(self) -> datetime | None:
@@ -123,6 +129,26 @@ class FiringAnnouncement:
     occurred_at: datetime
     # The reminder's zone, so an email can say "7:00 PM · Asia/Kolkata".
     time_zone: str
+    # Epic 007: an event alert names its event, which the notification opens.
+    event_id: UUID | None = None
+
+
+@dataclass(frozen=True)
+class EventAlertRequest:
+    """One alert an event asks for: when it fires, and the line its
+    notification shows under the event title (epic 007 FR-18)."""
+
+    fires_at: datetime
+    detail: str
+
+
+@dataclass(frozen=True)
+class AlertNotSet:
+    """An alert ``set_event_alerts`` did not set, and why (epic 007 FR-19,
+    FR-33). The caller knows which lead it was by its fire time."""
+
+    fires_at: datetime
+    reason: AlertNotSetReasonValue
 
 
 @dataclass(frozen=True)

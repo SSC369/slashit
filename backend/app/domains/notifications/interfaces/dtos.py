@@ -12,7 +12,7 @@ from uuid import UUID
 
 import strawberry
 
-NotificationKindValue = Literal["reminder", "email_paused"]
+NotificationKindValue = Literal["reminder", "email_paused", "event_alert"]
 MarkerValue = Literal["on_time", "late", "missed"]
 NotificationActionValue = Literal["done", "snoozed"]
 DeliveryStatusValue = Literal["queued", "sent", "failed", "skipped"]
@@ -36,6 +36,9 @@ class PublishNotification:
     occurred_at: datetime
     # The reminder's zone, for the email's set time (4.3 decision 3).
     time_zone: str = "UTC"
+    # Epic 007 event alerts: the reminder row Done and Snooze act on, while
+    # ``target_id`` is the event Open goes to (AD-5, 4.2 Q2).
+    action_target_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -97,6 +100,7 @@ class NotificationDTO:
     acted_at: datetime | None
     # The pop-up delivery's status at publish: the server decided, not the client.
     show_popup: bool
+    action_target_id: UUID | None = None
 
 
 @dataclass(frozen=True)
@@ -109,6 +113,7 @@ class NotificationPageDTO:
 class NotificationKind(Enum):
     REMINDER = "reminder"
     EMAIL_PAUSED = "email_paused"
+    EVENT_ALERT = "event_alert"
 
 
 @strawberry.enum
@@ -140,6 +145,10 @@ class Notification:
     action: NotificationAction | None
     acted_at: datetime | None
     show_popup: bool
+    action_target_id: strawberry.ID | None = strawberry.field(
+        default=None,
+        description="Event alerts only: the alert Done and Snooze act on.",
+    )
 
 
 def notification_dto_to_type(*, notification: NotificationDTO) -> Notification:
@@ -164,4 +173,9 @@ def notification_dto_to_type(*, notification: NotificationDTO) -> Notification:
         ),
         acted_at=notification.acted_at,
         show_popup=notification.show_popup,
+        action_target_id=(
+            strawberry.ID(str(notification.action_target_id))
+            if notification.action_target_id is not None
+            else None
+        ),
     )

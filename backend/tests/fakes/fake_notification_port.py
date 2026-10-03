@@ -14,6 +14,7 @@ class FakeNotificationPort:
         self.announce_calls = 0
         self.actions: list[tuple[UUID, UserActionValue]] = []
         self.hidden_reminder_ids: list[UUID] = []
+        self.hidden_event_ids: list[UUID] = []
         self.fail_next_announce = fail_next_announce
 
     async def announce_firing(self, *, announcement: FiringAnnouncement) -> None:
@@ -35,6 +36,9 @@ class FakeNotificationPort:
 
     async def hide_for_reminder(self, *, user_id: UUID, reminder_id: UUID) -> None:
         self.hidden_reminder_ids.append(reminder_id)
+
+    async def hide_for_event(self, *, user_id: UUID, event_id: UUID) -> None:
+        self.hidden_event_ids.append(event_id)
 
 
 class FakeFiringQueue:

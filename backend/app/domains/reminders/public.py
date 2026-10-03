@@ -6,6 +6,9 @@ section 6.
 """
 
 from app.domains.reminders.interfaces.dtos import (
+    AlertNotSet,
+    AlertNotSetReasonValue,
+    EventAlertRequest,
     Reminder,
     ReminderDTO,
     ReminderFields,
@@ -19,6 +22,9 @@ from app.domains.reminders.services.reminder_service import ReminderService
 from app.domains.reminders.services.schedule import RepeatKind, ScheduleSummary
 
 __all__ = [
+    "AlertNotSet",
+    "AlertNotSetReasonValue",
+    "EventAlertRequest",
     "Reminder",
     "ReminderDTO",
     "ReminderFields",

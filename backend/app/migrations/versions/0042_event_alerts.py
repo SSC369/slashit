@@ -11,7 +11,10 @@ Epic 007, sub-plan 4.2, task T-2.1. An event may carry any number of alerts
   distinct, ascending ``integer[]``. Slice 1's single stored lead is copied
   into a one-element list.
 - ``reminders.event_id`` links an alert row to its event. Many rows per
-  event, so the index is not unique.
+  event, so the index is not unique. ``reminders.alert_detail`` is the line
+  the alert's notification shows under the event title, such as "1 day
+  before · Mon 12 Oct, all day", written by events when it sets the alert:
+  reminders knows neither the lead nor the event's date (dev log D-18).
 - ``notification_kind`` gains ``event_alert``. ``notifications`` gains
   ``action_target_id``: the alert's reminder row, which Done and Snooze act
   on, while ``target_id`` stays the event that Open goes to (build plan AD-5,
@@ -57,6 +60,7 @@ def downgrade() -> None:
     op.drop_index("uq_notifications_event_alert_source", table_name="notifications")
     op.drop_column("notifications", "action_target_id")
     op.drop_index("ix_reminders_event", table_name="reminders")
+    op.drop_column("reminders", "alert_detail")
     op.drop_column("reminders", "event_id")
     _restore_single_event_lead()
 
@@ -89,6 +93,7 @@ def _convert_event_leads_to_list() -> None:
 
 def _link_reminders_to_events() -> None:
     op.add_column("reminders", sa.Column("event_id", sa.Uuid(), nullable=True))
+    op.add_column("reminders", sa.Column("alert_detail", sa.Text(), nullable=True))
     op.create_foreign_key(
         "fk_reminders_event",
         "reminders",

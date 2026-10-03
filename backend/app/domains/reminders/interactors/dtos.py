@@ -1,9 +1,14 @@
 """Input DTOs, one per use case."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date, datetime, time
 from uuid import UUID
 
+from app.domains.reminders.interfaces.dtos import (
+    EventAlertRequest,
+    RecordOriginValue,
+)
 from app.domains.reminders.services.firing import SnoozeOption
 from app.domains.reminders.services.schedule import RepeatKind
 
@@ -64,3 +69,21 @@ class QueueMissingReminderEmbeddingsInputDTO:
     FR-13); otherwise only reminders touched in the backfill window."""
 
     full: bool
+
+
+@dataclass(frozen=True)
+class SetEventAlertsInputDTO:
+    """Epic 007: every alert one event asks for, replacing what it had."""
+
+    user_id: UUID
+    event_id: UUID
+    title: str
+    alerts: Sequence[EventAlertRequest]
+    origin: RecordOriginValue
+    now: datetime
+
+
+@dataclass(frozen=True)
+class ClearEventAlertsInputDTO:
+    user_id: UUID
+    event_id: UUID

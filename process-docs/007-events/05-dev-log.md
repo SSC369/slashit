@@ -167,12 +167,14 @@ revision at a time. Python 3.12 virtualenv; the model is faked.
 |---|---|---|---|---|
 | T-2.1 | 4.2 | Migration `0042_event_alerts`, models | done | Up, down and up again on the local database with two events, one with a lead. Up gives `{1440}` and `{}`; a lead of -1 or 525601 is refused by `ck_event_alert_leads`; down keeps the first lead only, as documented. `test_event_alerts_schema.py` guards the result (C-18). See D-17. Storage now reads and writes the list; the API still shows one lead until T-2.4 |
 | T-2.2 | 4.2 | `normalise_leads`, `alert_fire_times` | done | Pure, in `schedule.py`. `NormalisedLeads.had_repeat` drives the "named twice, kept once" note; `AlertTime` pairs are sorted soonest first, the order the cap sets them in. Four unit cases (C-1 to C-3 and out-of-range leads). Slice 1's `_read_leads` in `create_event.py` goes in T-2.4 |
+| T-2.3 | 4.2 | Reminders: `set_event_alerts`, `clear_event_alerts`, `event_id` filters, alert firing kind | done | `SetEventAlertsInteractor` sorts soonest first, names passed and over-cap alerts, and replaces the event's live rows in one transaction; the cap counts every live row but the event's own. `ClearEventAlertsInteractor` soft-deletes them and hides notifications whose target is the event. Reminders' list, search and embed queries skip `event_id` rows, so the Reminders tab, `/reminders`, search and rezone never see them; `get_by_id` does not, so Done and Snooze still reach an alert. Firing an alert row publishes `event_alert` with `target_id` the event and `action_target_id` the row; notifications treat both firing kinds alike for email, Done, Snooze and once-per-firing. Nine unit cases, five against PostgreSQL (C-5 to C-7, FR-19, FR-21, FR-23, T7). See D-18 |
 
 ### Deviations
 
 | # | Date | Plan said | Built | Why | Approved by |
 |---|---|---|---|---|---|
 | D-17 | 2026-10-03 | 4.2 tables: `notifications` gains a kind and `action_target_id` | Also a unique index `uq_notifications_event_alert_source` on `source_id` where `action_target_id IS NOT NULL` | One notification per firing for event alerts, as 003 AD-3 gives reminders. The existing unique index covers kind `reminder` only, and a predicate cannot name an enum value added in the same transaction | — |
+| D-18 | 2026-10-03 | Index §4: `set_event_alerts(user_id, event_id, title, fire_times, now)` | `set_event_alerts(user_id, event_id, title, alerts, origin, now)`, each alert an `EventAlertRequest(fires_at, detail)`; `reminders.alert_detail text`, added to `0042` before it left this branch | An alert's notification must name the lead and the event's date (FR-18, design `EventAlertToast`), and reminders knows neither. Events writes the line, such as "1 day before · Mon 12 Oct, all day", when it sets the alert. The toast's head shows "Event alert" and the lead leads the detail line, unless the user picks otherwise at T-2.12 | — |
 
 ## Change log
 

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import text
 
 from app.core.db import user_transaction
-from app.domains.notifications.constants import NOTIFY_CHANNEL
+from app.domains.notifications.constants import FIRING_KINDS, NOTIFY_CHANNEL
 from app.domains.notifications.interfaces.dtos import (
     DeliveryStatusValue,
     EmailDeliveryDTO,
@@ -56,6 +56,7 @@ class SqlNotificationRepository:
                     kind=publish.kind,
                     source_id=publish.source_id,
                     target_id=publish.target_id,
+                    action_target_id=publish.action_target_id,
                     title=publish.title,
                     detail=publish.detail,
                     marker=publish.marker,
@@ -65,7 +66,7 @@ class SqlNotificationRepository:
                 )
                 .on_conflict_do_nothing(
                     index_elements=["source_id"],
-                    index_where=text("kind = 'reminder'"),
+                    index_where=text(_one_per_firing_predicate(publish=publish)),
                 )
                 .returning(Notification.id)
             )
@@ -364,7 +365,7 @@ class SqlNotificationRepository:
                 .where(
                     Notification.user_id == user_id,
                     Notification.source_id == source_id,
-                    Notification.kind == "reminder",
+                    Notification.kind.in_(FIRING_KINDS),
                     Notification.deleted_at.is_(None),
                 )
                 .values(
@@ -424,6 +425,15 @@ def _select_with_popup() -> Select[Any]:
     )
 
 
+def _one_per_firing_predicate(*, publish: PublishNotification) -> str:
+    """The partial unique index that makes this kind's repeat a no-op (AD-3).
+    Event alerts have their own, keyed on ``action_target_id`` (migration
+    0042, dev log D-17)."""
+    if publish.action_target_id is not None:
+        return "action_target_id IS NOT NULL"
+    return "kind = 'reminder'"
+
+
 def _row_to_dto(*, row: Any) -> NotificationDTO:
     notification = cast(Notification, row[0])
     popup_status = cast(str | None, row[1])
@@ -443,6 +453,7 @@ def _row_to_dto(*, row: Any) -> NotificationDTO:
         action=cast(NotificationActionValue | None, notification.action),
         acted_at=notification.acted_at,
         show_popup=popup_status == "sent",
+        action_target_id=notification.action_target_id,
     )
 
 

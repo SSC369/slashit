@@ -153,17 +153,17 @@ class FireOneInteractor:
             await self._announce(reminder=reminder, firing=firing)
 
     async def _announce(self, *, reminder: ReminderDTO, firing: FiringDTO) -> None:
-        is_repeating = reminder.spec.repeat_kind is not RepeatKind.NONE
         await self.notifications.announce_firing(
             announcement=FiringAnnouncement(
                 user_id=reminder.user_id,
                 firing_id=firing.id,
                 reminder_id=reminder.id,
                 title=reminder.description,
-                detail=reminder.summary.repeat_text if is_repeating else "",
+                detail=_notification_detail(reminder=reminder),
                 lateness=firing.lateness,
                 occurred_at=firing.scheduled_for,
                 time_zone=reminder.schedule_timezone,
+                event_id=reminder.event_id,
             )
         )
 
@@ -177,3 +177,13 @@ class FireOneInteractor:
             lateness=firing.lateness,
             delay_ms=delay_ms,
         )
+
+
+def _notification_detail(*, reminder: ReminderDTO) -> str:
+    """An event alert's line comes from events (dev log D-18); a repeating
+    reminder says how it repeats; a one-time reminder says nothing more."""
+    if reminder.alert_detail is not None:
+        return reminder.alert_detail
+    if reminder.spec.repeat_kind is not RepeatKind.NONE:
+        return reminder.summary.repeat_text
+    return ""

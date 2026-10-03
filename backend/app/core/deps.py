@@ -187,6 +187,9 @@ from app.domains.reminders.adapters.identity_clock_adapter import (
     IdentityUserClockAdapter,
 )
 from app.domains.reminders.adapters.notifications_adapter import NotificationsAdapter
+from app.domains.reminders.interactors.clear_event_alerts import (
+    ClearEventAlertsInteractor,
+)
 from app.domains.reminders.interactors.create_reminder import CreateReminderInteractor
 from app.domains.reminders.interactors.delete_reminder import DeleteReminderInteractor
 from app.domains.reminders.interactors.embed_reminder import EmbedReminderInteractor
@@ -205,6 +208,9 @@ from app.domains.reminders.interactors.reconcile_reminders import (
 )
 from app.domains.reminders.interactors.rezone_reminders import (
     RezoneRemindersInteractor,
+)
+from app.domains.reminders.interactors.set_event_alerts import (
+    SetEventAlertsInteractor,
 )
 from app.domains.reminders.interactors.snooze_reminder import SnoozeReminderInteractor
 from app.domains.reminders.interactors.update_reminder import UpdateReminderInteractor
@@ -363,6 +369,14 @@ def build_reminder_service(context: Context) -> ReminderService:
             reminder_repository=reminder_repository,
             user_clock=_build_user_clock_port(context=context),
             now_provider=_utc_now,
+        ),
+        set_event_alerts_interactor=SetEventAlertsInteractor(
+            reminder_repository=reminder_repository,
+            user_clock=_build_user_clock_port(context=context),
+        ),
+        clear_event_alerts_interactor=ClearEventAlertsInteractor(
+            reminder_repository=reminder_repository,
+            notifications=_build_reminder_notifications_port(session=context.session),
         ),
         embed_queue=ProcrastinateReminderEmbedQueue(),
     )

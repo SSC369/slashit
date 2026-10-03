@@ -33,6 +33,16 @@ class ReminderWrite:
 
 
 @dataclass(frozen=True)
+class EventAlertWrite:
+    """One event alert row: a one-time reminder carrying its event's id."""
+
+    title: str
+    spec: ScheduleSpec
+    schedule_timezone: str
+    detail: str
+
+
+@dataclass(frozen=True)
 class RezoneWrite:
     """A reminder moved to a new timezone (FR-10, FR-11). Description, state
     and a pending snooze are not part of it: they do not move."""
@@ -115,6 +125,29 @@ class ReminderRepository(Protocol):
         ``updated_at`` is still ``expected_updated_at``. False otherwise, so a
         change made since the read wins."""
         ...
+
+    async def count_active_for_user_outside_event(
+        self, *, user_id: UUID, event_id: UUID
+    ) -> int:
+        """Live, not-done reminders, alert rows included, except this event's
+        own, which the replace about to run takes away (epic 007 FR-33)."""
+        ...
+
+    async def replace_event_alerts(
+        self,
+        *,
+        user_id: UUID,
+        event_id: UUID,
+        writes: Sequence[EventAlertWrite],
+        origin: RecordOriginValue,
+    ) -> None:
+        """Soft-delete the event's live alert rows and insert ``writes``, in
+        one transaction (epic 007 AD-8)."""
+        ...
+
+    async def soft_delete_event_alerts(
+        self, *, user_id: UUID, event_id: UUID
+    ) -> None: ...
 
     async def soft_delete(self, *, user_id: UUID, reminder_id: UUID) -> bool:
         """Sets ``deleted_at`` and clears ``next_fire_at``. False if not found."""

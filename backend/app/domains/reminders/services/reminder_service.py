@@ -9,11 +9,23 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from uuid import UUID
 
+from app.domains.reminders.interactors.clear_event_alerts import (
+    ClearEventAlertsInteractor,
+)
 from app.domains.reminders.interactors.create_reminder import (
     CreateReminderInteractor,
     CreateReminderOutcome,
 )
+from app.domains.reminders.interactors.dtos import (
+    ClearEventAlertsInputDTO,
+    SetEventAlertsInputDTO,
+)
+from app.domains.reminders.interactors.set_event_alerts import (
+    SetEventAlertsInteractor,
+)
 from app.domains.reminders.interfaces.dtos import (
+    AlertNotSet,
+    EventAlertRequest,
     RecordOriginValue,
     ReminderDTO,
     ReminderFields,
@@ -31,10 +43,14 @@ class ReminderService:
         *,
         reminder_repository: ReminderRepository,
         create_reminder_interactor: CreateReminderInteractor,
+        set_event_alerts_interactor: SetEventAlertsInteractor,
+        clear_event_alerts_interactor: ClearEventAlertsInteractor,
         embed_queue: ReminderEmbedQueue,
     ) -> None:
         self.reminder_repository = reminder_repository
         self.create_reminder_interactor = create_reminder_interactor
+        self.set_event_alerts_interactor = set_event_alerts_interactor
+        self.clear_event_alerts_interactor = clear_event_alerts_interactor
         self.embed_queue = embed_queue
 
     async def create_reminder(
@@ -54,6 +70,34 @@ class ReminderService:
                 user_id=user_id, reminder_id=outcome.id, delay_seconds=0
             )
         return outcome
+
+    async def set_event_alerts(
+        self,
+        *,
+        user_id: UUID,
+        event_id: UUID,
+        title: str,
+        alerts: Sequence[EventAlertRequest],
+        origin: RecordOriginValue,
+        now: datetime,
+    ) -> list[AlertNotSet]:
+        """Epic 007 AD-8: replace the event's alerts; returns those not set."""
+        return await self.set_event_alerts_interactor.set_event_alerts(
+            dto=SetEventAlertsInputDTO(
+                user_id=user_id,
+                event_id=event_id,
+                title=title,
+                alerts=alerts,
+                origin=origin,
+                now=now,
+            )
+        )
+
+    async def clear_event_alerts(self, *, user_id: UUID, event_id: UUID) -> None:
+        """Epic 007 FR-23: the event is going; so are its alerts."""
+        await self.clear_event_alerts_interactor.clear_event_alerts(
+            dto=ClearEventAlertsInputDTO(user_id=user_id, event_id=event_id)
+        )
 
     async def list_active(self, *, user_id: UUID) -> list[ReminderDTO]:
         """FR-25, `/reminders`: live and not done. A fired one-time reminder has

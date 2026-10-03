@@ -1,7 +1,7 @@
 """An in-memory ReminderRepository. Not a mock: it behaves."""
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 from zoneinfo import ZoneInfo
@@ -14,6 +14,7 @@ from app.domains.reminders.interfaces.dtos import (
     UserActionValue,
 )
 from app.domains.reminders.interfaces.repositories import (
+    EventAlertWrite,
     FiringWrite,
     RecordedFiring,
     ReminderStateWrite,
@@ -83,7 +84,58 @@ class FakeReminderRepository:
         return sum(1 for row in self._live_for(user_id=user_id) if row.state != "done")
 
     async def list_for_user(self, *, user_id: uuid.UUID) -> list[ReminderDTO]:
-        return self._live_for(user_id=user_id)
+        return [row for row in self._live_for(user_id=user_id) if row.event_id is None]
+
+    async def count_active_for_user_outside_event(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> int:
+        return sum(
+            1
+            for row in self._live_for(user_id=user_id)
+            if row.state != "done" and row.event_id != event_id
+        )
+
+    async def replace_event_alerts(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        writes: Sequence[EventAlertWrite],
+        origin: RecordOriginValue,
+    ) -> None:
+        await self.soft_delete_event_alerts(user_id=user_id, event_id=event_id)
+        for write in writes:
+            created = await self.create_reminder(
+                user_id=user_id,
+                write=ReminderWrite(
+                    description=write.title,
+                    spec=write.spec,
+                    schedule_timezone=write.schedule_timezone,
+                    next_fire_at=write.spec.one_time_at,
+                    state="upcoming",
+                ),
+                origin=origin,
+                original_input=None,
+            )
+            self.rows[created.id] = replace(
+                created, event_id=event_id, alert_detail=write.detail
+            )
+
+    async def soft_delete_event_alerts(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> None:
+        for row in self._live_for(user_id=user_id):
+            if row.event_id == event_id:
+                await self.soft_delete(user_id=user_id, reminder_id=row.id)
+
+    def live_alerts_for(self, *, event_id: uuid.UUID) -> list[ReminderDTO]:
+        """Test helper: the event's live alert rows, soonest first."""
+        alerts = [
+            row
+            for row in self.rows.values()
+            if row.event_id == event_id and row.id not in self.deleted_ids
+        ]
+        return sorted(alerts, key=lambda row: row.next_fire_at or row.created_at)
 
     async def get_by_id(
         self, *, user_id: uuid.UUID, reminder_id: uuid.UUID

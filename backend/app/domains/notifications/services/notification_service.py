@@ -10,6 +10,7 @@ import structlog
 from app.domains.notifications.constants import (
     EMAIL_PAUSED_DETAIL,
     EMAIL_PAUSED_TITLE,
+    FIRING_KINDS,
     MAX_EMAILS_PER_DAY,
 )
 from app.domains.notifications.interfaces.dtos import (
@@ -98,14 +99,14 @@ class NotificationService:
     async def _decide_email(
         self, *, publish: PublishNotification, settings: DeliverySettings, now: datetime
     ) -> DeliveryStatusValue:
-        if publish.kind == "reminder" and not self.is_email_configured:
+        if publish.kind in FIRING_KINDS and not self.is_email_configured:
             # 4.3 §8: until a sending domain is set, every firing says why
             # it sent no email.
             logger.info(
                 "notifications.email_disabled", source_id=str(publish.source_id)
             )
         is_wanted = (
-            publish.kind == "reminder"
+            publish.kind in FIRING_KINDS
             and self.is_email_configured
             and settings.email_enabled
             and publish.marker != "missed"
