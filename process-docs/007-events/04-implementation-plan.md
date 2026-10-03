@@ -30,7 +30,7 @@ Tables this feature touches, by migration:
 | `events` (analytics) | changed: event types `event_created`, `event_edited`, `event_alert_not_set` | `NNNN_capture_events` | 1 |
 | `calendar_events` | changed: `alert_lead_minutes integer` becomes `alert_leads_minutes integer[]`, backfilled | `NNNN_event_alerts` | 2 |
 | `reminders` | changed: `event_id`, partial index, many rows per event (build plan AD-8) | `NNNN_event_alerts` | 2 |
-| `notifications` | changed: `notification_kind` value `event_alert` | `NNNN_event_alerts` | 2 |
+| `notifications` | changed: `notification_kind` value `event_alert`; nullable `action_target_id`, the alert's reminder row (4.2 Q2) | `NNNN_event_alerts` | 2 |
 
 > Migration numbers are taken from the Alembic head on the day each slice is
 > built. Epic 006 is being built in parallel and adds its own; whichever lands
@@ -64,7 +64,7 @@ built, as 003 and 004 did, so it is written against real code.
 | # | Sub-plan | What works when it lands | Depends on | Status |
 |---|---|---|---|---|
 | 1 | [04.1-capture-and-browse.md](./04.1-capture-and-browse.md) | `/add-event` saves with every date rule; the two questions and the cap; `/events` grouped by month; Events tab, All tab, detail with all states | none | approved 2026-10-02; built and merged 2026-10-02 (`fb0a767`), T-1.13 and T-1.14 owed. Its FR-16 question and single stored lead are superseded by X-1; slice 2 removes them |
-| 2 | `04.2-alerts-and-manage.md` | Any number of alerts per event: set, fire, re-arm yearly and follow edits; FR-16's question removed; edit and delete; search and related; timezone change | 1 | not started |
+| 2 | [04.2-alerts-and-manage.md](./04.2-alerts-and-manage.md) | Any number of alerts per event: set, fire, re-arm yearly and follow edits; FR-16's question removed; edit and delete; search and related; timezone change | 1 | approved 2026-10-03 |
 
 ## 3. File-by-file plan
 
@@ -223,3 +223,4 @@ Tasks live in the sub-plans, `T-1.n` and `T-2.n`.
 | 2026-10-02 | Approved | User: "Approve both, start building slice 1" | user |
 | 2026-10-02 | NFR-1 test row now the client's saving card, per the PRD change of the same day | Server timing waits on the model, 3.29 s p95 | user |
 | 2026-10-03 | Any number of alerts per event (X-1). Slice 2's migration converts `alert_lead_minutes` to `alert_leads_minutes integer[]`; `reminders.event_id` index is no longer unique. §4 adds `set_event_alerts` and `clear_event_alerts`, and `EventDTO.alerts` replaces `alert_lead_minutes`. FR-16's question, built in slice 1, is removed in slice 2. A fifth feature-level case. Re-opened: 4.1's contract for the stored lead, already built, superseded by slice 2; 4.2 not yet drafted | Build plan change approved 2026-10-03. Change approved 2026-10-03, lossy downgrade accepted | user |
+| 2026-10-03 | `notifications.action_target_id` added to slice 2's migration, so an event alert's toast can act on its reminder row while Open goes to the event (AD-5 kept). Re-opened: none; 4.2 carries it | 4.2 Q2, answered by the user | user |

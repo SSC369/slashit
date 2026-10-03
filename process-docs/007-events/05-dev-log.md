@@ -129,6 +129,7 @@ Backend: everything passes except eight, none caused by this slice:
 | D-13 | 2026-10-02 | Not in the design | `/add-event` with no title asks "What is the event?" | Every capture command asks when its subject is missing (001's confirmation model); no artboard draws it | — |
 | D-14 | 2026-10-02 | Build plan §4: `events(include: EventScope = UPCOMING)` | `events(scope: EventScope = UPCOMING)` | Naming only | — |
 | D-15 | 2026-10-02 | 4.1 §5: the model's fields are read as given | `read_event_fields` drops a `00:00` start, and a `00:00` or `23:59` end with it, unless the text names a time | T-1.13 found the model giving date-only events a midnight start. Unit cases in `test_event_capture.py` | user |
+| D-16 | 2026-10-03 | Build plan §10: alert and event "set in one transaction" | Two transactions, ordered: event then alerts on create and edit, alerts then event on delete. The 15-minute roll sweep repairs any mismatch | Each domain writes in its own `user_transaction`; a shared one would give every reminders write a second mode. 4.2 Q1 | user |
 
 ### Decisions during the build
 
@@ -144,7 +145,7 @@ Backend: everything passes except eight, none caused by this slice:
 | P-1 | Review D-1 to D-14 (D-15 approved) and approve each, or ask for a change | Closing slice 1 | user |
 | P-2 | Review the 60-line set `tests/eval/event_extraction.json` | Shipping | user |
 | P-3 | Decide B-1 to B-5 from the browser pass; B-6 light-theme pass in a browser without forced dark | Shipping | user, then Claude |
-| P-4 | **Next task.** Draft sub-plan `04.2-alerts-and-manage.md`: any number of alerts per event, set, fire, re-arm yearly and follow edits; convert `alert_lead_minutes`; remove FR-16's question; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
+| P-4 | **Next task.** Sub-plan `04.2-alerts-and-manage.md` approved 2026-10-03; build slice 2, T-2.1 to T-2.16: any number of alerts per event, set, fire, re-arm yearly and follow edits; convert `alert_lead_minutes`; remove FR-16's question; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
 | P-5 | The two `@rls-test.invalid` users left on the hosted database, see Defects | Nothing | user: delete or keep |
 
 ### Defects and incidents
@@ -168,3 +169,4 @@ Backend: everything passes except eight, none caused by this slice:
 | 2026-10-03 | P-0 updated: design change record drafted, canvas republished with 3 new and 11 changed artboards | User chose to write the design change record, then approved | user |
 | 2026-10-03 | P-0 updated: build plan change record and tech stack §3 approved; AD-8 locked | User chose to write the build plan change record, then approved | user |
 | 2026-10-03 | P-0 closed: index and 4.1 change records approved. P-4 is next | User chose to write them, then approved | user |
+| 2026-10-03 | P-4 updated: 4.2 drafted, 16 tasks, then approved with Q1 and Q2 answered; D-16 logged | User chose to draft 4.2, then approved | user |
