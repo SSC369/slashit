@@ -1,7 +1,8 @@
 """Repository contracts. Protocols, so a fake needs no inheritance."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol
 from uuid import UUID
 
@@ -10,7 +11,9 @@ from app.domains.expenses.interfaces.dtos import (
     ExpenseCategory,
     ExpenseChanges,
     ExpenseDTO,
+    ExpenseEmbeddingTargetDTO,
     ExpenseOriginValue,
+    ExpenseSearchPageDTO,
 )
 
 
@@ -69,3 +72,36 @@ class ExpenseRepository(Protocol):
     async def soft_delete(self, *, user_id: UUID, expense_id: UUID) -> bool:
         """Stamp ``deleted_at`` on one live expense. False if there was none."""
         ...
+
+    # Epic 006, sub-plan 4.3.
+    async def search_expenses(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        amount_paise: int | None,
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> ExpenseSearchPageDTO: ...
+
+    async def get_embedding(
+        self, *, user_id: UUID, expense_id: UUID
+    ) -> tuple[float, ...] | None: ...
+
+    async def get_description_needing_embedding(
+        self, *, user_id: UUID, expense_id: UUID
+    ) -> str | None: ...
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: UUID,
+        expense_id: UUID,
+        description: str,
+        embedding: Sequence[float],
+    ) -> bool: ...
+
+    async def select_missing_embeddings(
+        self, *, updated_since: datetime | None, after_id: UUID | None, limit: int
+    ) -> list[ExpenseEmbeddingTargetDTO]: ...

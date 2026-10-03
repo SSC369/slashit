@@ -40,6 +40,7 @@ const SEARCH_KIND_FILTER: Record<RecordType, RecordsKindFilter> = {
   TASK: "TASKS",
   REMINDER: "REMINDERS",
   MEMORY: "MEMORIES",
+  EXPENSE: "EXPENSES",
 };
 
 const isPaletteOpen = (input: string): boolean => input.startsWith("/") && !input.includes(" ");
@@ -440,6 +441,8 @@ const CommandCenterController = (): ReactElement => {
   const handleOpenExpenseSummary = (summary: ExpenseSummaryFieldsFragment): void => {
     store.expenses.selectPeriod(periodIdOf(summary));
     store.expenses.setCategoryFilter("ALL");
+    // Search text left from another tab would hide the period (4.3 Q3).
+    store.records.setSearchText("");
     store.records.setKindFilter("EXPENSES");
     navigate("/records");
   };
@@ -461,6 +464,9 @@ const CommandCenterController = (): ReactElement => {
         return;
       case "Memory":
         navigate(`/records/memories/${record.id}`);
+        return;
+      case "Expense":
+        navigate(`/records/expenses/${record.id}`);
         return;
     }
   };

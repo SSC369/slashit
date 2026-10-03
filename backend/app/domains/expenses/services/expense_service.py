@@ -7,6 +7,7 @@ cases, in ``interactors/``; no other domain calls them, so they are not
 published here (dev log D-2).
 """
 
+from collections.abc import Sequence
 from datetime import date
 from uuid import UUID
 
@@ -18,17 +19,23 @@ from app.domains.expenses.interfaces.dtos import (
     ExpenseCategory,
     ExpenseDTO,
     ExpenseFields,
+    ExpenseSearchPageDTO,
     ExpenseSummaryDTO,
     Period,
     PeriodKey,
     PeriodNotUnderstood,
 )
-from app.domains.expenses.interfaces.ports import ExpenseAnalyticsPort, LocalDatePort
+from app.domains.expenses.interfaces.ports import (
+    ExpenseAnalyticsPort,
+    ExpenseEmbedQueue,
+    LocalDatePort,
+)
 from app.domains.expenses.interfaces.repositories import (
     ExpenseRepository,
     ExpenseWrite,
 )
 from app.domains.expenses.services.periods import parse_period, picker_periods
+from app.domains.expenses.services.search_amount import amount_from_search
 
 logger = structlog.get_logger(__name__)
 
@@ -40,10 +47,12 @@ class ExpenseService:
         expense_repository: ExpenseRepository,
         analytics: ExpenseAnalyticsPort,
         local_date: LocalDatePort,
+        embed_queue: ExpenseEmbedQueue,
     ) -> None:
         self.expense_repository = expense_repository
         self.analytics = analytics
         self.local_date = local_date
+        self.embed_queue = embed_queue
 
     async def create_expense(
         self, *, user_id: UUID, fields: ExpenseFields, original_input: str
@@ -62,7 +71,41 @@ class ExpenseService:
             ),
         )
         await self._record_saved(user_id=user_id)
+        # Sub-plan 4.3: searchable by meaning once the job runs (005 AD-7).
+        await self.embed_queue.queue_expense_embed(
+            user_id=user_id, expense_id=expense.id, delay_seconds=0
+        )
         return expense
+
+    async def search_candidates(
+        self,
+        *,
+        user_id: UUID,
+        text: str,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> ExpenseSearchPageDTO:
+        """Sub-plan 4.3: the user's live expenses a search matches, by words,
+        meaning, or the whole search read as one exact amount (FR-30, Q1).
+        Ranking is search's, not decided here (005 AD-1)."""
+        return await self.expense_repository.search_expenses(
+            user_id=user_id,
+            terms=terms,
+            amount_paise=amount_from_search(text=text),
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+            limit=limit,
+        )
+
+    async def embedding_of(
+        self, *, user_id: UUID, expense_id: UUID
+    ) -> tuple[float, ...] | None:
+        """The live expense's stored vector, for related records (005 AD-6)."""
+        return await self.expense_repository.get_embedding(
+            user_id=user_id, expense_id=expense_id
+        )
 
     async def list_expenses(
         self,

@@ -7,6 +7,7 @@ id: the model refers to a record only by its number (build plan §5).
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from app.domains.expenses.public import ExpenseDTO
 from app.domains.memories.public import MemoryDTO
 from app.domains.records.public import TaskDTO
 from app.domains.reminders.public import ReminderDTO
@@ -37,7 +38,23 @@ def describe_record(
             text=item.description,
             detail=f"reminder, {item.summary.when_text}, {item.state}",
         )
+    if isinstance(item, ExpenseDTO):
+        return _describe_expense(number=number, expense=item)
     return _describe_memory(number=number, memory=item, timezone=timezone)
+
+
+def _describe_expense(*, number: int, expense: ExpenseDTO) -> AnswerRecordDTO:
+    """006 sub-plan 4.3: amount, day and category, so "how much did I spend
+    on uber" can be answered from the records alone."""
+    rupees, paise = divmod(expense.amount_paise, 100)
+    amount = f"₹{rupees}" if paise == 0 else f"₹{rupees}.{paise:02d}"
+    spent_on = expense.spent_on.strftime(_DATE_FORMAT)
+    return AnswerRecordDTO(
+        number=number,
+        record_type=RecordType.EXPENSE,
+        text=expense.description,
+        detail=f"expense, {amount} on {spent_on}, {expense.category.value}",
+    )
 
 
 def _describe_memory(

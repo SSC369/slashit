@@ -1,3 +1,4 @@
+import { toRecordItem } from "../../lib/recordItem";
 import type { RecordItem } from "../GetRecords/responseHandler";
 import type { SearchRecordsQuery } from "./operation.generated";
 
@@ -35,7 +36,7 @@ export const useResponseHandler = (): {
       case "SearchPage":
         onPageLoaded?.({
           query: result.query,
-          hits: result.hits,
+          hits: result.hits.map(toRecordItem),
           total: result.total,
           otherTypesTotal: result.otherTypesTotal,
           meaningUnavailable: result.meaningUnavailable,

@@ -30,6 +30,13 @@ fragment SearchResultsFields on SearchResults {
         ... on Memory {
           ...MemoryFields
         }
+        # Display fields only, none of which clash with Memory's (006 4.3).
+        ... on Expense {
+          id
+          amountPaise
+          description
+          spentOn
+        }
       }
     }
   }

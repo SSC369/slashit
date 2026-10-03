@@ -7,9 +7,10 @@ import { StoreProvider } from "@/stores/StoreProvider";
 import { buildExpense } from "@/testing/expenseFixture";
 import ExpenseDetailController from "./ExpenseDetailController";
 
-const { mockTriggerDeleteExpense, mockTriggerUpdateExpense } = vi.hoisted(() => ({
+const { mockTriggerDeleteExpense, mockTriggerUpdateExpense, mockTriggerRelated } = vi.hoisted(() => ({
   mockTriggerDeleteExpense: vi.fn(),
   mockTriggerUpdateExpense: vi.fn(),
+  mockTriggerRelated: vi.fn(),
 }));
 
 vi.mock("@/hooks/useOnlineStatus", () => ({ useOnlineStatus: () => true }));
@@ -24,6 +25,14 @@ vi.mock("@/api/mutations/UpdateExpense/useUpdateExpense", () => ({
 
 vi.mock("@/api/mutations/DeleteExpense/useDeleteExpense", () => ({
   default: () => ({ triggerAPI: mockTriggerDeleteExpense, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("@/api/queries/GetRelatedRecords/useGetRelatedRecords", () => ({
+  default: () => ({ triggerAPI: mockTriggerRelated, data: undefined, apiStatus: 0, apiError: null }),
+}));
+
+vi.mock("@/api/mutations/RecordSearchEvent/useRecordSearchEvent", () => ({
+  default: () => ({ triggerAPI: vi.fn(), apiStatus: 0, apiError: null }),
 }));
 
 const expense = buildExpense({ id: "e1" });
@@ -115,5 +124,16 @@ describe("ExpenseDetailController, F-5 of sub-plan 4.1", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(screen.getByText("Enter a description.")).toBeInTheDocument();
+  });
+});
+
+describe("ExpenseDetailController related records, F-13 of sub-plan 4.3", () => {
+  it("lists records close in meaning below the expense (005 FR-25)", () => {
+    const store = new RootStore();
+    store.expenses.upsert(expense);
+    renderDetail(store);
+
+    expect(screen.getByRole("region", { name: "Related records" })).toBeInTheDocument();
+    expect(mockTriggerRelated).toHaveBeenCalledWith({ recordType: "EXPENSE", id: "e1" });
   });
 });

@@ -1,0 +1,15 @@
+# An expense inside a union selection beside Memory (records, search, related).
+# Not ExpenseFields: Memory's `category` and nullable `originalInput` share the
+# selection set, so the clashing fields are aliased here and renamed back by
+# `toRecordItem` in api/lib/recordItem.ts (dev log D-11).
+fragment ExpenseRecordFields on Expense {
+  id
+  amountPaise
+  description
+  expenseCategory: category
+  spentOn
+  origin
+  expenseOriginalInput: originalInput
+  createdAt
+  updatedAt
+}

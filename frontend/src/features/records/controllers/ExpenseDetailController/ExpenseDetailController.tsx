@@ -16,6 +16,7 @@ import type { UpdateExpenseInput } from "../../../../../types.generated";
 import { isSessionEndedError } from "../../../../utils/isSessionEndedError";
 import { formatRupees, paiseToInput, parseRupees } from "../../../../utils/money";
 import DeleteConfirmModal from "../../components/DeleteConfirmModal";
+import RelatedRecordsController from "../RelatedRecordsController/RelatedRecordsController";
 import ExpenseDetailView, { ExpenseDetailSkeleton } from "../../components/ExpenseDetailView";
 import ExpenseEditForm, {
   type ExpenseDraft,
@@ -219,12 +220,16 @@ const ExpenseDetailController = (props: ExpenseDetailControllerProps): ReactElem
       );
     }
     return (
-      <ExpenseDetailView
-        expense={expense}
-        isOffline={!isOnline}
-        onEdit={() => navigate(`/records/expenses/${id}/edit`)}
-        onDelete={openDelete}
-      />
+      <>
+        <ExpenseDetailView
+          expense={expense}
+          isOffline={!isOnline}
+          onEdit={() => navigate(`/records/expenses/${id}/edit`)}
+          onDelete={openDelete}
+        />
+        {/* 005 FR-25, for expenses from sub-plan 4.3. */}
+        <RelatedRecordsController recordType="EXPENSE" id={expense.id} />
+      </>
     );
   };
 

@@ -1,3 +1,4 @@
+#import "../../../fragments/ExpenseRecordFields.graphql"
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
@@ -18,19 +19,8 @@ query GetRecords($filter: RecordsFilterInput) {
     ... on Event {
       ...EventFields
     }
-    # Not ExpenseFields: Memory's `category` and nullable `originalInput`
-    # share this selection set, so the clashing fields are aliased here and
-    # renamed back in the response handler.
     ... on Expense {
-      id
-      amountPaise
-      description
-      expenseCategory: category
-      spentOn
-      origin
-      expenseOriginalInput: originalInput
-      createdAt
-      updatedAt
+      ...ExpenseRecordFields
     }
   }
 }

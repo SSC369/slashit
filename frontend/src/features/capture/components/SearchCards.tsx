@@ -2,12 +2,15 @@ import { AlertCircle, AlertTriangle, ArrowRight, Check, Clock, Search, Sparkles 
 import { Fragment, type KeyboardEvent, type ReactElement } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
+import ExpenseMarker from "../../../components/ExpenseMarker";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Button from "../../../design-system/components/Button";
 import type { SearchResultsFieldsFragment } from "../../../fragments/SearchResultsFields.generated";
 import type { RecordType, SearchEventKind } from "../../../../types.generated";
 import { cn } from "../../../utils/cn";
 import { formatShortDate } from "../../../utils/formatDate";
+import { formatDayShort } from "../../../utils/localDate";
+import { formatRupees, parseRupees, spokenRupees } from "../../../utils/money";
 import * as Styles from "./styles";
 
 type SearchGroupFragment = SearchResultsFieldsFragment["groups"][number];
@@ -26,12 +29,15 @@ const GROUP_LABEL: Record<RecordType, string> = {
   TASK: "Tasks",
   REMINDER: "Reminders",
   MEMORY: "Memories",
+  EXPENSE: "Expenses",
 };
 
-const GROUP_DOT: Record<RecordType, string> = {
-  TASK: Styles.typeDotTaskStyles,
-  REMINDER: Styles.typeDotReminderStyles,
-  MEMORY: Styles.typeDotMemoryStyles,
+const GROUP_MARKER: Record<RecordType, ReactElement> = {
+  TASK: <span className={Styles.typeDotTaskStyles} />,
+  REMINDER: <span className={Styles.typeDotReminderStyles} />,
+  MEMORY: <span className={Styles.typeDotMemoryStyles} />,
+  // 006 design change 2026-10-03: the ₹ marker, as in Records.
+  EXPENSE: <ExpenseMarker />,
 };
 
 interface SearchResultsCardProps {
@@ -123,7 +129,12 @@ export const SearchResultsCard = (props: SearchResultsCardProps): ReactElement =
         />
       ))}
       <div className={Styles.cardFootStyles}>
-        <span>Best match first · only your records are searched</span>
+        <span>
+          {/* 006 design §8 (`SearchExpense`, FR-30): said only when the search is a number. */}
+          {parseRupees(results.query) === null
+            ? "Best match first · only your records are searched"
+            : "A number also matches expenses of exactly that amount"}
+        </span>
         <Button size="sm" onClick={() => onSeeAll(null, results.query)}>
           Open in Records <ArrowRight size={14} />
         </Button>
@@ -232,7 +243,7 @@ const SearchGroup = (props: SearchGroupProps): ReactElement => {
     <div className={cn(Styles.searchGroupStyles, !isFirst && Styles.searchGroupSeparatorStyles)}>
       <div className={Styles.searchGroupHeadStyles}>
         <span className={Styles.searchGroupLabelStyles}>
-          <span className={GROUP_DOT[group.recordType]} />
+          {GROUP_MARKER[group.recordType]}
           {GROUP_LABEL[group.recordType]}
         </span>
         {hasMore ? (
@@ -301,6 +312,8 @@ const recordTitle = (record: SearchRecordFragment): string => {
       return record.description;
     case "Memory":
       return record.text;
+    case "Expense":
+      return record.description;
     default:
       return assertNever(record);
   }
@@ -352,6 +365,18 @@ const SearchHitCells = (props: {
           <span className={Styles.searchHitDateStyles}>{formatShortDate(record.createdAt)}</span>
           <span className={Styles.searchHitStatusStyles}>
             <CategoryTag category={record.category} />
+          </span>
+        </>
+      );
+    // 006 `SearchExpense`: the day spent, and the amount where others show a status.
+    case "Expense":
+      return (
+        <>
+          <span className={Styles.searchHitTitleStyles}>{record.description}</span>
+          <RowCitation citation={citation} />
+          <span className={Styles.searchHitDateStyles}>{formatDayShort(record.spentOn)}</span>
+          <span className={cn(Styles.searchHitStatusStyles, Styles.amountStyles)} aria-label={spokenRupees(record.amountPaise)}>
+            {formatRupees(record.amountPaise)}
           </span>
         </>
       );

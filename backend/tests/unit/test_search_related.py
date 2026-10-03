@@ -46,6 +46,7 @@ class _VectorPort:
         self,
         *,
         user_id: uuid.UUID,
+        text: str,
         terms: Sequence[str],
         query_embedding: Sequence[float] | None,
         max_distance: float,

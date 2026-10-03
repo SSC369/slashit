@@ -55,11 +55,11 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
   const isEventsTab = kindFilter === "EVENTS";
   // Epic 005, FR-22: any text in the box moves every tab onto search's own
   // matching; the tab lists below serve only the unsearched view. Events are
-  // not searchable until epic 007's slice 2 (FR-30), and expenses until epic
-  // 006's slice 3, so text left in the box from another tab does not apply
-  // on either tab.
+  // not searchable until epic 007's slice 2 (FR-30), so text left in the box
+  // from another tab does not apply there. Expenses search their own type
+  // (006 sub-plan 4.3, Q3), across all time, with the period hidden.
   const isExpensesTab = kindFilter === "EXPENSES";
-  const isSearching = trimmedSearch !== "" && !isEventsTab && !isExpensesTab;
+  const isSearching = trimmedSearch !== "" && !isEventsTab;
 
   useEffect(() => {
     if (initialKindFilter !== undefined) store.records.setKindFilter(initialKindFilter);
@@ -180,19 +180,19 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
               ))}
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
-              {isExpensesTab && (
+              {isExpensesTab && !isSearching && (
                 <ExpensePeriodSelect
                   periods={store.expenses.periods}
                   selected={store.expenses.selectedPeriod}
                   onSelect={store.expenses.selectPeriod}
                 />
               )}
-              {!isEventsTab && !isExpensesTab && (
+              {!isEventsTab && (
                 <div className={RecordsStyles.searchBoxStyles}>
                   <input
                     className={RecordsStyles.searchInputStyles}
                     type="text"
-                    placeholder={isMemoriesTab ? "Search memories" : "Search records"}
+                    placeholder={isMemoriesTab ? "Search memories" : isExpensesTab ? "Search expenses" : "Search records"}
                     value={searchText}
                     maxLength={MAX_SEARCH_LENGTH}
                     onChange={handleSearchChange}

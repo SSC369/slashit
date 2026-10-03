@@ -66,10 +66,12 @@ from app.domains.events.repositories.calendar_event_repository import (
 )
 from app.domains.events.services.event_service import EventService
 from app.domains.expenses.adapters.analytics_adapter import ExpenseAnalyticsAdapter
+from app.domains.expenses.adapters.gateway_adapter import GatewayExpenseEmbeddingAdapter
 from app.domains.expenses.adapters.identity_clock_adapter import (
     IdentityLocalDateAdapter,
 )
 from app.domains.expenses.interactors.delete_expense import DeleteExpenseInteractor
+from app.domains.expenses.interactors.embed_expense import EmbedExpenseInteractor
 from app.domains.expenses.interactors.get_expense import GetExpenseInteractor
 from app.domains.expenses.interactors.get_expense_summary import (
     GetExpenseSummaryInteractor,
@@ -78,8 +80,12 @@ from app.domains.expenses.interactors.list_expense_periods import (
     ListExpensePeriodsInteractor,
 )
 from app.domains.expenses.interactors.list_expenses import ListExpensesInteractor
+from app.domains.expenses.interactors.queue_missing_expense_embeddings import (
+    QueueMissingExpenseEmbeddingsInteractor,
+)
 from app.domains.expenses.interactors.update_expense import UpdateExpenseInteractor
 from app.domains.expenses.repositories.expense_repository import SqlExpenseRepository
+from app.domains.expenses.services.embed_queue import ProcrastinateExpenseEmbedQueue
 from app.domains.expenses.services.expense_service import ExpenseService
 from app.domains.gateway.interactors.embed import EmbedInteractor
 from app.domains.gateway.interactors.extract import ExtractInteractor
@@ -211,6 +217,7 @@ from app.domains.reminders.services.embed_queue import (
 from app.domains.reminders.services.firing_queue import ProcrastinateFiringQueue
 from app.domains.reminders.services.reminder_service import ReminderService
 from app.domains.search.adapters.analytics_adapter import SearchAnalyticsAdapter
+from app.domains.search.adapters.expenses_adapter import ExpenseSearchAdapter
 from app.domains.search.adapters.gateway_adapter import GatewayQueryEmbeddingAdapter
 from app.domains.search.adapters.gateway_answer_adapter import GatewayAnswerAdapter
 from app.domains.search.adapters.identity_adapter import IdentityTimezoneAdapter
@@ -914,6 +921,7 @@ def build_search_service(context: Context) -> SearchService:
             TaskSearchAdapter(records_service=_build_records_service(context=context)),
             ReminderSearchAdapter(reminder_service=build_reminder_service(context)),
             MemorySearchAdapter(memory_service=build_memory_service(context)),
+            ExpenseSearchAdapter(expense_service=build_expense_service(context)),
         ],
         query_embedding=GatewayQueryEmbeddingAdapter(
             embed_interactor=build_embed_interactor(
@@ -1015,6 +1023,7 @@ def build_expense_service(context: Context) -> ExpenseService:
         local_date=IdentityLocalDateAdapter(
             identity_service=_build_identity_service(context=context)
         ),
+        embed_queue=ProcrastinateExpenseEmbedQueue(),
     )
 
 
@@ -1046,6 +1055,32 @@ def build_update_expense_interactor(context: Context) -> UpdateExpenseInteractor
     return UpdateExpenseInteractor(
         expense_repository=SqlExpenseRepository(context.session),
         analytics=_build_expense_analytics_port(session=context.session),
+        embed_queue=ProcrastinateExpenseEmbedQueue(),
+    )
+
+
+def build_embed_expense_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> EmbedExpenseInteractor:
+    """For the `expenses.embed_expense` job, which has no request context."""
+    return EmbedExpenseInteractor(
+        expense_repository=SqlExpenseRepository(session),
+        embedding=GatewayExpenseEmbeddingAdapter(
+            embed_interactor=build_embed_interactor(
+                session_factory=session_factory, settings=get_settings()
+            )
+        ),
+    )
+
+
+def build_queue_missing_expense_embeddings_interactor(
+    session: AsyncSession,
+) -> QueueMissingExpenseEmbeddingsInteractor:
+    """For the `expenses.backfill_embeddings` job, which has no request context."""
+    return QueueMissingExpenseEmbeddingsInteractor(
+        expense_repository=SqlExpenseRepository(session),
+        embed_queue=ProcrastinateExpenseEmbedQueue(),
+        now_provider=_utc_now,
     )
 
 

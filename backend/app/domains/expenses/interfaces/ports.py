@@ -33,3 +33,21 @@ class ExpenseAnalyticsPort(Protocol):
         """PRD §8's summaries metric. ``from_command`` tells ``/expenses`` from
         the Records band. Never a total."""
         ...
+
+
+class ExpenseEmbeddingPort(Protocol):
+    """The meaning of a description, stored as a document (005 D-22). None on
+    any gateway failure: the embed job then retries."""
+
+    async def embed_expense_description(
+        self, *, user_id: UUID, description: str
+    ) -> tuple[float, ...] | None: ...
+
+
+class ExpenseEmbedQueue(Protocol):
+    """Queues one expense's embed off the request path (sub-plan 4.3). Never
+    fails the save that called it."""
+
+    async def queue_expense_embed(
+        self, *, user_id: UUID, expense_id: UUID, delay_seconds: int
+    ) -> None: ...

@@ -733,6 +733,7 @@ export type RecordSearchEventInput = {
 };
 
 export type RecordType =
+  | 'EXPENSE'
   | 'MEMORY'
   | 'REMINDER'
   | 'TASK';
@@ -875,7 +876,7 @@ export type SearchPage = {
 
 export type SearchPageResult = SearchPage | SearchTooLong;
 
-export type SearchRecord = Memory | Reminder | Task;
+export type SearchRecord = Expense | Memory | Reminder | Task;
 
 export type SearchResults = {
   __typename?: 'SearchResults';

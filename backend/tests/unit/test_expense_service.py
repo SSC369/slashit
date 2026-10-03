@@ -10,6 +10,7 @@ from app.domains.expenses.interfaces.dtos import (
 )
 from app.domains.expenses.services.expense_service import ExpenseService
 from tests.fakes.fake_expense_analytics_port import FakeExpenseAnalyticsPort
+from tests.fakes.fake_expense_embed_queue import FakeExpenseEmbedQueue
 from tests.fakes.fake_expense_repository import FakeExpenseRepository
 from tests.fakes.fake_local_date_port import FakeLocalDatePort
 
@@ -23,6 +24,30 @@ class FailingAnalytics:
         raise RuntimeError("events table unavailable")
 
 
+async def test_a_saved_expense_is_queued_for_its_meaning_vector() -> None:
+    """Sub-plan 4.3: searchable by meaning once the job runs (005 AD-7)."""
+    queue = FakeExpenseEmbedQueue()
+    service = ExpenseService(
+        expense_repository=FakeExpenseRepository(),
+        analytics=FakeExpenseAnalyticsPort(),
+        local_date=FakeLocalDatePort(today=date(2026, 10, 2)),
+        embed_queue=queue,
+    )
+
+    expense = await service.create_expense(
+        user_id=USER,
+        fields=ExpenseFields(
+            amount_paise=85_000,
+            description="dinner",
+            category=ExpenseCategory.FOOD,
+            spent_on=date(2026, 10, 1),
+        ),
+        original_input="/add-expense ₹850 dinner yesterday",
+    )
+
+    assert queue.queued == [(USER, expense.id, 0)]
+
+
 async def test_create_saves_from_a_command_and_records_the_save() -> None:
     """G1's metric: one event per save, with no text or amount in it."""
     repository = FakeExpenseRepository()
@@ -31,6 +56,7 @@ async def test_create_saves_from_a_command_and_records_the_save() -> None:
         expense_repository=repository,
         analytics=analytics,
         local_date=FakeLocalDatePort(today=date(2026, 10, 2)),
+        embed_queue=FakeExpenseEmbedQueue(),
     )
 
     expense = await service.create_expense(
@@ -58,6 +84,7 @@ async def test_a_lost_event_never_fails_the_save() -> None:
         expense_repository=repository,
         analytics=FailingAnalytics(),
         local_date=FakeLocalDatePort(today=date(2026, 10, 2)),
+        embed_queue=FakeExpenseEmbedQueue(),
     )
 
     await service.create_expense(
@@ -86,6 +113,7 @@ def _summary_service(
         expense_repository=repository,
         analytics=analytics,
         local_date=FakeLocalDatePort(today=TODAY),
+        embed_queue=FakeExpenseEmbedQueue(),
     )
 
 

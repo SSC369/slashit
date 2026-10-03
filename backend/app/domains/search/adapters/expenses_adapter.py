@@ -1,9 +1,10 @@
-"""Implements search's SearchPort for memories against the memories domain."""
+"""Implements search's SearchPort for expenses against the expenses domain
+(006 sub-plan 4.3)."""
 
 from collections.abc import Sequence
 from uuid import UUID
 
-from app.domains.memories.public import MemoryService
+from app.domains.expenses.public import ExpenseService
 from app.domains.search.interfaces.dtos import (
     CandidatePageDTO,
     RecordType,
@@ -11,13 +12,13 @@ from app.domains.search.interfaces.dtos import (
 )
 
 
-class MemorySearchAdapter:
-    def __init__(self, *, memory_service: MemoryService) -> None:
-        self.memory_service = memory_service
+class ExpenseSearchAdapter:
+    def __init__(self, *, expense_service: ExpenseService) -> None:
+        self.expense_service = expense_service
 
     @property
     def record_type(self) -> RecordType:
-        return RecordType.MEMORY
+        return RecordType.EXPENSE
 
     async def search_candidates(
         self,
@@ -29,8 +30,9 @@ class MemorySearchAdapter:
         max_distance: float,
         limit: int,
     ) -> CandidatePageDTO:
-        page = await self.memory_service.search_candidates(
+        page = await self.expense_service.search_candidates(
             user_id=user_id,
+            text=text,
             terms=terms,
             query_embedding=query_embedding,
             max_distance=max_distance,
@@ -39,9 +41,9 @@ class MemorySearchAdapter:
         return CandidatePageDTO(
             candidates=[
                 SearchCandidate(
-                    record_type=RecordType.MEMORY,
-                    record_id=match.memory.id,
-                    item=match.memory,
+                    record_type=RecordType.EXPENSE,
+                    record_id=match.expense.id,
+                    item=match.expense,
                     all_terms=match.all_terms,
                     word_rank=match.word_rank,
                     distance=match.distance,
@@ -54,6 +56,6 @@ class MemorySearchAdapter:
     async def embedding_of(
         self, *, user_id: UUID, record_id: UUID
     ) -> tuple[float, ...] | None:
-        return await self.memory_service.embedding_of(
-            user_id=user_id, memory_id=record_id
+        return await self.expense_service.embedding_of(
+            user_id=user_id, expense_id=record_id
         )

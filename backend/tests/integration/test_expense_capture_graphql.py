@@ -141,7 +141,9 @@ async def test_chained_questions_keep_the_draft_in_the_database(
         == 1
     )
 
-    description = await _answer(client, headers, choice["pendingCaptureId"], "chip:18000")
+    description = await _answer(
+        client, headers, choice["pendingCaptureId"], "chip:18000"
+    )
 
     assert description["kind"] == "DESCRIPTION"
     async with session_factory() as session:

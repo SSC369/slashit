@@ -1,3 +1,4 @@
+#import "../../../fragments/ExpenseRecordFields.graphql"
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
@@ -13,6 +14,9 @@ query GetRelatedRecords($recordType: RecordType!, $id: ID!) {
     }
     ... on Memory {
       ...MemoryFields
+    }
+    ... on Expense {
+      ...ExpenseRecordFields
     }
   }
 }

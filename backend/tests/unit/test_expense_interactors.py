@@ -29,6 +29,7 @@ from app.domains.expenses.interfaces.dtos import (
 )
 from app.domains.expenses.interfaces.repositories import ExpenseWrite
 from tests.fakes.fake_expense_analytics_port import FakeExpenseAnalyticsPort
+from tests.fakes.fake_expense_embed_queue import FakeExpenseEmbedQueue
 from tests.fakes.fake_expense_repository import FakeExpenseRepository
 
 USER = uuid.uuid4()
@@ -62,7 +63,11 @@ def _updater(
 ) -> tuple[UpdateExpenseInteractor, FakeExpenseAnalyticsPort]:
     analytics = FakeExpenseAnalyticsPort()
     return (
-        UpdateExpenseInteractor(expense_repository=repository, analytics=analytics),
+        UpdateExpenseInteractor(
+            expense_repository=repository,
+            analytics=analytics,
+            embed_queue=FakeExpenseEmbedQueue(),
+        ),
         analytics,
     )
 
@@ -158,6 +163,26 @@ async def test_each_field_changes_and_a_description_edit_keeps_the_category() ->
     assert updated.category == ExpenseCategory.ENTERTAINMENT
 
     assert analytics.events == ["expense_amount_edited", "expense_category_edited"]
+
+
+async def test_only_a_description_edit_queues_a_new_vector() -> None:
+    """Sub-plan 4.3: the old vector describes the old words, so the job runs
+    again; an amount, category or date edit keeps the vector it has."""
+    repository = FakeExpenseRepository()
+    expense = await _save(repository)
+    queue = FakeExpenseEmbedQueue()
+    interactor = UpdateExpenseInteractor(
+        expense_repository=repository,
+        analytics=FakeExpenseAnalyticsPort(),
+        embed_queue=queue,
+    )
+
+    await _update(interactor, expense, ExpenseChanges(amount_paise=90_000))
+    await _update(interactor, expense, ExpenseChanges(description="dinner"))
+    assert queue.queued == []
+
+    await _update(interactor, expense, ExpenseChanges(description="team dinner"))
+    assert queue.queued == [(USER, expense.id, 0)]
 
 
 async def test_any_date_is_accepted_on_edit_including_the_future() -> None:

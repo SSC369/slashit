@@ -22,7 +22,10 @@ from app.domains.search.interfaces.dtos import (
 class SearchPort(Protocol):
     """One record type's search. Matches when any term is present or the
     record is within ``max_distance`` of the query vector; deleted records
-    never match; every call runs as the user, under Row Level Security."""
+    never match; every call runs as the user, under Row Level Security.
+
+    ``text`` is the whole search as typed. Only expenses read it, to match an
+    exact amount (006 sub-plan 4.3 Q1); the other types ignore it."""
 
     @property
     def record_type(self) -> RecordType: ...
@@ -31,6 +34,7 @@ class SearchPort(Protocol):
         self,
         *,
         user_id: UUID,
+        text: str,
         terms: Sequence[str],
         query_embedding: Sequence[float] | None,
         max_distance: float,

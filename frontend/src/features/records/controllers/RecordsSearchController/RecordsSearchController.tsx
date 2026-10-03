@@ -30,8 +30,8 @@ const TAB_RECORD_TYPE: Record<RecordsKindFilter, RecordType | null> = {
   MEMORIES: "MEMORY",
   // Unreachable until slice 2 (FR-30): the Events tab does not search yet.
   EVENTS: null,
-  // Search reaches expenses in slice 3; until then the tab has no search box.
-  EXPENSES: null,
+  // 006 sub-plan 4.3: the Expenses tab searches expenses only (Q3).
+  EXPENSES: "EXPENSE",
 };
 
 const TAB_NOUN: Record<RecordsKindFilter, string> = {

@@ -9,6 +9,7 @@ import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
 import { EventFieldsFragmentDoc } from '../../../fragments/EventFields.generated';
+import { ExpenseRecordFieldsFragmentDoc } from '../../../fragments/ExpenseRecordFields.generated';
 export type EventStatusType =
   | 'HAPPENING_NOW'
   | 'PAST'
@@ -88,19 +89,12 @@ export const GetRecordsDocument = gql`
       ...EventFields
     }
     ... on Expense {
-      id
-      amountPaise
-      description
-      expenseCategory: category
-      spentOn
-      origin
-      expenseOriginalInput: originalInput
-      createdAt
-      updatedAt
+      ...ExpenseRecordFields
     }
   }
 }
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
 ${MemoryFieldsFragmentDoc}
-${EventFieldsFragmentDoc}`;
+${EventFieldsFragmentDoc}
+${ExpenseRecordFieldsFragmentDoc}`;

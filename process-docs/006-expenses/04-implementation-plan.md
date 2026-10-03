@@ -65,7 +65,7 @@ slice before each lands, as 004 and 005 did.
 |---|---|---|---|---|
 | 1 | [04.1-record-and-browse.md](./04.1-record-and-browse.md) | `/add-expense` saves with amount, description, category and date; the four questions, the calendar and the refusals work; Expenses tab, All tab, detail, edit and delete work, with every drawn state | none | approved 2026-10-02; built, see dev log |
 | 2 | [04.2-summaries.md](./04.2-summaries.md) | `/expenses` with and without a period; the summary card and its states; period picker, category filter and band on the Expenses tab; totals match | 1 | approved 2026-10-02; building |
-| 3 | [04.3-search.md](./04.3-search.md) | Embed job fills vectors; `/search` and Records search find expenses by words, meaning and exact amount | 1 | approved 2026-10-03; building |
+| 3 | [04.3-search.md](./04.3-search.md) | Embed job fills vectors; `/search` and Records search find expenses by words, meaning and exact amount | 1 | approved 2026-10-03; built, see dev log |
 
 Slices 2 and 3 are independent of each other and may be built in either order.
 

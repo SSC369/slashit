@@ -1,3 +1,4 @@
+#import "../../../fragments/ExpenseRecordFields.graphql"
 #import "../../../fragments/TaskFields.graphql"
 #import "../../../fragments/ReminderFields.graphql"
 #import "../../../fragments/MemoryFields.graphql"
@@ -20,6 +21,9 @@ query SearchRecords($text: String!, $recordType: RecordType, $offset: Int!, $lim
         }
         ... on Memory {
           ...MemoryFields
+        }
+        ... on Expense {
+          ...ExpenseRecordFields
         }
       }
     }

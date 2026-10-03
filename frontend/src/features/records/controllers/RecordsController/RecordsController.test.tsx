@@ -94,6 +94,17 @@ vi.mock("../../../../api/mutations/RecordSearchEvent/useRecordSearchEvent", () =
   default: () => ({ triggerAPI: mockRecordSearchEvent, apiStatus: 0, apiError: null }),
 }));
 
+// The Expenses tab's own loads, inert: these tests drive its search box only.
+vi.mock("../../../../api/queries/GetExpensePeriods/useGetExpensePeriods", () => ({
+  default: () => ({ triggerAPI: vi.fn(), data: undefined, apiStatus: 0, apiError: null }),
+}));
+vi.mock("../../../../api/queries/GetExpenses/useGetExpenses", () => ({
+  default: () => ({ triggerAPI: vi.fn(), data: undefined, apiStatus: 0, apiError: null }),
+}));
+vi.mock("../../../../api/queries/GetExpenseSummary/useGetExpenseSummary", () => ({
+  default: () => ({ triggerAPI: vi.fn(), data: undefined, apiStatus: 0, apiError: null }),
+}));
+
 vi.mock("../../../../api/mutations/RecordsViewOpened/useRecordsViewOpened", () => ({
   default: () => mockUseRecordsViewOpened(),
 }));
@@ -455,6 +466,20 @@ describe("RecordsController search", () => {
     expect(titles[1]).toContain("Ask Priya");
     expect(screen.getByText("3 records match “career” · best match first")).toBeInTheDocument();
     expect(screen.getByText("/search")).toBeInTheDocument();
+  });
+
+  it("searches expenses only on the Expenses tab, with the period hidden (006 4.3 F-12, Q3)", () => {
+    renderWithProviders();
+    fireEvent.click(screen.getByRole("button", { name: "Expenses" }));
+    expect(screen.getByRole("button", { name: /^Period,/ })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("Search expenses"), { target: { value: "uber" } });
+    act(() => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(mockTriggerSearch).toHaveBeenCalledWith({ text: "uber", recordType: "EXPENSE", offset: 0, limit: 50 });
+    expect(screen.queryByRole("button", { name: /^Period,/ })).not.toBeInTheDocument();
   });
 
   it("toggles to date order, newest first (FR-23)", () => {

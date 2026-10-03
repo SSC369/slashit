@@ -23,6 +23,7 @@ class TaskSearchAdapter:
         self,
         *,
         user_id: UUID,
+        text: str,
         terms: Sequence[str],
         query_embedding: Sequence[float] | None,
         max_distance: float,

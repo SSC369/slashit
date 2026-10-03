@@ -133,6 +133,33 @@ class PeriodNotUnderstood:
 
 
 @dataclass(frozen=True)
+class ExpenseSearchMatchDTO:
+    """One expense a search matched, with the scores search ranks by (005
+    AD-3). ``word_rank`` is None when no term is present; ``distance`` is None
+    when the expense has no vector yet or the search had none. An exact amount
+    match counts as every term present (sub-plan 4.3 Q2)."""
+
+    expense: ExpenseDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class ExpenseSearchPageDTO:
+    matches: list[ExpenseSearchMatchDTO]
+    total: int
+
+
+@dataclass(frozen=True)
+class ExpenseEmbeddingTargetDTO:
+    """An expense the embed backfill should queue: owner and id only."""
+
+    user_id: UUID
+    expense_id: UUID
+
+
+@dataclass(frozen=True)
 class ExpenseChanges:
     """An edit. Every field is optional; None means unchanged (FR-21)."""
 

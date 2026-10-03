@@ -202,3 +202,61 @@ describe("SearchResultsCard with a question", () => {
     expect(screen.queryByText(/No answer this time/)).not.toBeInTheDocument();
   });
 });
+
+/** Epic 006, sub-plan 4.3, F-11 (`SearchExpense`, FR-29, FR-30). */
+describe("SearchResultsCard with expenses", () => {
+  it("draws an Expenses group with the ₹ marker, the day and the amount, and says why a number matched", () => {
+    const onOpenRecord = vi.fn();
+    const results = buildSearchResults({
+      query: "850",
+      groups: [
+        {
+          recordType: "EXPENSE",
+          total: 2,
+          hits: [
+            {
+              citation: null,
+              record: {
+                __typename: "Expense" as const,
+                id: "e1",
+                amountPaise: "85000",
+                description: "Dinner with friends",
+                spentOn: "2026-10-01",
+              },
+            },
+            {
+              citation: null,
+              record: {
+                __typename: "Expense" as const,
+                id: "e2",
+                amountPaise: "85000",
+                description: "Gym membership",
+                spentOn: "2026-09-01",
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SearchResultsCard results={results} onOpenRecord={onOpenRecord} onSeeAll={vi.fn()} />);
+
+    expect(screen.getByText("Expenses")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Expense" })).toBeInTheDocument();
+    expect(screen.getByText("Thu 1 Oct")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("850 rupees")).toHaveLength(2);
+    expect(screen.getByText("A number also matches expenses of exactly that amount")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Gym membership"));
+    expect(onOpenRecord).toHaveBeenCalledWith(expect.objectContaining({ __typename: "Expense", id: "e2" }), {
+      kind: "SEARCH_RESULT_OPENED",
+      position: 2,
+    });
+  });
+
+  it("keeps the usual footer for a word search", () => {
+    render(<SearchResultsCard results={buildSearchResults()} onOpenRecord={vi.fn()} onSeeAll={vi.fn()} />);
+
+    expect(screen.getByText("Best match first · only your records are searched")).toBeInTheDocument();
+  });
+});

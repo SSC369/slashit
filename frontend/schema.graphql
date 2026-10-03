@@ -505,6 +505,7 @@ enum RecordType {
   TASK
   REMINDER
   MEMORY
+  EXPENSE
 }
 
 input RecordsFilterInput {
@@ -636,7 +637,7 @@ type SearchPage {
 
 union SearchPageResult = SearchPage | SearchTooLong
 
-union SearchRecord = Task | Reminder | Memory
+union SearchRecord = Task | Reminder | Memory | Expense
 
 type SearchResults {
   query: String!

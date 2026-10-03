@@ -1,3 +1,4 @@
+import { toRecordItem } from "../../lib/recordItem";
 import type { RecordItem } from "../GetRecords/responseHandler";
 import type { GetRelatedRecordsQuery } from "./operation.generated";
 
@@ -15,7 +16,7 @@ export const useResponseHandler = (): {
   const handleResponse = (args: UseResponseHandlerArgs): void => {
     const { data, onRelatedLoaded } = args;
     if (!data?.relatedRecords) return;
-    onRelatedLoaded?.(data.relatedRecords);
+    onRelatedLoaded?.(data.relatedRecords.map(toRecordItem));
   };
 
   return { handleResponse };

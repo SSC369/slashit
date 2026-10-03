@@ -24,3 +24,10 @@ EXPENSE_CATEGORIES: Final[tuple[str, ...]] = (
 
 # Slice 3's embed job fills the column; the width is fixed now (005 AD-2).
 EXPENSE_EMBEDDING_DIMENSIONS: Final = 768
+
+# Sub-plan 4.3, after reminders' (005 AD-7): the embed job's attempts before the
+# vector is left NULL for the backfill, and the backfill's sizes.
+EMBED_MAX_ATTEMPTS: Final = 3
+EMBEDDING_BACKFILL_BATCH: Final = 100
+EMBEDDING_BACKFILL_WINDOW_HOURS: Final = 24
+BACKFILL_CALLS_PER_SECOND: Final = 5

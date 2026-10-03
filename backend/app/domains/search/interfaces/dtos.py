@@ -12,12 +12,13 @@ from uuid import UUID
 
 import strawberry
 
+from app.domains.expenses.public import Expense, ExpenseDTO, expense_dto_to_type
 from app.domains.memories.public import Memory, MemoryDTO, memory_dto_to_type
 from app.domains.records.public import Task, TaskDTO, task_dto_to_type
 from app.domains.reminders.public import Reminder, ReminderDTO, reminder_dto_to_type
 from app.domains.search.constants import MAX_SEARCH_LENGTH
 
-RecordDTO = TaskDTO | ReminderDTO | MemoryDTO
+RecordDTO = TaskDTO | ReminderDTO | MemoryDTO | ExpenseDTO
 
 
 @strawberry.enum
@@ -25,6 +26,8 @@ class RecordType(StrEnum):
     TASK = "task"
     REMINDER = "reminder"
     MEMORY = "memory"
+    # 006 sub-plan 4.3: expenses are searchable from the day they ship (FR-29).
+    EXPENSE = "expense"
 
 
 @dataclass(frozen=True)
@@ -149,7 +152,9 @@ class RelatedRecordDTO:
     item: RecordDTO
 
 
-SearchRecord = Annotated[Task | Reminder | Memory, strawberry.union("SearchRecord")]
+SearchRecord = Annotated[
+    Task | Reminder | Memory | Expense, strawberry.union("SearchRecord")
+]
 
 
 @strawberry.type
@@ -253,9 +258,11 @@ def search_too_long_to_type(*, too_long: SearchTooLongDTO) -> SearchTooLong:
     return SearchTooLong(length=too_long.length, limit=too_long.limit)
 
 
-def _record_to_type(*, item: RecordDTO) -> Task | Reminder | Memory:
+def _record_to_type(*, item: RecordDTO) -> Task | Reminder | Memory | Expense:
     if isinstance(item, TaskDTO):
         return task_dto_to_type(task=item)
     if isinstance(item, ReminderDTO):
         return reminder_dto_to_type(reminder=item)
+    if isinstance(item, ExpenseDTO):
+        return expense_dto_to_type(expense=item)
     return memory_dto_to_type(memory=item)

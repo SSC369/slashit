@@ -8,6 +8,17 @@ import { gql } from '@apollo/client';
 import { TaskFieldsFragmentDoc } from '../../../fragments/TaskFields.generated';
 import { ReminderFieldsFragmentDoc } from '../../../fragments/ReminderFields.generated';
 import { MemoryFieldsFragmentDoc } from '../../../fragments/MemoryFields.generated';
+import { ExpenseRecordFieldsFragmentDoc } from '../../../fragments/ExpenseRecordFields.generated';
+export type ExpenseCategory =
+  | 'BILLS'
+  | 'ENTERTAINMENT'
+  | 'FOOD'
+  | 'HEALTH'
+  | 'OTHER'
+  | 'SHOPPING'
+  | 'TRANSPORT'
+  | 'TRAVEL';
+
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
@@ -15,6 +26,7 @@ export type MemoryCategory =
   | 'PROFESSIONAL';
 
 export type RecordType =
+  | 'EXPENSE'
   | 'MEMORY'
   | 'REMINDER'
   | 'TASK';
@@ -46,6 +58,7 @@ export type SearchRecordsQueryVariables = Exact<{
 
 export type SearchRecordsQuery = { search:
     | { __typename: 'SearchPage', query: string, total: number, otherTypesTotal: number, meaningUnavailable: boolean, hits: Array<
+        | { __typename: 'Expense', id: string, amountPaise: string, description: string, spentOn: string, origin: string, createdAt: string, updatedAt: string, expenseCategory: Types.ExpenseCategory, expenseOriginalInput: string }
         | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
         | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
         | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
@@ -74,6 +87,9 @@ export const SearchRecordsDocument = gql`
         ... on Memory {
           ...MemoryFields
         }
+        ... on Expense {
+          ...ExpenseRecordFields
+        }
       }
     }
     ... on SearchTooLong {
@@ -84,4 +100,5 @@ export const SearchRecordsDocument = gql`
 }
     ${TaskFieldsFragmentDoc}
 ${ReminderFieldsFragmentDoc}
-${MemoryFieldsFragmentDoc}`;
+${MemoryFieldsFragmentDoc}
+${ExpenseRecordFieldsFragmentDoc}`;

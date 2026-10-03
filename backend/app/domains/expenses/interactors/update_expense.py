@@ -15,6 +15,7 @@ from app.domains.expenses.interactors.dtos import UpdateExpenseInputDTO
 from app.domains.expenses.interfaces.dtos import ExpenseChanges, ExpenseDTO
 from app.domains.expenses.interfaces.ports import (
     ExpenseAnalyticsPort,
+    ExpenseEmbedQueue,
     ExpenseEventType,
 )
 from app.domains.expenses.interfaces.repositories import ExpenseRepository
@@ -28,9 +29,11 @@ class UpdateExpenseInteractor:
         *,
         expense_repository: ExpenseRepository,
         analytics: ExpenseAnalyticsPort,
+        embed_queue: ExpenseEmbedQueue,
     ) -> None:
         self.expense_repository = expense_repository
         self.analytics = analytics
+        self.embed_queue = embed_queue
 
     async def update_expense(self, *, dto: UpdateExpenseInputDTO) -> ExpenseDTO:
         """Apply the changed fields to one live expense.
@@ -56,6 +59,12 @@ class UpdateExpenseInteractor:
         if previous is None or updated is None:
             raise ExpenseNotFoundError()
         await self._record_edit_events(dto=dto, previous=previous, updated=updated)
+        if previous.description != updated.description:
+            # The repository cleared the old vector; the job writes the new one
+            # (sub-plan 4.3).
+            await self.embed_queue.queue_expense_embed(
+                user_id=dto.user_id, expense_id=dto.expense_id, delay_seconds=0
+            )
         return updated
 
     def _trim_description(self, *, changes: ExpenseChanges) -> ExpenseChanges:

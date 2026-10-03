@@ -208,6 +208,7 @@ class SearchService:
         for port in self.search_ports:
             page = await port.search_candidates(
                 user_id=user_id,
+                text="",
                 terms=[],
                 query_embedding=vector,
                 max_distance=RELATED_MAX_DISTANCE,
@@ -238,13 +239,17 @@ class SearchService:
         query_vector, word_pages = await asyncio.gather(
             self.query_embedding.embed_query(user_id=user_id, text=text),
             self._search_every_type(
-                user_id=user_id, terms=terms, query_vector=None, limit=limit
+                user_id=user_id, text=text, terms=terms, query_vector=None, limit=limit
             ),
         )
         if query_vector is None:
             return word_pages, None
         pages = await self._search_every_type(
-            user_id=user_id, terms=terms, query_vector=query_vector, limit=limit
+            user_id=user_id,
+            text=text,
+            terms=terms,
+            query_vector=query_vector,
+            limit=limit,
         )
         return pages, query_vector
 
@@ -299,6 +304,7 @@ class SearchService:
         self,
         *,
         user_id: UUID,
+        text: str,
         terms: Sequence[str],
         query_vector: Sequence[float] | None,
         limit: int,
@@ -309,6 +315,7 @@ class SearchService:
         for port in self.search_ports:
             pages[port.record_type] = await port.search_candidates(
                 user_id=user_id,
+                text=text,
                 terms=terms,
                 query_embedding=query_vector,
                 max_distance=MEANING_MAX_DISTANCE,

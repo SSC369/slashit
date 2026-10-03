@@ -2,6 +2,7 @@
 the SQL one."""
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, date, datetime
 
@@ -10,6 +11,7 @@ from app.domains.expenses.interfaces.dtos import (
     ExpenseCategory,
     ExpenseChanges,
     ExpenseDTO,
+    ExpenseEmbeddingTargetDTO,
 )
 from app.domains.expenses.interfaces.repositories import ExpenseWrite
 
@@ -19,6 +21,7 @@ class FakeExpenseRepository:
         self.rows: dict[uuid.UUID, ExpenseDTO] = {}
         self.deleted: set[uuid.UUID] = set()
         self.cleared_embeddings: list[uuid.UUID] = []
+        self.embeddings: dict[uuid.UUID, tuple[float, ...]] = {}
 
     async def create_expense(
         self, *, user_id: uuid.UUID, write: ExpenseWrite
@@ -81,6 +84,7 @@ class FakeExpenseRepository:
             and changes.description != expense.description
         ):
             self.cleared_embeddings.append(expense_id)
+            self.embeddings.pop(expense_id, None)
         updated = replace(
             expense,
             amount_paise=changes.amount_paise or expense.amount_paise,
@@ -118,3 +122,55 @@ class FakeExpenseRepository:
                 count=(held.count if held else 0) + 1,
             )
         return list(totals.values())
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, expense_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        if await self.get_by_id(user_id=user_id, expense_id=expense_id) is None:
+            return None
+        return self.embeddings.get(expense_id)
+
+    async def get_description_needing_embedding(
+        self, *, user_id: uuid.UUID, expense_id: uuid.UUID
+    ) -> str | None:
+        expense = await self.get_by_id(user_id=user_id, expense_id=expense_id)
+        if expense is None or expense_id in self.embeddings:
+            return None
+        return expense.description
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: uuid.UUID,
+        expense_id: uuid.UUID,
+        description: str,
+        embedding: Sequence[float],
+    ) -> bool:
+        expense = await self.get_by_id(user_id=user_id, expense_id=expense_id)
+        if expense is None or expense.description != description:
+            return False
+        self.embeddings[expense_id] = tuple(embedding)
+        return True
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: uuid.UUID | None,
+        limit: int,
+    ) -> list[ExpenseEmbeddingTargetDTO]:
+        missing = sorted(
+            (
+                expense
+                for expense in self.rows.values()
+                if expense.id not in self.deleted
+                and expense.id not in self.embeddings
+                and (updated_since is None or expense.updated_at >= updated_since)
+                and (after_id is None or expense.id > after_id)
+            ),
+            key=lambda expense: expense.id,
+        )
+        return [
+            ExpenseEmbeddingTargetDTO(user_id=expense.user_id, expense_id=expense.id)
+            for expense in missing[:limit]
+        ]

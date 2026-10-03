@@ -72,6 +72,15 @@ not with this branch. Owner: 003's test harness, not 006.
 | — | 4.1 | Expense marker is a ₹ glyph | done, 2026-10-03 | Decision 3A. See D-22 and the design change record |
 | — | 4.1 | NFR-5 amount set grows to 100 cases | done, 2026-10-03 | Decision 5A. Cases 51 to 100 approved by the user the same day. Live run owed: needs a provider key |
 | E-6 | 4.1, 4.2 | Edge-case pass in a browser | done, 2026-10-03 | Dark theme. Four defects found and fixed; see "Edge-case browser pass, 2026-10-03". Decision 4A's two items fixed |
+| T-3.1 | 4.3 | `amount_from_search` | done, 2026-10-03 | C-33: 25 cases, the same table as capture's `normalise_amount` |
+| T-3.2 | 4.3 | Repository search, embedding methods | done, 2026-10-03 | C-34 to C-36 against PostgreSQL. An exact amount is OR-ed into the shared word-or-meaning match, counts as every term present, and sorts first (Q2) |
+| T-3.3 | 4.3 | Embed adapter, queue, interactors, jobs | done, 2026-10-03 | C-37, C-38. `expenses.embed_expense` (three attempts), `expenses.backfill_embeddings` every ten minutes; registered in `core/jobs.py`. A save and a description edit queue the embed |
+| T-3.4 | 4.3 | `SearchPort.text`, `ExpenseSearchAdapter`, `RecordType.EXPENSE`, wiring | done, 2026-10-03 | C-12 now covers five types; C-39 `/search 850` end to end |
+| T-3.5 | 4.3 | `describe_record` for expenses | done, 2026-10-03 | "expense, ₹850.50 on Fri 02 Oct 2026, transport" |
+| T-3.6 | 4.3 | Frontend operations, codegen, search card group | done, 2026-10-03 | F-11. `ExpenseRecordFields` fragment carries D-11's aliases for records, search and related; one `toRecordItem` in `api/lib/recordItem.ts` undoes them. The capture card selects display fields only, which do not clash |
+| T-3.7 | 4.3 | Expenses tab search; related records on detail | done, 2026-10-03 | F-12, F-13. Opening the tab from a summary card clears search text left from another tab |
+| T-3.8 | 4.3 | Browser pass, dark and light | done, 2026-10-03 | See "Browser pass, slice 3". No differences from `SearchExpense` beyond the word-only strip, which shows because no model key was reachable |
+| T-3.9 | 4.3 | Deploy note | done, 2026-10-03 | At deploy, defer `expenses.backfill_embeddings` once with `full=True`, as 005 did for its types. Added to epic 012's list in `index.md` |
 
 ## In progress
 
@@ -121,10 +130,9 @@ one wrong case in 50 fails the target. NFR-4's misses repeat across runs:
 
 | # | Sub-plan | Task | Blocked on |
 |---|---|---|---|
-| — | 4.1 | NFR-2 at p95 over a real sample | Six live model calls in T-1.15 took 1.6 s to 3.3 s; not enough for a p95 |
-| — | 4.1 | Update `index.md`'s 006 row | End of slice 1 |
-| — | 4.2 | Draft sub-plan 4.2, summaries, then build it | Slice 1 |
-| — | 4.3 | Draft sub-plan 4.3, search, then build it | Slice 1 |
+| — | 4.1 | NFR-2 at p95 over a real sample | A provider key. Six live model calls in T-1.15 took 1.6 s to 3.3 s; not enough for a p95 |
+| — | 4.1 | NFR-5 live run over the 100-case set | A provider key |
+| — | 4.3 | Meaning search and the embed job against the real model | A provider key. Covered here by the fake embedder and stored vectors |
 
 ## Browser pass, 2026-10-02
 
@@ -175,6 +183,18 @@ purpose until fixed. All sixteen pass from 2026-10-03, after the E-1 to E-3 fixe
 | `RecordsExpenses` | The band's label "Spent · October 2026 so far" wraps to two lines in its 210 px cell | Open, minor |
 | `ExpensesStates` | A new user on this month sees "No expenses recorded this month", not "No expenses yet"; the example command shows on All time | The tab knows only the picked period's count. Open, minor |
 | `SummaryStates` | The summary card's history row reruns the line, as a search's does | No artboard draws it; follows 005 |
+
+## Browser pass, slice 3, 2026-10-03
+
+Same setup as the edge-case pass, dark and light. Two expenses were given the
+same stored vector so related records had something to show; the query's own
+meaning was unavailable, as no model key was reachable.
+
+| Artboard or flow | Result |
+|---|---|
+| `SearchExpense`: `/search 850` | "3 records match "850"": an Expenses group of two ₹850 spends with the ₹ marker, day and amount, then the ₹850 task; footer "A number also matches expenses of exactly that amount". Matches, apart from the amber word-only strip |
+| Records, Expenses tab, search "dinner" | Two expenses, best match first; the period picker and band hidden while searching (Q3) |
+| Expense detail | Related lists the other expense with the same vector, with ₹ marker, day and amount |
 
 ## Edge-case browser pass, 2026-10-03
 
@@ -266,6 +286,7 @@ None of these is approved yet.
 |---|---|---|---|
 | 2026-10-02 | Browser pass: the first save failed with a foreign-key error on `expenses.user_id` | The worktree's `slashit_006_test` database has no `auth.users` row for the signed-in account; tasks have the same key | Added the account's id to that test database's `auth.users`. Not a code defect |
 | 2026-10-02 | The foreign-key error reached the screen as raw SQL, with the typed text in its parameters, and the same text went to the server log | The GraphQL schema masks no unexpected errors, and exception tracebacks bypass `USER_TEXT_KEYS` redaction. Both are app-wide | Deferred to a platform change, see below. NFR-7 is not met for unexpected errors until then |
+| 2026-10-03 | CI red on `main` for `c5f9f5e` and `6843d16`: ruff E501 in `test_expense_capture_graphql.py` | The E-5 change made one line 90 characters; `ruff check` was run before that last edit, not after | Rewrapped; shipped with slice 3. Lint now runs last, after every edit |
 | 2026-10-02 | Port 4173 served a stale build | A service worker from an earlier `vite preview` on that port | Unregistered in the test browser |
 | 2026-10-02 | A generated `search_vector` on `category::text` would not create | An enum's text output is STABLE, not IMMUTABLE | The migration spells the category out with a `CASE` |
 
