@@ -140,11 +140,11 @@ Backend: everything passes except eight, none caused by this slice:
 
 | # | Item | Blocks | Owner |
 |---|---|---|---|
-| P-0 | **Next task.** X-1: epic and PRD change records approved 2026-10-03, PRD Q3 and Q4 answered. Design change record and canvas redraw approved 2026-10-03. Build plan change record approved 2026-10-03, AD-8 locked. Next the implementation plan index and 4.1, before sub-plan 4.2. Slice 1's built "which alert?" question (FR-16, now removed) goes in slice 2 | Slice 2 | Claude, then user approval |
+| ~~P-0~~ | X-1: epic and PRD change records approved 2026-10-03, PRD Q3 and Q4 answered. Design change record and canvas redraw approved 2026-10-03. Build plan change record approved 2026-10-03, AD-8 locked. Index and 4.1 change records approved 2026-10-03. **Done 2026-10-03.** Slice 1's built "which alert?" question (FR-16, now removed) goes in slice 2 | Slice 2 | Claude, then user approval |
 | P-1 | Review D-1 to D-14 (D-15 approved) and approve each, or ask for a change | Closing slice 1 | user |
 | P-2 | Review the 60-line set `tests/eval/event_extraction.json` | Shipping | user |
 | P-3 | Decide B-1 to B-5 from the browser pass; B-6 light-theme pass in a browser without forced dark | Shipping | user, then Claude |
-| P-4 | Draft sub-plan `04.2-alerts-and-manage.md`: alerts set, fire, re-arm yearly and follow edits; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
+| P-4 | **Next task.** Draft sub-plan `04.2-alerts-and-manage.md`: any number of alerts per event, set, fire, re-arm yearly and follow edits; convert `alert_lead_minutes`; remove FR-16's question; edit and delete; search and related; timezone change | Slice 2 code | Claude, then user approval |
 | P-5 | The two `@rls-test.invalid` users left on the hosted database, see Defects | Nothing | user: delete or keep |
 
 ### Defects and incidents
@@ -167,3 +167,4 @@ Backend: everything passes except eight, none caused by this slice:
 | 2026-10-03 | P-0 updated: epic and PRD change records for X-1 drafted, then approved with PRD Q3 and Q4 answered | User chose to start P-0, then approved | user |
 | 2026-10-03 | P-0 updated: design change record drafted, canvas republished with 3 new and 11 changed artboards | User chose to write the design change record, then approved | user |
 | 2026-10-03 | P-0 updated: build plan change record and tech stack §3 approved; AD-8 locked | User chose to write the build plan change record, then approved | user |
+| 2026-10-03 | P-0 closed: index and 4.1 change records approved. P-4 is next | User chose to write them, then approved | user |
