@@ -140,7 +140,7 @@ Backend: everything passes except eight, none caused by this slice:
 
 | # | Item | Blocks | Owner |
 |---|---|---|---|
-| P-0 | **Next task.** X-1: change records on the epic and PRD for any number of alerts, then the design, build plan and index changes it re-opens, before sub-plan 4.2 | Slice 2 | Claude, then user approval |
+| P-0 | **Next task.** X-1: epic and PRD change records approved 2026-10-03, PRD Q3 and Q4 answered. Next the design change record, then build plan and index, each approved in turn, before sub-plan 4.2. Slice 1's built "which alert?" question (FR-16, now removed) goes in slice 2 | Slice 2 | Claude, then user approval |
 | P-1 | Review D-1 to D-14 (D-15 approved) and approve each, or ask for a change | Closing slice 1 | user |
 | P-2 | Review the 60-line set `tests/eval/event_extraction.json` | Shipping | user |
 | P-3 | Decide B-1 to B-5 from the browser pass; B-6 light-theme pass in a browser without forced dark | Shipping | user, then Claude |
@@ -164,3 +164,4 @@ Backend: everything passes except eight, none caused by this slice:
 | 2026-10-02 | T-1.14 browser pass run, dark theme; findings B-1 to B-6 | User chose to close slice 1's checks | user |
 | 2026-10-02 | X-1 recorded: any number of alerts per event; P-0 added as the next task | User: "allow any number of alerts" | user |
 | 2026-10-02 | D-9 to D-14 logged, found on review; Pending section added | User asked for the pending items in the dev log | user |
+| 2026-10-03 | P-0 updated: epic and PRD change records for X-1 drafted, then approved with PRD Q3 and Q4 answered | User chose to start P-0, then approved | user |
