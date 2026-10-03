@@ -146,6 +146,39 @@ class EventTargetDTO:
 
 
 @dataclass(frozen=True)
+class EventText:
+    """What an event's meaning vector is made from (FR-30): the words the
+    user gave it. A vector is stored only while these are unchanged."""
+
+    title: str
+    location: str | None
+    description: str | None
+
+    def as_embedding_input(self) -> str:
+        return " · ".join(
+            part for part in (self.title, self.location, self.description) if part
+        )
+
+
+@dataclass(frozen=True)
+class StoredEventMatchDTO:
+    """One event a search matched, with the scores search ranks by (005
+    AD-3). ``word_rank`` is None when no term is present; ``distance`` is None
+    when the event has no vector yet or the search had none."""
+
+    event: StoredEventDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class StoredEventSearchPageDTO:
+    matches: list[StoredEventMatchDTO]
+    total: int
+
+
+@dataclass(frozen=True)
 class EventEdit:
     """The edit form, whole (FR-28), in the user's own local terms."""
 
@@ -158,6 +191,22 @@ class EventEdit:
     end_time: time | None
     repeat_yearly: bool
     alert_leads_minutes: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class EventSearchMatchDTO:
+    """A search match as every caller reads it: the event, presented."""
+
+    event: EventDTO
+    all_terms: bool
+    word_rank: float | None
+    distance: float | None
+
+
+@dataclass(frozen=True)
+class EventSearchPageDTO:
+    matches: list[EventSearchMatchDTO]
+    total: int
 
 
 @dataclass(frozen=True)

@@ -15,13 +15,19 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.db import create_engine, create_session_factory
 from app.core.deps import (
+    build_embed_event_interactor,
+    build_queue_missing_event_embeddings_interactor,
     build_reconcile_event_alerts_interactor,
     build_rezone_events_interactor,
     build_roll_yearly_interactor,
 )
 from app.core.jobs import procrastinate_app
 from app.core.settings import get_settings
-from app.domains.events.constants import REZONE_MAX_ATTEMPTS
+from app.domains.events.constants import EMBED_MAX_ATTEMPTS, REZONE_MAX_ATTEMPTS
+from app.domains.events.interactors.dtos import (
+    EmbedEventInputDTO,
+    QueueMissingEventEmbeddingsInputDTO,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -67,3 +73,34 @@ async def timezone_changed(user_id: str) -> None:
             session=session, session_factory=session_factory
         ).rezone_events(user_id=UUID(user_id))
     logger.info("events.rezoned", user_id=user_id, moved_count=moved_count)
+
+
+@procrastinate_app.task(
+    name="events.embed_event",
+    retry=RetryStrategy(max_attempts=EMBED_MAX_ATTEMPTS, exponential_wait=2),
+)
+async def embed_event(user_id: str, event_id: str) -> None:
+    """Give one event its meaning vector (FR-30, 005 AD-7). Safe to run twice.
+    Runs inside a ``user_transaction`` for the event's own user."""
+    session_factory = _session_factory()
+    async with session_factory() as session:
+        embedded = await build_embed_event_interactor(
+            session=session, session_factory=session_factory
+        ).embed_event(
+            dto=EmbedEventInputDTO(user_id=UUID(user_id), event_id=UUID(event_id))
+        )
+    logger.info("events.embed_event", event_id=event_id, embedded=embedded)
+
+
+@procrastinate_app.periodic(cron="*/10 * * * *")  # every 10 minutes, as 004 P-6
+@procrastinate_app.task(name="events.backfill_embeddings")
+async def backfill_embeddings(timestamp: int, full: bool = False) -> None:
+    """Queue a vector for events with none. ``full`` is deferred once, by
+    hand, at deploy (4.2 T-2.16); the periodic run covers recent ones only."""
+    async with _session_factory()() as session:
+        queued_count = await build_queue_missing_event_embeddings_interactor(
+            session
+        ).queue_missing_event_embeddings(
+            dto=QueueMissingEventEmbeddingsInputDTO(full=full)
+        )
+    logger.info("events.backfill_embeddings", queued_count=queued_count, full=full)

@@ -24,6 +24,7 @@ from app.domains.capture.services.event_capture import (
 )
 from app.domains.events.interactors.create_event import CreateEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
+from app.domains.events.interactors.search_events import SearchEventsInteractor
 from app.domains.events.public import EventDTO, EventService
 from app.domains.gateway.public import Extraction, ProviderUnavailable
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
@@ -31,6 +32,7 @@ from tests.fakes.fake_calendar_event_repository import FakeCalendarEventReposito
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_event_ports import (
     FakeEventAnalyticsPort,
+    FakeEventEmbedQueue,
     FakeEventUserClockPort,
     fake_alert_arming,
 )
@@ -70,11 +72,16 @@ def _harness(*, extraction: FakeExtractionPort) -> Harness:
             user_clock=clock,
             alert_arming=fake_alert_arming(repository=events),
             analytics=FakeEventAnalyticsPort(),
+            embed_queue=FakeEventEmbedQueue(),
             now_provider=lambda: NOW,
         ),
         list_events_interactor=ListEventsInteractor(
             event_repository=events, user_clock=clock, now_provider=lambda: NOW
         ),
+        search_events_interactor=SearchEventsInteractor(
+            event_repository=events, user_clock=clock, now_provider=lambda: NOW
+        ),
+        event_repository=events,
     )
     event_port = EventsAdapter(event_service=service)
     event_capture = EventCaptureService(event_port=event_port, extraction=extraction)

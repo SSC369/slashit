@@ -49,3 +49,20 @@ class EventAlertsPort(Protocol):
         ...
 
     async def clear_alerts(self, *, user_id: UUID, event_id: UUID) -> None: ...
+
+
+class EventEmbeddingPort(Protocol):
+    """What events needs to give an event a meaning vector (005 AD-7). None
+    when the model refused; the job then retries."""
+
+    async def embed_event_text(
+        self, *, user_id: UUID, text: str
+    ) -> tuple[float, ...] | None: ...
+
+
+class EventEmbedQueue(Protocol):
+    """Queueing one event's embed job. Never fails the save that calls it."""
+
+    async def queue_event_embed(
+        self, *, user_id: UUID, event_id: UUID, delay_seconds: int
+    ) -> None: ...

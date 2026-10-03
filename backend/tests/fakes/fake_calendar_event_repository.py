@@ -1,14 +1,17 @@
 """An in-memory EventRepository for the events domain's calendar_events."""
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
 
 from app.domains.events.interfaces.dtos import (
     EventLimitReached,
     EventTargetDTO,
+    EventText,
     EventWrite,
     StoredEventDTO,
+    StoredEventSearchPageDTO,
 )
 from app.domains.events.services.schedule import LocalSchedule
 
@@ -17,6 +20,7 @@ class FakeCalendarEventRepository:
     def __init__(self) -> None:
         self.rows: list[StoredEventDTO] = []
         self.deleted_ids: set[uuid.UUID] = set()
+        self.embeddings: dict[uuid.UUID, tuple[float, ...]] = {}
 
     async def create_event_if_upcoming_below(
         self, *, user_id: uuid.UUID, write: EventWrite, limit: int, now: datetime
@@ -159,6 +163,12 @@ class FakeCalendarEventRepository:
         becomes_upcoming = write.schedule.repeat_yearly or write.ends_at > now
         if becomes_upcoming and len(other_upcoming) >= limit:
             return EventLimitReached(limit=limit)
+        if (existing.title, existing.location, existing.description) != (
+            write.title,
+            write.location,
+            write.description,
+        ):
+            self.embeddings.pop(event_id, None)
         updated = replace(
             existing,
             title=write.title,
@@ -179,3 +189,68 @@ class FakeCalendarEventRepository:
             return False
         self.deleted_ids.add(event_id)
         return True
+
+    async def search_events(
+        self,
+        *,
+        user_id: uuid.UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> StoredEventSearchPageDTO:
+        raise NotImplementedError("search runs against PostgreSQL in its tests")
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        if await self.get_by_id(user_id=user_id, event_id=event_id) is None:
+            return None
+        return self.embeddings.get(event_id)
+
+    async def get_text_needing_embedding(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> EventText | None:
+        row = await self.get_by_id(user_id=user_id, event_id=event_id)
+        if row is None or event_id in self.embeddings:
+            return None
+        return EventText(
+            title=row.title, location=row.location, description=row.description
+        )
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        words: EventText,
+        embedding: Sequence[float],
+    ) -> bool:
+        current = await self.get_text_needing_embedding(
+            user_id=user_id, event_id=event_id
+        )
+        if current != words:
+            return False
+        self.embeddings[event_id] = tuple(embedding)
+        return True
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: uuid.UUID | None,
+        limit: int,
+    ) -> list[EventTargetDTO]:
+        missing = sorted(
+            (
+                row
+                for row in self._live()
+                if row.id not in self.embeddings
+                and (updated_since is None or row.updated_at >= updated_since)
+                and (after_id is None or row.id > after_id)
+            ),
+            key=lambda row: row.id,
+        )
+        return [
+            EventTargetDTO(user_id=row.user_id, event_id=row.id) for row in missing
+        ][:limit]

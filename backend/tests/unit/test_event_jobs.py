@@ -21,6 +21,7 @@ from tests.fakes.fake_calendar_event_repository import FakeCalendarEventReposito
 from tests.fakes.fake_event_ports import (
     FakeEventAlertsPort,
     FakeEventAnalyticsPort,
+    FakeEventEmbedQueue,
     FakeEventUserClockPort,
     fake_alert_arming,
 )
@@ -53,6 +54,7 @@ class World:
                 repository=self.repository, alerts=self.alerts
             ),
             analytics=FakeEventAnalyticsPort(),
+            embed_queue=FakeEventEmbedQueue(),
             now_provider=lambda: NOW,
         ).create_event(
             dto=CreateEventInputDTO(

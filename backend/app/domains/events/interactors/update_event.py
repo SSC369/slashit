@@ -25,7 +25,7 @@ from app.domains.events.interfaces.dtos import (
     StoredEventDTO,
     UserClockDTO,
 )
-from app.domains.events.interfaces.ports import UserClockPort
+from app.domains.events.interfaces.ports import EventEmbedQueue, UserClockPort
 from app.domains.events.interfaces.repositories import EventRepository
 from app.domains.events.services.alert_arming import ArmedEvent, EventAlertArming
 from app.domains.events.services.presenter import present_event
@@ -43,11 +43,13 @@ class UpdateEventInteractor:
         event_repository: EventRepository,
         user_clock: UserClockPort,
         alert_arming: EventAlertArming,
+        embed_queue: EventEmbedQueue,
         now_provider: Callable[[], datetime],
     ) -> None:
         self.event_repository = event_repository
         self.user_clock = user_clock
         self.alert_arming = alert_arming
+        self.embed_queue = embed_queue
         self.now_provider = now_provider
 
     async def update_event(self, *, dto: UpdateEventInputDTO) -> EventUpdatedDTO:
@@ -73,6 +75,7 @@ class UpdateEventInteractor:
             dto=dto, edit=edit, previous=previous, clock=clock, now=now
         )
         armed = await self._rearm_if_pending(updated=updated, clock=clock, now=now)
+        await self._queue_embed_if_words_changed(previous=previous, updated=updated)
         return EventUpdatedDTO(
             event=present_event(stored=armed.stored, clock=clock, now=now),
             alerts_not_set=armed.alerts_not_set,
@@ -168,6 +171,18 @@ class UpdateEventInteractor:
         if outcome is None:
             raise EventNotFoundError()
         return outcome
+
+    async def _queue_embed_if_words_changed(
+        self, *, previous: StoredEventDTO, updated: StoredEventDTO
+    ) -> None:
+        """The repository cleared the old vector; the job writes the new one
+        (005 AD-7)."""
+        previous_words = (previous.title, previous.location, previous.description)
+        updated_words = (updated.title, updated.location, updated.description)
+        if previous_words != updated_words:
+            await self.embed_queue.queue_event_embed(
+                user_id=updated.user_id, event_id=updated.id, delay_seconds=0
+            )
 
     async def _rearm_if_pending(
         self, *, updated: StoredEventDTO, clock: UserClockDTO, now: datetime

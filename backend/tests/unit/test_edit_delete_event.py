@@ -31,6 +31,7 @@ from tests.fakes.fake_calendar_event_repository import FakeCalendarEventReposito
 from tests.fakes.fake_event_ports import (
     FakeEventAlertsPort,
     FakeEventAnalyticsPort,
+    FakeEventEmbedQueue,
     FakeEventUserClockPort,
     fake_alert_arming,
 )
@@ -60,6 +61,7 @@ class World:
             user_clock=self.clock,
             alert_arming=self._arming(),
             analytics=FakeEventAnalyticsPort(),
+            embed_queue=FakeEventEmbedQueue(),
             now_provider=lambda: NOW,
         ).create_event(
             dto=CreateEventInputDTO(
@@ -88,6 +90,7 @@ class World:
             event_repository=self.repository,
             user_clock=self.clock,
             alert_arming=self._arming(),
+            embed_queue=FakeEventEmbedQueue(),
             now_provider=lambda: NOW,
         )
 

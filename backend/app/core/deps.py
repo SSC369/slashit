@@ -55,22 +55,29 @@ from app.domains.capture.services.expense_capture import ExpenseCaptureService
 from app.domains.capture.services.reminder_capture import ReminderCaptureService
 from app.domains.capture.services.turn_scrubber import CaptureTurnScrubber
 from app.domains.events.adapters.analytics_adapter import EventAnalyticsAdapter
+from app.domains.events.adapters.gateway_adapter import GatewayEventEmbeddingAdapter
 from app.domains.events.adapters.identity_clock_adapter import (
     IdentityUserClockAdapter as EventUserClockAdapter,
 )
 from app.domains.events.adapters.reminders_adapter import RemindersAlertsAdapter
 from app.domains.events.interactors.create_event import CreateEventInteractor
 from app.domains.events.interactors.delete_event import DeleteEventInteractor
+from app.domains.events.interactors.embed_event import EmbedEventInteractor
 from app.domains.events.interactors.get_event import GetEventInteractor
 from app.domains.events.interactors.list_events import ListEventsInteractor
+from app.domains.events.interactors.queue_missing_event_embeddings import (
+    QueueMissingEventEmbeddingsInteractor,
+)
 from app.domains.events.interactors.reconcile_alerts import ReconcileAlertsInteractor
 from app.domains.events.interactors.rezone_events import RezoneEventsInteractor
 from app.domains.events.interactors.roll_yearly import RollYearlyInteractor
+from app.domains.events.interactors.search_events import SearchEventsInteractor
 from app.domains.events.interactors.update_event import UpdateEventInteractor
 from app.domains.events.repositories.calendar_event_repository import (
     SqlCalendarEventRepository,
 )
 from app.domains.events.services.alert_arming import EventAlertArming
+from app.domains.events.services.embed_queue import ProcrastinateEventEmbedQueue
 from app.domains.events.services.event_service import EventService
 from app.domains.expenses.adapters.analytics_adapter import ExpenseAnalyticsAdapter
 from app.domains.expenses.adapters.gateway_adapter import GatewayExpenseEmbeddingAdapter
@@ -230,6 +237,7 @@ from app.domains.reminders.services.embed_queue import (
 from app.domains.reminders.services.firing_queue import ProcrastinateFiringQueue
 from app.domains.reminders.services.reminder_service import ReminderService
 from app.domains.search.adapters.analytics_adapter import SearchAnalyticsAdapter
+from app.domains.search.adapters.events_adapter import EventSearchAdapter
 from app.domains.search.adapters.expenses_adapter import ExpenseSearchAdapter
 from app.domains.search.adapters.gateway_adapter import GatewayQueryEmbeddingAdapter
 from app.domains.search.adapters.gateway_answer_adapter import GatewayAnswerAdapter
@@ -943,6 +951,7 @@ def build_search_service(context: Context) -> SearchService:
             ReminderSearchAdapter(reminder_service=build_reminder_service(context)),
             MemorySearchAdapter(memory_service=build_memory_service(context)),
             ExpenseSearchAdapter(expense_service=build_expense_service(context)),
+            EventSearchAdapter(event_service=build_event_service(context)),
         ],
         query_embedding=GatewayQueryEmbeddingAdapter(
             embed_interactor=build_embed_interactor(
@@ -1075,6 +1084,7 @@ def build_update_event_interactor(context: Context) -> UpdateEventInteractor:
         event_repository=SqlCalendarEventRepository(context.session),
         user_clock=_build_event_user_clock_port(context=context),
         alert_arming=_build_event_alert_arming(context=context),
+        embed_queue=ProcrastinateEventEmbedQueue(),
         now_provider=_utc_now,
     )
 
@@ -1095,9 +1105,41 @@ def build_event_service(context: Context) -> EventService:
             analytics=EventAnalyticsAdapter(
                 record_event_interactor=_build_record_event_interactor(context=context)
             ),
+            embed_queue=ProcrastinateEventEmbedQueue(),
             now_provider=_utc_now,
         ),
         list_events_interactor=build_list_events_interactor(context),
+        search_events_interactor=SearchEventsInteractor(
+            event_repository=SqlCalendarEventRepository(context.session),
+            user_clock=_build_event_user_clock_port(context=context),
+            now_provider=_utc_now,
+        ),
+        event_repository=SqlCalendarEventRepository(context.session),
+    )
+
+
+def build_embed_event_interactor(
+    *, session: AsyncSession, session_factory: async_sessionmaker[AsyncSession]
+) -> EmbedEventInteractor:
+    """For the `events.embed_event` job, which has no request context."""
+    return EmbedEventInteractor(
+        event_repository=SqlCalendarEventRepository(session),
+        embedding=GatewayEventEmbeddingAdapter(
+            embed_interactor=build_embed_interactor(
+                session_factory=session_factory, settings=get_settings()
+            )
+        ),
+    )
+
+
+def build_queue_missing_event_embeddings_interactor(
+    session: AsyncSession,
+) -> QueueMissingEventEmbeddingsInteractor:
+    """For the `events.backfill_embeddings` job, which has no request context."""
+    return QueueMissingEventEmbeddingsInteractor(
+        event_repository=SqlCalendarEventRepository(session),
+        embed_queue=ProcrastinateEventEmbedQueue(),
+        now_provider=_utc_now,
     )
 
 

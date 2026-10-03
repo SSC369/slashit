@@ -40,3 +40,14 @@ class UpdateEventInputDTO:
 class DeleteEventInputDTO:
     user_id: UUID
     event_id: UUID
+
+
+@dataclass(frozen=True)
+class EmbedEventInputDTO:
+    user_id: UUID
+    event_id: UUID
+
+
+@dataclass(frozen=True)
+class QueueMissingEventEmbeddingsInputDTO:
+    full: bool

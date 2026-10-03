@@ -7,6 +7,7 @@ id: the model refers to a record only by its number (build plan §5).
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from app.domains.events.public import EventDTO
 from app.domains.expenses.public import ExpenseDTO
 from app.domains.memories.public import MemoryDTO
 from app.domains.records.public import TaskDTO
@@ -40,6 +41,8 @@ def describe_record(
         )
     if isinstance(item, ExpenseDTO):
         return _describe_expense(number=number, expense=item)
+    if isinstance(item, EventDTO):
+        return _describe_event(number=number, event=item)
     return _describe_memory(number=number, memory=item, timezone=timezone)
 
 
@@ -54,6 +57,22 @@ def _describe_expense(*, number: int, expense: ExpenseDTO) -> AnswerRecordDTO:
         record_type=RecordType.EXPENSE,
         text=expense.description,
         detail=f"expense, {amount} on {spent_on}, {expense.category.value}",
+    )
+
+
+def _describe_event(*, number: int, event: EventDTO) -> AnswerRecordDTO:
+    """Epic 007 FR-30: when, its repeat and its place, so "when is Mom's
+    birthday?" can be answered from the records alone."""
+    parts = ["event", event.when_text]
+    if event.schedule.repeat_yearly:
+        parts.append("every year")
+    if event.location:
+        parts.append(f"at {event.location}")
+    return AnswerRecordDTO(
+        number=number,
+        record_type=RecordType.EVENT,
+        text=event.title,
+        detail=", ".join(parts),
     )
 
 

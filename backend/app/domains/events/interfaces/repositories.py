@@ -1,5 +1,6 @@
 """The contract for event storage."""
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Protocol
 from uuid import UUID
@@ -7,8 +8,10 @@ from uuid import UUID
 from app.domains.events.interfaces.dtos import (
     EventLimitReached,
     EventTargetDTO,
+    EventText,
     EventWrite,
     StoredEventDTO,
+    StoredEventSearchPageDTO,
 )
 from app.domains.events.services.schedule import LocalSchedule
 
@@ -89,4 +92,48 @@ class EventRepository(Protocol):
 
     async def count_alerts_pending(self, *, updated_before: datetime) -> int:
         """NFR-4's count of events whose alerts are out of step."""
+        ...
+
+    async def search_events(
+        self,
+        *,
+        user_id: UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> StoredEventSearchPageDTO:
+        """Live events matching any term or within ``max_distance``, cut at
+        ``limit`` in the database's own order; search ranks (005 AD-3)."""
+        ...
+
+    async def get_embedding(
+        self, *, user_id: UUID, event_id: UUID
+    ) -> tuple[float, ...] | None: ...
+
+    async def get_text_needing_embedding(
+        self, *, user_id: UUID, event_id: UUID
+    ) -> EventText | None:
+        """The live event's words while it has no vector, else None."""
+        ...
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: UUID,
+        event_id: UUID,
+        words: EventText,
+        embedding: Sequence[float],
+    ) -> bool:
+        """Store the vector only while the words are still ``words``."""
+        ...
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: UUID | None,
+        limit: int,
+    ) -> list[EventTargetDTO]:
+        """Every user's live events with no vector. Service role."""
         ...

@@ -29,6 +29,7 @@ from tests.fakes.fake_calendar_event_repository import FakeCalendarEventReposito
 from tests.fakes.fake_event_ports import (
     FakeEventAlertsPort,
     FakeEventAnalyticsPort,
+    FakeEventEmbedQueue,
     FakeEventUserClockPort,
     fake_alert_arming,
 )
@@ -75,6 +76,7 @@ def _interactors(
         user_clock=clock,
         alert_arming=fake_alert_arming(repository=repository, alerts=alerts),
         analytics=analytics,
+        embed_queue=FakeEventEmbedQueue(),
         now_provider=lambda: NOW,
     )
     listing = ListEventsInteractor(

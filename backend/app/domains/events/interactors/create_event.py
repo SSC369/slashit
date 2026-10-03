@@ -26,7 +26,11 @@ from app.domains.events.interfaces.dtos import (
     StoredEventDTO,
     UserClockDTO,
 )
-from app.domains.events.interfaces.ports import EventAnalyticsPort, UserClockPort
+from app.domains.events.interfaces.ports import (
+    EventAnalyticsPort,
+    EventEmbedQueue,
+    UserClockPort,
+)
 from app.domains.events.interfaces.repositories import EventRepository
 from app.domains.events.services.alert_arming import ArmedEvent, EventAlertArming
 from app.domains.events.services.presenter import present_event
@@ -58,12 +62,14 @@ class CreateEventInteractor:
         user_clock: UserClockPort,
         alert_arming: EventAlertArming,
         analytics: EventAnalyticsPort,
+        embed_queue: EventEmbedQueue,
         now_provider: Callable[[], datetime],
     ) -> None:
         self.event_repository = event_repository
         self.user_clock = user_clock
         self.alert_arming = alert_arming
         self.analytics = analytics
+        self.embed_queue = embed_queue
         self.now_provider = now_provider
 
     async def create_event(self, *, dto: CreateEventInputDTO) -> CreateEventOutcome:
@@ -117,6 +123,10 @@ class CreateEventInteractor:
         )
         event = present_event(stored=armed.stored, clock=clock, now=now)
         await self._record_event_created(event=event)
+        # FR-30: searchable by meaning once the job runs (005 AD-7).
+        await self.embed_queue.queue_event_embed(
+            user_id=dto.user_id, event_id=stored.id, delay_seconds=0
+        )
         return replace(
             event,
             when_notes=normalised.notes

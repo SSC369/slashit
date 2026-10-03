@@ -139,3 +139,15 @@ def fake_alert_arming(
     return EventAlertArming(
         alerts=alerts or FakeEventAlertsPort(), event_repository=repository
     )
+
+
+class FakeEventEmbedQueue:
+    """Events' EventEmbedQueue: keeps each event queued for a vector."""
+
+    def __init__(self) -> None:
+        self.queued: list[tuple[UUID, UUID, int]] = []
+
+    async def queue_event_embed(
+        self, *, user_id: UUID, event_id: UUID, delay_seconds: int
+    ) -> None:
+        self.queued.append((user_id, event_id, delay_seconds))

@@ -1,18 +1,24 @@
 """The only SQL in the events domain. Returns DTOs, never models."""
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Any, cast
 
-from sqlalchemy import Update, func, or_, select, text, update
+from sqlalchemy import CursorResult, Update, func, or_, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
+from app.core.text_search import build_search_expressions
 from app.domains.events.interfaces.dtos import (
     EventLimitReached,
     EventTargetDTO,
+    EventText,
     EventWrite,
     RecordOriginValue,
     StoredEventDTO,
+    StoredEventMatchDTO,
+    StoredEventSearchPageDTO,
 )
 from app.domains.events.models import CalendarEvent
 from app.domains.events.services.schedule import LocalSchedule
@@ -122,6 +128,147 @@ class SqlCalendarEventRepository:
             )
             deleted_id = result.scalar_one_or_none()
         return deleted_id is not None
+
+    async def search_events(
+        self,
+        *,
+        user_id: uuid.UUID,
+        terms: Sequence[str],
+        query_embedding: Sequence[float] | None,
+        max_distance: float,
+        limit: int,
+    ) -> StoredEventSearchPageDTO:
+        expressions = build_search_expressions(
+            search_vector=CalendarEvent.search_vector,
+            embedding=CalendarEvent.embedding,
+            terms=terms,
+            query_embedding=query_embedding,
+            max_distance=max_distance,
+        )
+        if expressions.matches is None:
+            return StoredEventSearchPageDTO(matches=[], total=0)
+        live_matches = (
+            CalendarEvent.user_id == user_id,
+            CalendarEvent.deleted_at.is_(None),
+            expressions.matches,
+        )
+        statement = (
+            select(
+                CalendarEvent,
+                expressions.all_terms,
+                expressions.word_rank,
+                expressions.distance,
+            )
+            .where(*live_matches)
+            .order_by(*expressions.ordering)
+            .limit(limit)
+        )
+        async with user_transaction(self.session, user_id) as scoped:
+            rows = (await scoped.execute(statement)).all()
+            total = await scoped.scalar(
+                select(func.count()).select_from(CalendarEvent).where(*live_matches)
+            )
+        return StoredEventSearchPageDTO(
+            matches=[
+                StoredEventMatchDTO(
+                    event=_event_to_dto(event=event),
+                    all_terms=bool(all_terms),
+                    word_rank=word_rank,
+                    distance=distance,
+                )
+                for event, all_terms, word_rank, distance in rows
+            ],
+            total=int(total or 0),
+        )
+
+    async def get_embedding(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> tuple[float, ...] | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            embedding = await scoped.scalar(
+                select(CalendarEvent.embedding).where(
+                    CalendarEvent.id == event_id,
+                    CalendarEvent.user_id == user_id,
+                    CalendarEvent.deleted_at.is_(None),
+                )
+            )
+        return None if embedding is None else tuple(float(item) for item in embedding)
+
+    async def get_text_needing_embedding(
+        self, *, user_id: uuid.UUID, event_id: uuid.UUID
+    ) -> EventText | None:
+        async with user_transaction(self.session, user_id) as scoped:
+            row = (
+                await scoped.execute(
+                    select(
+                        CalendarEvent.title,
+                        CalendarEvent.location,
+                        CalendarEvent.description,
+                    ).where(
+                        CalendarEvent.id == event_id,
+                        CalendarEvent.user_id == user_id,
+                        CalendarEvent.deleted_at.is_(None),
+                        CalendarEvent.embedding.is_(None),
+                    )
+                )
+            ).one_or_none()
+        if row is None:
+            return None
+        return EventText(
+            title=row.title, location=row.location, description=row.description
+        )
+
+    async def set_embedding(
+        self,
+        *,
+        user_id: uuid.UUID,
+        event_id: uuid.UUID,
+        words: EventText,
+        embedding: Sequence[float],
+    ) -> bool:
+        async with user_transaction(self.session, user_id) as scoped:
+            result = cast(
+                CursorResult[Any],
+                await scoped.execute(
+                    _live_event_update(user_id=user_id, event_id=event_id)
+                    .where(
+                        CalendarEvent.title == words.title,
+                        CalendarEvent.location.is_not_distinct_from(words.location),
+                        CalendarEvent.description.is_not_distinct_from(
+                            words.description
+                        ),
+                    )
+                    .values(embedding=list(embedding))
+                ),
+            )
+        return result.rowcount > 0
+
+    async def select_missing_embeddings(
+        self,
+        *,
+        updated_since: datetime | None,
+        after_id: uuid.UUID | None,
+        limit: int,
+    ) -> list[EventTargetDTO]:
+        statement = select(CalendarEvent.user_id, CalendarEvent.id).where(
+            CalendarEvent.embedding.is_(None), CalendarEvent.deleted_at.is_(None)
+        )
+        if updated_since is not None:
+            statement = statement.where(CalendarEvent.updated_at >= updated_since)
+        if after_id is not None:
+            statement = statement.where(CalendarEvent.id > after_id)
+        # No user_transaction: the sweep reads every user's rows on the
+        # service-role connection, as a background job may (T3).
+        async with self.session.begin():
+            rows = (
+                await self.session.execute(
+                    statement.order_by(CalendarEvent.id).limit(limit)
+                )
+            ).all()
+        return [
+            EventTargetDTO(user_id=user_id, event_id=event_id)
+            for user_id, event_id in rows
+        ]
 
     async def list_for_user(self, *, user_id: uuid.UUID) -> list[StoredEventDTO]:
         statement = select(CalendarEvent).where(
@@ -259,7 +406,15 @@ def _live_event_update(*, user_id: uuid.UUID, event_id: uuid.UUID) -> Update:
 
 def _apply_write(*, event: CalendarEvent, write: EventWrite) -> None:
     """An edit replaces every column the form holds (FR-28). The origin and
-    the typed command stay: they say how the event began."""
+    the typed command stay: they say how the event began. Changed words make
+    the vector stale, so it is cleared for the embed job (005 AD-7)."""
+    words_changed = (event.title, event.location, event.description) != (
+        write.title,
+        write.location,
+        write.description,
+    )
+    if words_changed:
+        event.embedding = None
     event.title = write.title
     event.location = write.location
     event.description = write.description

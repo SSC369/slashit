@@ -29,3 +29,9 @@ ALERTS_PENDING_GRACE: Final = timedelta(minutes=2)
 # NFR-4: pending longer than this is out of step, and counted nightly.
 ALERTS_OUT_OF_STEP_AFTER: Final = timedelta(hours=1)
 REZONE_MAX_ATTEMPTS: Final = 5
+
+# Epic 005 AD-7, as reminders and expenses: the embed job and its backfill.
+EMBED_MAX_ATTEMPTS: Final = 3
+EMBEDDING_BACKFILL_BATCH: Final = 100
+EMBEDDING_BACKFILL_WINDOW_HOURS: Final = 24
+BACKFILL_CALLS_PER_SECOND: Final = 5
