@@ -154,6 +154,25 @@ Backend: everything passes except eight, none caused by this slice:
 |---|---|---|---|
 | 2026-10-02 | The first backend run went to the hosted database named in `backend/.env`, not the local one, and stopped at its first failure | The worktree's `.env` points at the hosted database | Every later run sets `DATABASE_URL` to `slashit_007_test`. The fixtures delete their test users on teardown. Two `@rls-test.invalid` users with no timestamps remain on the hosted database; whether from this run is unknown, so they were left for the user |
 
+## Slice 2 — Alerts and manage
+
+Built on branch `feat/007-events-slice-2`, cut from `docs/007-events-x1-alerts`
+(PR #4). Tests run against a fresh local PostgreSQL 16, `slashit_007_test`,
+with pgvector and a stub of Supabase's `auth` schema and roles, migrated one
+revision at a time. Python 3.12 virtualenv; the model is faked.
+
+### Tasks
+
+| # | Sub-plan | Task | Status | Note |
+|---|---|---|---|---|
+| T-2.1 | 4.2 | Migration `0042_event_alerts`, models | done | Up, down and up again on the local database with two events, one with a lead. Up gives `{1440}` and `{}`; a lead of -1 or 525601 is refused by `ck_event_alert_leads`; down keeps the first lead only, as documented. `test_event_alerts_schema.py` guards the result (C-18). See D-17. Storage now reads and writes the list; the API still shows one lead until T-2.4 |
+
+### Deviations
+
+| # | Date | Plan said | Built | Why | Approved by |
+|---|---|---|---|---|---|
+| D-17 | 2026-10-03 | 4.2 tables: `notifications` gains a kind and `action_target_id` | Also a unique index `uq_notifications_event_alert_source` on `source_id` where `action_target_id IS NOT NULL` | One notification per firing for event alerts, as 003 AD-3 gives reminders. The existing unique index covers kind `reminder` only, and a predicate cannot name an enum value added in the same transaction | — |
+
 ## Change log
 
 | Date | Change | Why | Approved by |
@@ -170,3 +189,4 @@ Backend: everything passes except eight, none caused by this slice:
 | 2026-10-03 | P-0 updated: build plan change record and tech stack §3 approved; AD-8 locked | User chose to write the build plan change record, then approved | user |
 | 2026-10-03 | P-0 closed: index and 4.1 change records approved. P-4 is next | User chose to write them, then approved | user |
 | 2026-10-03 | P-4 updated: 4.2 drafted, 16 tasks, then approved with Q1 and Q2 answered; D-16 logged | User chose to draft 4.2, then approved | user |
+| 2026-10-03 | Slice 2 section opened; T-2.1 done; D-17 logged | User chose to start slice 2 | user |

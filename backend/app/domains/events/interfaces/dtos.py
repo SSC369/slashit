@@ -47,7 +47,7 @@ class StoredEventDTO:
     schedule: LocalSchedule
     starts_at: datetime
     ends_at: datetime
-    alert_lead_minutes: int | None
+    alert_leads_minutes: tuple[int, ...]
     origin: RecordOriginValue
     original_input: str | None
     created_at: datetime
@@ -92,7 +92,7 @@ class EventWrite:
     schedule: LocalSchedule
     starts_at: datetime
     ends_at: datetime
-    alert_lead_minutes: int | None
+    alert_leads_minutes: tuple[int, ...]
     origin: RecordOriginValue
     original_input: str | None
 

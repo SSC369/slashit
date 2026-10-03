@@ -22,7 +22,8 @@ def present_event(
     moves them (AD-4); resolving here keeps every read correct regardless."""
     resolved = resolve(schedule=stored.schedule, now=now)
     local_today = now.astimezone(ZoneInfo(clock.timezone)).date()
-    lead = stored.alert_lead_minutes
+    # One lead until slice 2's alert list reaches the API (4.2, T-2.4).
+    lead = stored.alert_leads_minutes[0] if stored.alert_leads_minutes else None
     return EventDTO(
         id=stored.id,
         user_id=stored.user_id,

@@ -33,7 +33,7 @@ class FakeCalendarEventRepository:
             schedule=write.schedule,
             starts_at=write.starts_at,
             ends_at=write.ends_at,
-            alert_lead_minutes=write.alert_lead_minutes,
+            alert_leads_minutes=write.alert_leads_minutes,
             origin=write.origin,
             original_input=write.original_input,
             created_at=created_at,

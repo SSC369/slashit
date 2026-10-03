@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
 
-NOTIFICATION_KINDS = ("reminder", "email_paused")
+NOTIFICATION_KINDS = ("reminder", "email_paused", "event_alert")
 MARKERS = ("on_time", "late", "missed")
 NOTIFICATION_ACTIONS = ("done", "snoozed")
 DELIVERY_CHANNELS = ("popup", "email")
@@ -27,6 +27,9 @@ class Notification(Base):
     )
     source_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     target_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Event alerts only: the reminder row Done and Snooze act on, while
+    # target_id is the event Open goes to (007 AD-5, 4.2 Q2). Migration 0042.
+    action_target_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     title: Mapped[str] = mapped_column(Text)
     detail: Mapped[str] = mapped_column(Text)
     marker: Mapped[str] = mapped_column(

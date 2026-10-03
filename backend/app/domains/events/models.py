@@ -19,7 +19,7 @@ from sqlalchemy import (
     Time,
     Uuid,
 )
-from sqlalchemy.dialects.postgresql import TSVECTOR
+from sqlalchemy.dialects.postgresql import ARRAY, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.domains.events.constants import EVENT_EMBEDDING_DIMENSIONS
@@ -47,7 +47,8 @@ class CalendarEvent(Base):
     schedule_timezone: Mapped[str] = mapped_column(Text)
     starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    alert_lead_minutes: Mapped[int | None] = mapped_column(Integer)
+    # Distinct and ascending (FR-34); empty means no alert. Migration 0042.
+    alert_leads_minutes: Mapped[list[int]] = mapped_column(ARRAY(Integer))
     origin: Mapped[str] = mapped_column(
         Enum(*RECORD_ORIGINS, name="record_origin", create_type=False)
     )

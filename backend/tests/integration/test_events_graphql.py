@@ -87,7 +87,7 @@ async def _create(
                 schedule=schedule,
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
-                alert_lead_minutes=None,
+                alert_leads_minutes=(),
                 origin="command",
                 original_input=f"/add-event {title}",
             ),

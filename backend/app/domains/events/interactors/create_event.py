@@ -107,7 +107,7 @@ class CreateEventInteractor:
                 schedule=schedule,
                 starts_at=resolved.starts_at,
                 ends_at=resolved.ends_at,
-                alert_lead_minutes=leads[0] if leads else None,
+                alert_leads_minutes=tuple(leads[:1]),
                 origin=dto.origin,
                 original_input=dto.original_input,
             ),

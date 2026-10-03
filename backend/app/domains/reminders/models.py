@@ -64,6 +64,9 @@ class Reminder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Epic 007, migration 0042: set on an event's alert row, which reminders'
+    # own lists and search never show (FR-32).
+    event_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # A snooze is a one-off extra firing; the series stays in next_fire_at.
     snoozed_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Epic 005, migration 0033. NULL until reminders.embed_reminder fills it,
