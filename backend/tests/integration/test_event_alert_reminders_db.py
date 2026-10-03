@@ -76,8 +76,12 @@ def _headers(
     return {"Authorization": f"Bearer {jwt.encode(claims, key, algorithm=ALGORITHM)}"}
 
 
+# One instant for the whole module, so two reads of "in five days" agree.
+_BASE = datetime.now(UTC).replace(microsecond=0)
+
+
 def _in_days(days: int) -> datetime:
-    return datetime.now(UTC).replace(microsecond=0) + timedelta(days=days)
+    return _BASE + timedelta(days=days)
 
 
 async def _insert_event(
