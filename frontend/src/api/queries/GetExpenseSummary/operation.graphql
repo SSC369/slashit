@@ -1,0 +1,7 @@
+#import "../../../fragments/ExpenseSummaryFields.graphql"
+
+query GetExpenseSummary($filter: ExpensesFilterInput) {
+  expenseSummary(filter: $filter) {
+    ...ExpenseSummaryFields
+  }
+}

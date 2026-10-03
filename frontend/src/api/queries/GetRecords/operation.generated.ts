@@ -14,6 +14,16 @@ export type EventStatusType =
   | 'PAST'
   | 'UPCOMING';
 
+export type ExpenseCategory =
+  | 'BILLS'
+  | 'ENTERTAINMENT'
+  | 'FOOD'
+  | 'HEALTH'
+  | 'OTHER'
+  | 'SHOPPING'
+  | 'TRANSPORT'
+  | 'TRAVEL';
+
 export type MemoryCategory =
   | 'LIFE'
   | 'PEOPLE'
@@ -54,6 +64,7 @@ export type GetRecordsQueryVariables = Exact<{
 
 export type GetRecordsQuery = { records: Array<
     | { __typename: 'Event', id: string, title: string, location: string | null, startDate: string, startTime: string | null, endDate: string | null, endTime: string | null, allDay: boolean, repeatYearly: boolean, scheduleTimezone: string, startsAt: string, endsAt: string, occurrenceDate: string, occurrenceEndDate: string, whenText: string, alertLeadMinutes: number | null, alertText: string | null, alertFiresAt: string | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNotes: Array<string>, eventDescription: string | null, eventStatus: Types.EventStatusType }
+    | { __typename: 'Expense', id: string, amountPaise: string, description: string, spentOn: string, origin: string, createdAt: string, updatedAt: string, expenseCategory: Types.ExpenseCategory, expenseOriginalInput: string }
     | { __typename: 'Memory', id: string, text: string, category: Types.MemoryCategory | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
     | { __typename: 'Reminder', id: string, description: string, state: Types.ReminderState, nextFireAt: string | null, whenText: string, repeatText: string, repeatKind: Types.ReminderRepeatKind, repeatInterval: number, repeatWeekdays: Array<number>, repeatMonthDay: number | null, localTime: string, anchorLocalDate: string, scheduleTimezone: string, lastFiredAt: string | null, lastAction: Types.ReminderAction | null, origin: string, originalInput: string | null, createdAt: string, updatedAt: string, whenNote: string | null, snoozedUntil: string | null }
     | { __typename: 'Task', id: string, title: string, dueAt: string | null, status: string, isOverdue: boolean, origin: string, originalInput: string | null, createdAt: string, updatedAt: string }
@@ -75,6 +86,17 @@ export const GetRecordsDocument = gql`
     }
     ... on Event {
       ...EventFields
+    }
+    ... on Expense {
+      id
+      amountPaise
+      description
+      expenseCategory: category
+      spentOn
+      origin
+      expenseOriginalInput: originalInput
+      createdAt
+      updatedAt
     }
   }
 }

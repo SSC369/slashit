@@ -6,10 +6,14 @@ section 10.
 """
 
 import strawberry
+from strawberry.schema.config import StrawberryConfig
 
 from app.domains.capture.graphql.mutations import CaptureMutations
 from app.domains.capture.graphql.queries import CaptureQueries
 from app.domains.events.graphql.queries import EventQueries
+from app.domains.expenses.graphql.mutations import ExpenseMutations
+from app.domains.expenses.graphql.queries import ExpenseQueries
+from app.domains.expenses.public import PAISE_SCALAR, Paise
 from app.domains.identity.graphql.mutations import IdentityMutations
 from app.domains.identity.graphql.queries import IdentityQueries
 from app.domains.memories.graphql.mutations import MemoryMutations
@@ -35,6 +39,7 @@ class Query(
     MemoryQueries,
     SearchQueries,
     EventQueries,
+    ExpenseQueries,
 ):
     """Root query. Each domain's queries class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""
@@ -54,6 +59,7 @@ class Mutation(
     NotificationMutations,
     MemoryMutations,
     SearchMutations,
+    ExpenseMutations,
 ):
     """Root mutation. Each domain's mutations class becomes a base here as it
     lands, per section 11: never a hand-maintained field-by-field import."""
@@ -64,4 +70,10 @@ class Subscription(NotificationSubscriptions):
     """Root subscription. One feed in V1: notifications (AD-4)."""
 
 
-schema = strawberry.Schema(query=Query, mutation=Mutation, subscription=Subscription)
+schema = strawberry.Schema(
+    query=Query,
+    mutation=Mutation,
+    subscription=Subscription,
+    # Epic 006, index §4: money as a decimal string of paise.
+    config=StrawberryConfig(scalar_map={Paise: PAISE_SCALAR}),
+)

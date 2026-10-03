@@ -1,5 +1,8 @@
 import type { EventAlertChoiceArgs } from "../../../constants/eventConstants";
 import type { EventFieldsFragment } from "../../../fragments/EventFields.generated";
+import type { ExpenseFieldsFragment } from "../../../fragments/ExpenseFields.generated";
+import type { ExpenseSummaryFieldsFragment } from "../../../fragments/ExpenseSummaryFields.generated";
+import type { ExpenseQuestionArgs, ExpenseRefusalArgs } from "../../../constants/expenseConstants";
 import type { MemoryFieldsFragment } from "../../../fragments/MemoryFields.generated";
 import type { MemoryConflictArgs } from "../../../constants/memoryConstants";
 import type { ReminderFieldsFragment } from "../../../fragments/ReminderFields.generated";
@@ -24,6 +27,10 @@ export interface AnswerPendingCaptureCallbacks {
   onMemoryConflictAsked?: (args: MemoryConflictArgs) => void;
   onSearchResults?: (results: SearchResultsFieldsFragment) => void;
   onSearchTooLong?: (args: { length: number; limit: number }) => void;
+  onExpenseSaved?: (expense: ExpenseFieldsFragment) => void;
+  onExpenseQuestionAsked?: (args: ExpenseQuestionArgs) => void;
+  onExpenseRefused?: (args: ExpenseRefusalArgs) => void;
+  onExpenseSummary?: (summary: ExpenseSummaryFieldsFragment) => void;
   onPendingQuestionCreated?: (args: { pendingCaptureId: string; question: string }) => void;
   onNonCommandGuidance?: (originalInput: string) => void;
   onUnrecognisedCommand?: (args: { attemptedName: string; closestMatches: string[] }) => void;
@@ -106,6 +113,28 @@ export const useResponseHandler = (): { handleResponse: (args: UseResponseHandle
         return;
       case "SearchTooLong":
         callbacks.onSearchTooLong?.({ length: result.length, limit: result.limit });
+        return;
+      case "ExpenseSaved":
+        callbacks.onExpenseSaved?.(result.expense);
+        return;
+      case "ExpenseQuestionAsked":
+        callbacks.onExpenseQuestionAsked?.({
+          pendingCaptureId: result.pendingCaptureId,
+          kind: result.kind,
+          question: result.question,
+          amountCandidates: result.amountCandidates,
+          readDate: result.readDate,
+        });
+        return;
+      case "ExpenseRefused":
+        callbacks.onExpenseRefused?.({
+          message: result.message,
+          reason: result.refusalReason,
+          length: result.descriptionLength,
+        });
+        return;
+      case "ExpenseSummary":
+        callbacks.onExpenseSummary?.(result);
         return;
       case "PendingQuestionCreated":
         callbacks.onPendingQuestionCreated?.({

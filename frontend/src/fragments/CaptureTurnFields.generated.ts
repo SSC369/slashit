@@ -7,6 +7,8 @@ export type CaptureTurnOutcome =
   | 'DISCARDED'
   | 'EVENTS_LISTED'
   | 'EVENT_CREATED'
+  | 'EXPENSES_SUMMARISED'
+  | 'EXPENSE_SAVED'
   | 'MEMORY_CONFLICT_RESOLVED'
   | 'MEMORY_FORGOTTEN'
   | 'MEMORY_LISTED'
@@ -17,7 +19,7 @@ export type CaptureTurnOutcome =
   | 'SEARCHED'
   | 'TASK_CREATED';
 
-export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string };
+export type CaptureTurnFieldsFragment = { id: string, inputText: string, outcome: Types.CaptureTurnOutcome, resultingTaskId: string | null, resultingPendingCaptureId: string | null, resultingMemoryId: string | null, resultingExpenseId: string | null, forgotten: boolean, affectedCount: number | null, questionText: string | null, answerText: string | null, createdAt: string };
 
 export const CaptureTurnFieldsFragmentDoc = gql`
     fragment CaptureTurnFields on CaptureTurn {
@@ -27,6 +29,7 @@ export const CaptureTurnFieldsFragmentDoc = gql`
   resultingTaskId
   resultingPendingCaptureId
   resultingMemoryId
+  resultingExpenseId
   forgotten
   affectedCount
   questionText

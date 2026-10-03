@@ -6,7 +6,7 @@ needs, in capture's vocabulary.
 """
 
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
 from app.domains.events.public import (
@@ -15,6 +15,12 @@ from app.domains.events.public import (
     EventLimitReached,
     EventNeedsAlertChoice,
     EventNeedsDate,
+)
+from app.domains.expenses.public import (
+    ExpenseDTO,
+    ExpenseFields,
+    ExpenseSummaryDTO,
+    PeriodNotUnderstood,
 )
 from app.domains.gateway.public import (
     ExtractionResult,
@@ -71,11 +77,21 @@ class ExtractionPort(Protocol):
     ) -> ExtractionResult: ...
 
 
+ExpenseCaptureEventType = Literal["expense_amount_asked", "expense_currency_refused"]
+
+
 class AnalyticsPort(Protocol):
     """What capture needs from analytics: log a no-command session. FR-9's
     metric (PRD section 8) has no other data source."""
 
     async def record_no_command_input(self, *, user_id: UUID) -> None: ...
+
+    async def record_expense_capture_event(
+        self, *, user_id: UUID, event_type: ExpenseCaptureEventType, is_choice: bool
+    ) -> None:
+        """Epic 006, PRD section 8: an amount question or a currency refusal.
+        ``is_choice`` tells FR-5's question from FR-3's. Never the text."""
+        ...
 
 
 class ReminderPort(Protocol):
@@ -149,3 +165,18 @@ class SearchPort(Protocol):
     type, grouped and ranked (epic 005, FR-1 to FR-12, FR-20)."""
 
     async def search(self, *, user_id: UUID, text: str) -> SearchResultsDTO: ...
+
+
+class ExpensePort(Protocol):
+    """What capture needs from expenses: save one it has fully read (epic
+    006, FR-1)."""
+
+    async def create_expense(
+        self, *, user_id: UUID, fields: ExpenseFields, original_input: str
+    ) -> ExpenseDTO: ...
+
+    async def summarise_text(
+        self, *, user_id: UUID, text: str
+    ) -> ExpenseSummaryDTO | PeriodNotUnderstood:
+        """FR-23 to FR-27: `/expenses <period>`, read and summed by expenses."""
+        ...

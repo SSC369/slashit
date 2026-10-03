@@ -58,3 +58,21 @@ export const statusPillHappeningStyles = "border-accent-wash bg-accent-wash text
 export const statusPillPastStyles = "border-border-strong bg-past-wash text-foreground-tertiary";
 export const alertPillStyles = "border-accent-wash bg-accent-wash text-accent";
 export const eventMarkerStyles = "inline-block h-[7px] w-[7px] shrink-0 rotate-45 rounded-[2px] bg-success";
+
+// Calendar (006 design §6, `.cal`): Monday first, today ringed, chosen day filled.
+export const calendarStyles = "w-[300px] shrink-0 rounded-lg border border-border-strong bg-card p-3";
+export const calendarHeadStyles = "mb-2 flex items-center justify-between";
+export const calendarMonthStyles = "text-[13.5px] font-semibold text-foreground";
+export const calendarNavButtonStyles = "w-8 justify-center px-0";
+export const calendarGridStyles = "grid grid-cols-7 gap-0.5 text-center";
+export const calendarWeekdayStyles =
+  "flex h-[22px] items-center justify-center text-[11px] font-semibold text-foreground-tertiary";
+export const calendarDayStyles =
+  "flex h-8 items-center justify-center rounded-[7px] text-[13px] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent";
+export const calendarDayOutsideStyles = "text-foreground-tertiary";
+export const calendarDayTodayStyles = "font-semibold shadow-[inset_0_0_0_1.5px_var(--color-line-2)]";
+export const calendarDaySelectedStyles = "bg-accent text-on-accent shadow-none";
+
+// Share bar (006 design §6, `.bar`): a proportion, never a chart.
+export const shareBarTrackStyles = "h-1.5 overflow-hidden rounded-[3px] bg-bar-track";
+export const shareBarFillStyles = "block h-full rounded-[3px] bg-success";

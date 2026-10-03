@@ -29,7 +29,8 @@ Tables touched:
 - `capture_turns`: changed, gains `resulting_expense_id` and two outcomes
 - `events`: changed, new event types
 
-> Migrations are numbered after 005's `0036_event_properties`. 005 is on `main`
+> Migrations are numbered after 007's `0038_capture_events` (renumbered
+> 2026-10-03, see the change log; first planned after 005's `0036_event_properties`). 005 is on `main`
 > with live runs still owed. 006 touches the same capture, records and search
 > wiring files, so it branches from `main` after 005's open fixes land there.
 
@@ -91,10 +92,10 @@ CHECK (amount_paise > 0)
 CHECK (char_length(description) BETWEEN 1 AND 200)
 ```
 
-Migrations required: yes. `0037_expenses` creates the table, the enum, both
+Migrations required: yes. `0039_expenses` creates the table, the enum, both
 checks, the indexes, forced RLS, its policy and the `authenticated` grant (T2).
-`0038_capture_expense` changes `pending_captures` and `capture_turns`.
-`0039_expense_events` adds the event types.
+`0040_capture_expense` changes `pending_captures` and `capture_turns`.
+`0041_expense_events` adds the event types.
 
 ## 4. API surface
 
@@ -214,3 +215,4 @@ All six answered on 2026-10-02, each as recommended. Q1 to Q4 were asked before 
 | 2026-10-02 | Created. Four direction questions answered before drafting: model-listed amounts checked by code, periods parsed by code, embeddings kept, typed pending columns | Design approved, user asked to proceed | pending |
 | 2026-10-02 | Q5 and Q6 answered, both as recommended | User answered | user |
 | 2026-10-02 | Approved. Every AD locked. AD-2 and AD-9 graduated to `tech-stack.md` | User: "approved, proceed with next" | user |
+| 2026-10-03 | Migrations renumbered `0037`–`0039` to `0039_expenses`, `0040_capture_expense`, `0041_expense_events`, chained after 007's `0038_capture_events`. Names only; no migration's content changed. Nothing downstream is stale | Epic 007 reached `main` first with `0037_calendar_events` and `0038_capture_events`. Dev log D-18 | user, 2026-10-03: "pull feat/006-expenses into main" |

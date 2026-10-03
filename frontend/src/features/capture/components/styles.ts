@@ -203,3 +203,31 @@ export const eventEmptyTitleStyles = "font-medium text-foreground";
 export const eventEmptyBodyStyles = "max-w-[380px] text-[13px] text-foreground-secondary";
 export const eventSkeletonRowStyles = "flex items-center gap-3 border-b border-border px-4 py-[11px]";
 export const eventChoiceRowStyles = "mt-3 flex flex-wrap gap-2";
+
+// Expenses (006): `Main`, `ExpenseAsk`, `AmountPick`, `DatePick`, `CaptureStates`
+export const expenseFieldsGridStyles = "grid grid-cols-[150px_minmax(0,1fr)_150px_150px] gap-px bg-border";
+export const amountStyles = "whitespace-nowrap font-mono tabular-nums";
+export const expenseAmountValueStyles = "text-base font-medium text-foreground";
+export const expenseLoadingBodyStyles = "flex flex-col gap-[9px] px-4 py-3.5";
+export const expenseNoteTextStyles = "flex-1 text-[13.5px] text-foreground";
+export const choiceChipsRowStyles = "mt-3 flex gap-2";
+export const choiceChipStyles =
+  "flex h-9 items-center gap-2 rounded-md border border-border-strong bg-card px-4 font-mono text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed";
+export const choiceChipOnStyles = "border-accent bg-accent-wash text-accent";
+export const expenseQuestionActionsStyles = "mt-3 flex gap-2";
+export const datePickRowStyles = "mt-3 flex items-start gap-[18px]";
+export const datePickSideStyles = "flex flex-col gap-2.5 pt-1";
+export const datePickChosenStyles = "text-[15px] font-medium text-foreground";
+export const datePickHintStyles = "max-w-[260px] text-[12.5px] text-foreground-secondary";
+export const datePickActionsStyles = "mt-1 flex gap-2";
+
+// Summary card (006 `Summary`, `SummaryStates`): `.sum`, `.sumrow`, `.sumtotal`
+export const summaryCountStyles = "ml-auto text-[12.5px] text-foreground-tertiary";
+export const summaryRowsStyles = "pt-1.5 pb-2";
+export const summaryRowStyles = "grid grid-cols-[150px_minmax(0,1fr)_118px] items-center gap-4 px-4 py-[7px] text-sm text-foreground";
+export const summaryAmountStyles = "text-right text-sm";
+export const summaryTotalStyles =
+  "grid grid-cols-[150px_minmax(0,1fr)_118px] gap-4 border-t border-border px-4 py-[11px] text-sm font-semibold text-foreground";
+export const summaryTotalAmountStyles = "text-right text-[15px]";
+export const summaryEmptyBodyStyles = "px-4 py-3 text-[13px] text-foreground-secondary";
+export const summaryCommandStyles = "font-mono text-foreground";

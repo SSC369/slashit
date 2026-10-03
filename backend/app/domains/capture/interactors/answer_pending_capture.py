@@ -18,7 +18,10 @@ from app.domains.capture.constants import (
 )
 from app.domains.capture.interfaces.dtos import (
     EventAlertChoiceAskedDTO,
+    ExpenseQuestionAskedDTO,
+    ExpenseQuestionKind,
     MemoryConflictAskedDTO,
+    PendingCaptureDTO,
 )
 from app.domains.capture.interfaces.ports import (
     ExtractionPort,
@@ -37,6 +40,13 @@ from app.domains.capture.services.event_capture import (
     EventCaptureService,
     EventNeedsTitle,
 )
+from app.domains.capture.services.expense_capture import (
+    ExpenseAnswerRejected,
+    ExpenseAsk,
+    ExpenseCaptureOutcome,
+    ExpenseCaptureService,
+    expense_question_asked,
+)
 from app.domains.capture.services.reminder_capture import (
     ReminderCaptureOutcome,
     ReminderCaptureService,
@@ -47,6 +57,7 @@ from app.domains.events.public import (
     EventNeedsAlertChoice,
     EventNeedsDate,
 )
+from app.domains.expenses.public import ExpenseDTO
 from app.domains.gateway.public import Extraction
 from app.domains.memories.public import MemoryConflictDTO, MemorySavedDTO
 from app.domains.records.public import TaskDTO
@@ -66,6 +77,8 @@ AnswerOutcome = (
     | MemoryConflictAskedDTO
     | SearchResultsDTO
     | SearchTooLongDTO
+    | ExpenseCaptureOutcome
+    | ExpenseQuestionAskedDTO
 )
 
 logger = structlog.get_logger(__name__)
@@ -95,6 +108,7 @@ class AnswerPendingCaptureInteractor:
         memory_port: MemoryPort,
         search_port: SearchPort,
         event_capture: EventCaptureService,
+        expense_capture: ExpenseCaptureService,
     ) -> None:
         self.pending_capture_repository = pending_capture_repository
         self.capture_turn_repository = capture_turn_repository
@@ -104,6 +118,7 @@ class AnswerPendingCaptureInteractor:
         self.memory_port = memory_port
         self.search_port = search_port
         self.event_capture = event_capture
+        self.expense_capture = expense_capture
 
     async def answer_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID, answer: str
@@ -131,6 +146,13 @@ class AnswerPendingCaptureInteractor:
         answer_text = answer.strip()
         if not answer_text:
             raise ValueError("answer is empty")
+
+        if pending_capture.expense_draft is not None:
+            return await self._answer_expense(
+                user_id=user_id,
+                pending_capture=pending_capture,
+                answer_text=answer_text,
+            )
 
         if pending_capture.command_name == "/remind":
             return await self._answer_remind(
@@ -342,6 +364,111 @@ class AnswerPendingCaptureInteractor:
             pending_capture_id=pending.id,
             question=EVENT_ALERT_QUESTION,
             choices=choice.choices,
+        )
+
+    async def _answer_expense(
+        self, *, user_id: UUID, pending_capture: PendingCaptureDTO, answer_text: str
+    ) -> AnswerOutcome:
+        """Epic 006, FR-3 to FR-5, FR-8, FR-15. An accepted answer saves or
+        asks the next question in place of this one. An answer that does not
+        fit, or an over-long description, leaves this question open."""
+        assert pending_capture.expense_draft is not None
+        kind = ExpenseQuestionKind(pending_capture.missing_field)
+        outcome = await self.expense_capture.resume(
+            user_id=user_id,
+            kind=kind,
+            draft=pending_capture.expense_draft,
+            answer=answer_text,
+            original_input=pending_capture.original_input,
+            date_words=pending_capture.known_title,
+        )
+        if isinstance(outcome, ExpenseAnswerRejected):
+            return ExpenseQuestionAskedDTO(
+                pending_capture_id=pending_capture.id,
+                kind=kind,
+                question=outcome.question,
+                amount_candidates=pending_capture.expense_draft.candidates,
+                read_date=(
+                    pending_capture.expense_draft.spent_on
+                    if kind == ExpenseQuestionKind.DATE
+                    else None
+                ),
+            )
+        if isinstance(outcome, ExpenseAsk):
+            return await self._ask_next_expense_question(
+                user_id=user_id,
+                pending_capture=pending_capture,
+                ask=outcome,
+                answer_text=answer_text,
+            )
+        if isinstance(outcome, ExpenseDTO):
+            await self._record_expense_saved(
+                user_id=user_id,
+                pending_capture=pending_capture,
+                expense=outcome,
+                answer_text=answer_text,
+            )
+        # A refusal or a model failure keeps the question open; neither is
+        # reached by a saved expense.
+        return outcome
+
+    async def _ask_next_expense_question(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture: PendingCaptureDTO,
+        ask: ExpenseAsk,
+        answer_text: str,
+    ) -> ExpenseQuestionAskedDTO:
+        """§5: the next question replaces this one in one transaction."""
+        pending = await self.pending_capture_repository.create_pending_expense(
+            user_id=user_id,
+            kind=ask.kind,
+            question_text=ask.question,
+            original_input=pending_capture.original_input,
+            draft=ask.draft,
+            date_words=ask.date_words,
+            replacing_id=pending_capture.id,
+        )
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=pending_capture.original_input,
+                outcome="question_asked",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending.id,
+                question_text=ask.question,
+                answer_text=answer_text,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the question.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        return expense_question_asked(pending_capture_id=pending.id, ask=ask)
+
+    async def _record_expense_saved(
+        self,
+        *,
+        user_id: UUID,
+        pending_capture: PendingCaptureDTO,
+        expense: ExpenseDTO,
+        answer_text: str,
+    ) -> None:
+        try:
+            await self.capture_turn_repository.record_turn(
+                user_id=user_id,
+                input_text=pending_capture.original_input,
+                outcome="expense_saved",
+                resulting_task_id=None,
+                resulting_pending_capture_id=pending_capture.id,
+                question_text=pending_capture.question_text,
+                answer_text=answer_text,
+                resulting_expense_id=expense.id,
+            )
+        except Exception:
+            # Same rule as _record_turn: the log never undoes the expense.
+            logger.exception("capture_turn.record_failed", user_id=str(user_id))
+        await self.pending_capture_repository.delete_pending_capture(
+            user_id=user_id, pending_capture_id=pending_capture.id
         )
 
     async def _answer_fact(

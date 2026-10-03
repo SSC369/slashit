@@ -30,6 +30,7 @@ from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_calendar_event_repository import FakeCalendarEventRepository
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_event_ports import FakeEventAnalyticsPort, FakeEventUserClockPort
+from tests.fakes.fake_expense_port import fake_expense_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -83,6 +84,7 @@ def _harness(*, extraction: FakeExtractionPort) -> Harness:
         "memory_port": FakeMemoryPort(),
         "search_port": FakeSearchPort(),
         "event_capture": event_capture,
+        "expense_capture": fake_expense_capture(extraction=extraction),
     }
     submit = SubmitCaptureInteractor(
         analytics=FakeAnalyticsPort(),

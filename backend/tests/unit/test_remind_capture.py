@@ -25,6 +25,7 @@ from app.domains.reminders.public import ReminderDTO
 from tests.fakes.fake_analytics_port import FakeAnalyticsPort
 from tests.fakes.fake_capture_turn_repository import FakeCaptureTurnRepository
 from tests.fakes.fake_event_ports import FakeEventPort, fake_event_capture
+from tests.fakes.fake_expense_port import fake_expense_capture
 from tests.fakes.fake_extraction_port import FakeExtractionPort
 from tests.fakes.fake_memory_port import FakeMemoryPort
 from tests.fakes.fake_pending_capture_repository import FakePendingCaptureRepository
@@ -58,6 +59,7 @@ def _submit(
         event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
+        expense_capture=fake_expense_capture(),
         pending_capture_repository=pending,
         capture_turn_repository=turns,
         task_port=FakeTaskPort(),
@@ -130,6 +132,7 @@ async def test_answering_when_creates_the_reminder() -> None:
         event_capture=fake_event_capture(extraction=FakeExtractionPort()),
         memory_port=FakeMemoryPort(),
         search_port=FakeSearchPort(),
+        expense_capture=fake_expense_capture(),
         pending_capture_repository=pending_repo,
         capture_turn_repository=turns,
         task_port=FakeTaskPort(),

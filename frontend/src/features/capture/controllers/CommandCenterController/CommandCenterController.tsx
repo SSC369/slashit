@@ -17,7 +17,9 @@ import {
   CAPTURE_COMMANDS,
   MEMORY_SAVE_COMMANDS,
 } from "../../../../constants/captureCommands";
+import type { ExpenseSummaryFieldsFragment } from "../../../../fragments/ExpenseSummaryFields.generated";
 import { isWaiting } from "../../../../stores/CaptureStore";
+import { periodIdOf } from "../../../../stores/ExpensesStore";
 import type { RecordsKindFilter } from "../../../../stores/RecordsStore";
 import type { RootStore } from "../../../../stores/RootStore";
 import { useStore } from "../../../../stores/StoreProvider";
@@ -57,6 +59,8 @@ const resolveRequestFailed = (store: RootStore, turnId: string, said: string, er
   store.capture.resolveTurn(turnId, { status: "refused", message: error.message });
 };
 
+const isExpenseSave = (said: string): boolean => said === "/add-expense" || said.startsWith("/add-expense ");
+
 interface CaptureResultTarget {
   store: RootStore;
   turnId: string;
@@ -75,6 +79,12 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
     // Epic 004 FR-9: a memory save refused on the model keeps its own copy.
     if (isMemorySave(said)) {
       captureStore.resolveTurn(turnId, { status: "memoryModelDown" });
+      restoreInput(said);
+      return;
+    }
+    // Epic 006 FR-14: the same, with the expense card's copy.
+    if (isExpenseSave(said)) {
+      captureStore.resolveTurn(turnId, { status: "expenseModelDown" });
       restoreInput(said);
       return;
     }
@@ -154,6 +164,22 @@ const buildCaptureResultCallbacks = (target: CaptureResultTarget): SubmitCapture
         error: null,
       });
     },
+    onExpenseSaved: (expense) => {
+      captureStore.resolveTurn(turnId, { status: "expenseSaved", expense });
+      store.expenses.upsert(expense);
+    },
+    onExpenseQuestionAsked: (question) =>
+      captureStore.resolveTurn(turnId, { status: "expenseQuestion", ...question, answerDraft: "" }),
+    onExpenseRefused: ({ reason, length }) => {
+      if (reason === "PERIOD_NOT_UNDERSTOOD") {
+        const periodText = said.slice(said.indexOf(" ") + 1).trim();
+        captureStore.resolveTurn(turnId, { status: "periodNotUnderstood", periodText });
+      } else {
+        captureStore.resolveTurn(turnId, { status: "expenseRefused", reason, length });
+      }
+      restoreInput(said);
+    },
+    onExpenseSummary: (summary) => captureStore.resolveTurn(turnId, { status: "expenseSummary", summary }),
     onPendingQuestionCreated: ({ pendingCaptureId, question }) =>
       captureStore.resolveTurn(turnId, { status: "pending", pendingCaptureId, question, answerDraft: "" }),
     onNonCommandGuidance: (originalInput) =>
@@ -274,7 +300,7 @@ const CommandCenterController = (): ReactElement => {
 
   const handleAnswerSubmit = (turnId: string): void => {
     const turn = store.capture.turns.get(turnId);
-    if (!turn || turn.status !== "pending") return;
+    if (!turn || (turn.status !== "pending" && turn.status !== "expenseQuestion")) return;
     const answer = turn.answerDraft.trim();
     if (!answer || !isOnline) return;
 
@@ -310,7 +336,7 @@ const CommandCenterController = (): ReactElement => {
 
   const handleDiscardPending = (turnId: string): void => {
     const turn = store.capture.turns.get(turnId);
-    if (!turn || turn.status !== "pending") return;
+    if (!turn || (turn.status !== "pending" && turn.status !== "expenseQuestion")) return;
     triggerDiscardPendingCapture({
       pendingCaptureId: turn.pendingCaptureId,
       onDiscarded: () => store.capture.removeTurn(turnId),
@@ -406,6 +432,22 @@ const CommandCenterController = (): ReactElement => {
     navigate("/records");
   };
 
+  const handleOpenExpense = (id: string): void => {
+    navigate(`/records/expenses/${id}`);
+  };
+
+  // FR-28: the Expenses tab on the card's own period.
+  const handleOpenExpenseSummary = (summary: ExpenseSummaryFieldsFragment): void => {
+    store.expenses.selectPeriod(periodIdOf(summary));
+    store.expenses.setCategoryFilter("ALL");
+    store.records.setKindFilter("EXPENSES");
+    navigate("/records");
+  };
+
+  const handleEditExpense = (id: string): void => {
+    navigate(`/records/expenses/${id}/edit`);
+  };
+
   // Epic 005, FR-9 and FR-17: a row or a citation opens its record's detail.
   // PRD §8: the open is recorded with its position, and never waited on.
   const handleOpenSearchRecord = (record: SearchRecordFragment, opened: SearchOpenEvent): void => {
@@ -437,16 +479,21 @@ const CommandCenterController = (): ReactElement => {
   };
 
   // Old memories are read live: an edit shows, a forgotten one drops out.
-  const turns = store.capture.getAll().map((turn) =>
-    turn.status === "memoryConflict"
-      ? {
-          ...turn,
-          conflicting: turn.conflicting
-            .map((memory) => store.memories.get(memory.id))
-            .filter((memory) => memory !== null),
-        }
-      : turn,
-  );
+  // A saved expense is read live too, so an edit made in Records shows here.
+  const turns = store.capture.getAll().map((turn) => {
+    if (turn.status === "memoryConflict") {
+      return {
+        ...turn,
+        conflicting: turn.conflicting
+          .map((memory) => store.memories.get(memory.id))
+          .filter((memory) => memory !== null),
+      };
+    }
+    if (turn.status === "expenseSaved") {
+      return { ...turn, expense: store.expenses.get(turn.expense.id) ?? turn.expense };
+    }
+    return turn;
+  });
   const showEmpty = turns.length === 0 && !input;
   const streamRef = useRef<HTMLDivElement>(null);
   // The newest turn grows when its loading card becomes a result, so a status
@@ -503,6 +550,9 @@ const CommandCenterController = (): ReactElement => {
                 onEditMemory={handleEditMemory}
                 onOpenMemory={handleOpenMemory}
                 onOpenMemories={handleOpenMemories}
+                onEditExpense={handleEditExpense}
+                onOpenExpense={handleOpenExpense}
+                onOpenExpenseSummary={handleOpenExpenseSummary}
                 isResolving={resolvingTurnId === turn.id && resolveApiStatus === API_FETCHING}
                 onConflictAnswer={handleConflictAnswer}
                 onConflictDefer={handleConflictDefer}

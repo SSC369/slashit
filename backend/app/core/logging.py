@@ -40,6 +40,9 @@ USER_TEXT_KEYS = frozenset(
         "answer_text",
         "question_text",
         "sentences",
+        # Epic 006, AD-9: a spend amount is personal data too.
+        "amount",
+        "amount_paise",
     }
 )
 

@@ -6,6 +6,8 @@ from uuid import UUID
 from app.domains.capture.interfaces.dtos import (
     CaptureHistoryPageDTO,
     CaptureTurnOutcome,
+    ExpenseDraft,
+    ExpenseQuestionKind,
     MissingField,
     PendingCaptureDTO,
 )
@@ -36,6 +38,21 @@ class PendingCaptureRepository(Protocol):
         conflicting_memory_ids: list[UUID],
     ) -> PendingCaptureDTO: ...
 
+    async def create_pending_expense(
+        self,
+        *,
+        user_id: UUID,
+        kind: ExpenseQuestionKind,
+        question_text: str,
+        original_input: str,
+        draft: ExpenseDraft,
+        date_words: str | None,
+        replacing_id: UUID | None,
+    ) -> PendingCaptureDTO:
+        """Epic 006: an expense question, replacing ``replacing_id`` if set,
+        in one transaction."""
+        ...
+
     async def get_pending_capture(
         self, *, user_id: UUID, pending_capture_id: UUID
     ) -> PendingCaptureDTO | None: ...
@@ -60,6 +77,7 @@ class CaptureTurnRepository(Protocol):
         resulting_memory_id: UUID | None = None,
         resulting_event_id: UUID | None = None,
         affected_count: int | None = None,
+        resulting_expense_id: UUID | None = None,
     ) -> None: ...
 
     async def delete_turns_for_memories(

@@ -7,9 +7,17 @@ from typing import cast
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import user_transaction
-from app.domains.capture.interfaces.dtos import MissingField, PendingCaptureDTO
+from app.domains.capture.interfaces.dtos import (
+    ExpenseDraft,
+    ExpenseQuestionKind,
+    MissingField,
+    PendingCaptureDTO,
+)
 from app.domains.capture.models import PendingCapture
+from app.domains.expenses.public import ExpenseCategory
 from app.domains.memories.public import MemoryCategory
+
+_EXPENSE_FIELDS = frozenset(kind.value for kind in ExpenseQuestionKind)
 
 
 class SqlPendingCaptureRepository:
@@ -84,6 +92,42 @@ class SqlPendingCaptureRepository:
             scoped.add(pending_capture)
         return _pending_capture_to_dto(pending_capture=pending_capture)
 
+    async def create_pending_expense(
+        self,
+        *,
+        user_id: uuid.UUID,
+        kind: ExpenseQuestionKind,
+        question_text: str,
+        original_input: str,
+        draft: ExpenseDraft,
+        date_words: str | None,
+        replacing_id: uuid.UUID | None,
+    ) -> PendingCaptureDTO:
+        """Epic 006, AD-6: one expense question with its draft. A chained
+        question replaces the one it follows in the same transaction."""
+        pending_capture = PendingCapture(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            command_name="/add-expense",
+            known_title=date_words,
+            missing_field=kind.value,
+            question_text=question_text,
+            original_input=original_input,
+            asked_at=datetime.now(UTC),
+            expense_amount_paise=draft.amount_paise,
+            expense_description=draft.description,
+            expense_category=draft.category.value if draft.category else None,
+            expense_spent_on=draft.spent_on,
+            amount_candidates=list(draft.candidates) or None,
+        )
+        async with user_transaction(self.session, user_id) as scoped:
+            if replacing_id is not None:
+                replaced = await scoped.get(PendingCapture, replacing_id)
+                if replaced is not None and replaced.user_id == user_id:
+                    await scoped.delete(replaced)
+            scoped.add(pending_capture)
+        return _pending_capture_to_dto(pending_capture=pending_capture)
+
     async def get_pending_capture(
         self, *, user_id: uuid.UUID, pending_capture_id: uuid.UUID
     ) -> PendingCaptureDTO | None:
@@ -119,4 +163,21 @@ def _pending_capture_to_dto(*, pending_capture: PendingCapture) -> PendingCaptur
             else None
         ),
         conflicting_memory_ids=tuple(pending_capture.conflicting_memory_ids or ()),
+        expense_draft=_expense_draft(pending_capture=pending_capture),
+    )
+
+
+def _expense_draft(*, pending_capture: PendingCapture) -> ExpenseDraft | None:
+    if pending_capture.missing_field not in _EXPENSE_FIELDS:
+        return None
+    return ExpenseDraft(
+        amount_paise=pending_capture.expense_amount_paise,
+        candidates=tuple(pending_capture.amount_candidates or ()),
+        description=pending_capture.expense_description,
+        category=(
+            ExpenseCategory(pending_capture.expense_category)
+            if pending_capture.expense_category
+            else None
+        ),
+        spent_on=pending_capture.expense_spent_on,
     )

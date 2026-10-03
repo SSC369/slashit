@@ -21,7 +21,7 @@ type CaptureHistoryPage {
   nextCursor: String
 }
 
-union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | EventCreated | EventsListed | EventLimitReached | EventAlertChoiceAsked | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
+union CaptureResult = TaskCreated | TasksListed | ReminderCreated | RemindersListed | ReminderLimitReached | EventCreated | EventsListed | EventLimitReached | EventAlertChoiceAsked | MemorySaved | MemoriesListed | MemoryTooLong | MemoryConflictAsked | SearchResults | SearchTooLong | ExpenseSaved | ExpenseQuestionAsked | ExpenseRefused | ExpenseSummary | PendingQuestionCreated | NonCommandGuidance | UnrecognisedCommand | UserLimitReached | ProviderUnavailable | ProviderTimeout | SharedQuotaExhausted | MalformedResult
 
 type CaptureTurn {
   id: ID!
@@ -32,6 +32,7 @@ type CaptureTurn {
   resultingReminderId: ID
   resultingMemoryId: ID
   resultingEventId: ID
+  resultingExpenseId: ID
   forgotten: Boolean!
   affectedCount: Int
   questionText: String
@@ -52,6 +53,8 @@ enum CaptureTurnOutcome {
   SEARCHED
   EVENT_CREATED
   EVENTS_LISTED
+  EXPENSE_SAVED
+  EXPENSES_SUMMARISED
 }
 
 enum ConflictAnswer {
@@ -65,6 +68,8 @@ scalar Date
 
 """Date with time (isoformat)"""
 scalar DateTime
+
+union DeleteExpenseResult = ExpenseDeleted | ExpenseNotFound
 
 union DeleteReminderResult = ReminderDeleteSucceeded | ReminderNotFound
 
@@ -137,6 +142,128 @@ enum EventStatusType {
 
 type EventsListed {
   events: [Event!]!
+}
+
+type Expense {
+  id: ID!
+  amountPaise: Paise!
+  description: String!
+  category: ExpenseCategory!
+  spentOn: Date!
+  origin: String!
+  originalInput: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+enum ExpenseCategory {
+  FOOD
+  TRANSPORT
+  SHOPPING
+  BILLS
+  HEALTH
+  ENTERTAINMENT
+  TRAVEL
+  OTHER
+}
+
+type ExpenseCategoryTotal {
+  category: ExpenseCategory!
+  totalPaise: Paise!
+}
+
+type ExpenseDeleted {
+  id: ID!
+}
+
+enum ExpenseField {
+  AMOUNT
+  DESCRIPTION
+}
+
+type ExpenseInvalid {
+  message: String!
+  field: ExpenseField!
+  reason: ExpenseInvalidReason!
+  length: Int
+}
+
+enum ExpenseInvalidReason {
+  NOT_POSITIVE
+  EMPTY
+  TOO_LONG
+}
+
+type ExpenseNotFound {
+  message: String!
+}
+
+type ExpensePeriod {
+  key: ExpensePeriodKey!
+  label: String!
+  phrase: String!
+  start: Date
+  end: Date
+}
+
+enum ExpensePeriodKey {
+  TODAY
+  THIS_WEEK
+  LAST_WEEK
+  THIS_MONTH
+  LAST_MONTH
+  MONTH
+  THIS_YEAR
+  ALL_TIME
+}
+
+type ExpenseQuestionAsked {
+  pendingCaptureId: ID!
+  kind: ExpenseQuestionKind!
+  question: String!
+  amountCandidates: [Paise!]!
+  readDate: Date
+}
+
+enum ExpenseQuestionKind {
+  AMOUNT
+  AMOUNT_CHOICE
+  DESCRIPTION
+  DATE
+}
+
+enum ExpenseRefusalReason {
+  FOREIGN_CURRENCY
+  DESCRIPTION_TOO_LONG
+  PERIOD_NOT_UNDERSTOOD
+}
+
+type ExpenseRefused {
+  message: String!
+  reason: ExpenseRefusalReason!
+  length: Int
+}
+
+union ExpenseResult = Expense | ExpenseNotFound
+
+type ExpenseSaved {
+  expense: Expense!
+}
+
+type ExpenseSummary {
+  label: String!
+  phrase: String!
+  start: Date
+  end: Date
+  count: Int!
+  grandTotalPaise: Paise!
+  totals: [ExpenseCategoryTotal!]!
+}
+
+input ExpensesFilterInput {
+  category: ExpenseCategory = null
+  start: Date = null
+  end: Date = null
 }
 
 union ForgetMemoryResult = MemoriesForgotten | MemoryNotFound
@@ -262,6 +389,8 @@ type Mutation {
   updateMemory(id: ID!, input: UpdateMemoryInput!): UpdateMemoryResult!
   forgetMemory(id: ID!): ForgetMemoryResult!
   recordSearchEvent(input: RecordSearchEventInput!): Boolean!
+  updateExpense(id: ID!, input: UpdateExpenseInput!): UpdateExpenseResult!
+  deleteExpense(id: ID!): DeleteExpenseResult!
 }
 
 type NoFieldsToUpdate {
@@ -312,6 +441,9 @@ type NotificationPage {
   nextCursor: String
 }
 
+"""An amount in whole paise, as a decimal string."""
+scalar Paise
+
 type PendingCaptureNotFound {
   message: String!
 }
@@ -347,10 +479,14 @@ type Query {
   relatedRecords(recordType: RecordType!, id: ID!): [SearchRecord!]!
   events(scope: EventScope! = UPCOMING): [Event!]!
   event(id: ID!): EventResult!
+  expenses(filter: ExpensesFilterInput = null): [Expense!]!
+  expense(id: ID!): ExpenseResult!
+  expensePeriods: [ExpensePeriod!]!
+  expenseSummary(filter: ExpensesFilterInput = null): ExpenseSummary!
   apiVersion: String!
 }
 
-union RecordItem = Task | Reminder | Memory | Event
+union RecordItem = Task | Reminder | Memory | Event | Expense
 
 type RecordNotFound {
   message: String!
@@ -591,6 +727,15 @@ type UnrecognisedCommand {
   attemptedName: String!
   closestMatches: [String!]!
 }
+
+input UpdateExpenseInput {
+  amountPaise: Paise = null
+  description: String = null
+  category: ExpenseCategory = null
+  spentOn: Date = null
+}
+
+union UpdateExpenseResult = Expense | ExpenseNotFound | ExpenseInvalid
 
 input UpdateMemoryInput {
   text: String!

@@ -22,6 +22,8 @@ export const CAPTURE_COMMANDS: CaptureCommand[] = [
   // Epic 007, design §8.
   { name: "/add-event", description: "Create an event" },
   { name: "/events", description: "List your upcoming events" },
+  { name: "/add-expense", description: "Record an expense" },
+  { name: "/expenses", description: "Totals by category for a period" },
 ];
 
 /** Epic 004, FR-1: two names for one action. */

@@ -16,7 +16,8 @@
 | 3 Build plan | [03-build-plan.md](./03-build-plan.md) | approved | 2026-10-02 |
 | 4 Implementation plan (index) | [04-implementation-plan.md](./04-implementation-plan.md) | approved | 2026-10-02 |
 | 4.1 Record and browse | [04.1-record-and-browse.md](./04.1-record-and-browse.md) | approved | 2026-10-02 |
-| 5 Dev | [05-dev-log.md](./05-dev-log.md) | not started | |
+| 4.2 Summaries | [04.2-summaries.md](./04.2-summaries.md) | approved | 2026-10-02 |
+| 5 Dev | [05-dev-log.md](./05-dev-log.md) | in progress | |
 
 ## One-line summary
 Expenses as a record type: record a rupee spend with `/add-expense`, see it in

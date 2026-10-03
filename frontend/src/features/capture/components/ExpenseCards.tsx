@@ -1,0 +1,445 @@
+import {
+  ArrowRight,
+  Calendar,
+  CalendarRange,
+  Check,
+  CircleQuestionMark,
+  CircleX,
+  Clock,
+  Pencil,
+  TriangleAlert,
+} from "lucide-react";
+import { useState, type ReactElement, type ReactNode } from "react";
+
+import ExpenseCategoryTag from "../../../components/ExpenseCategoryTag";
+import DatePicker from "../../../components/DatePicker";
+import ShareBar from "../../../components/ShareBar";
+import InlineSpinner from "../../../components/InlineSpinner";
+import Skeleton from "../../../components/Skeleton";
+import Button from "../../../design-system/components/Button";
+import {
+  EXPENSE_CATEGORY_LABEL,
+  MAX_DESCRIPTION_LENGTH,
+  type ExpenseQuestionArgs,
+} from "../../../constants/expenseConstants";
+import type { ExpenseFieldsFragment } from "../../../fragments/ExpenseFields.generated";
+import type { ExpenseSummaryFieldsFragment } from "../../../fragments/ExpenseSummaryFields.generated";
+import type { ExpenseRefusalReason } from "../../../../types.generated";
+import { cn } from "../../../utils/cn";
+import { formatDayLong, formatDayShort, formatSpentOn, todayIso } from "../../../utils/localDate";
+import { formatRupees, shareOf, spokenRupees } from "../../../utils/money";
+import * as Styles from "./styles";
+
+/** `CaptureMoreStates`, loading · saving. */
+export const ExpenseLoadingCard = (): ReactElement => (
+  <div className={Styles.cardStyles}>
+    <div className={Styles.cardHeadStyles}>
+      <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+        <Clock size={13} /> Reading your expense…
+      </span>
+    </div>
+    <div className={Styles.expenseLoadingBodyStyles}>
+      <Skeleton width="60%" />
+      <Skeleton width="40%" />
+    </div>
+  </div>
+);
+
+/** An amount in mono, read aloud as rupees (design §7). */
+export const Amount = (props: { paise: string; className?: string }): ReactElement => {
+  const { paise, className } = props;
+  return (
+    <span className={cn(Styles.amountStyles, className)} aria-label={spokenRupees(paise)}>
+      {formatRupees(paise)}
+    </span>
+  );
+};
+
+interface ExpenseSavedCardProps {
+  expense: ExpenseFieldsFragment;
+  onEditExpense: (id: string) => void;
+  onOpenExpense: (id: string) => void;
+}
+
+/** `Main`, FR-12: the four fields read back where they were typed. */
+export const ExpenseSavedCard = (props: ExpenseSavedCardProps): ReactElement => {
+  const { expense, onEditExpense, onOpenExpense } = props;
+
+  return (
+    <div className={Styles.cardStyles}>
+      <div className={Styles.cardHeadStyles}>
+        <span className={`${Styles.pillBaseStyles} ${Styles.pillDoneStyles}`}>
+          <Check size={13} /> Expense saved
+        </span>
+      </div>
+      <div className={Styles.expenseFieldsGridStyles}>
+        <div className={Styles.fieldCellStyles}>
+          <span className={Styles.fieldLabelStyles}>Amount</span>
+          <Amount paise={expense.amountPaise} className={Styles.expenseAmountValueStyles} />
+        </div>
+        <div className={Styles.fieldCellStyles}>
+          <span className={Styles.fieldLabelStyles}>Description</span>
+          <span className={Styles.fieldValueStyles}>{expense.description}</span>
+        </div>
+        <div className={Styles.fieldCellStyles}>
+          <span className={Styles.fieldLabelStyles}>Category</span>
+          <span>
+            <ExpenseCategoryTag category={expense.category} />
+          </span>
+        </div>
+        <div className={Styles.fieldCellStyles}>
+          <span className={Styles.fieldLabelStyles}>Date</span>
+          <span className={Styles.fieldValueStyles}>{formatSpentOn(expense.spentOn, todayIso())}</span>
+        </div>
+      </div>
+      <div className={Styles.cardFootStyles}>
+        <span>Saved just now · via command</span>
+        <div className={Styles.cardFootActionsStyles}>
+          <Button size="sm" onClick={() => onEditExpense(expense.id)}>
+            <Pencil size={13} /> Edit
+          </Button>
+          <Button size="sm" onClick={() => onOpenExpense(expense.id)}>
+            Open in Records <ArrowRight size={14} />
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface ExpenseRefusedNoteProps {
+  reason: Exclude<ExpenseRefusalReason, "PERIOD_NOT_UNDERSTOOD">;
+  length: number | null;
+}
+
+/** `CaptureStates`, FR-6 and FR-13: refused, the text back in the box. */
+export const ExpenseRefusedNote = (props: ExpenseRefusedNoteProps): ReactElement => {
+  const { reason, length } = props;
+  return (
+    <div role="alert" className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
+      <CircleX size={18} className="shrink-0 text-destructive" />
+      <div className={Styles.expenseNoteTextStyles}>
+        {reason === "FOREIGN_CURRENCY" ? (
+          <>
+            <b>Slashit records rupees only for now.</b> Enter the amount in ₹ and it will save. Your
+            text is still in the box.
+          </>
+        ) : (
+          <>
+            <b>
+              That description is {length ?? "over " + MAX_DESCRIPTION_LENGTH} characters. It can be up
+              to {MAX_DESCRIPTION_LENGTH}.
+            </b>{" "}
+            Your text is still in the box, so you can shorten it.
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/** `CaptureStates`, FR-14: nothing saved, the text back in the box. */
+export const ExpenseModelDownNote = (): ReactElement => (
+  <div role="alert" className={`${Styles.noteBaseStyles} ${Styles.noteWarnStyles}`}>
+    <TriangleAlert size={18} className="shrink-0 text-command" />
+    <div className={Styles.expenseNoteTextStyles}>
+      <b>Slashit could not save this right now.</b> Its AI model is unavailable. This is temporary.
+      Your text is still in the box.
+    </div>
+  </div>
+);
+
+const COUNT_WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+
+const QUESTION_HINT: Record<ExpenseQuestionArgs["kind"], (candidateCount: number) => string> = {
+  AMOUNT: () => "Reply with the amount in rupees. Nothing is saved until you answer.",
+  DESCRIPTION: () => "Reply with a few words. Nothing is saved until you answer.",
+  AMOUNT_CHOICE: (count) =>
+    `Your text has ${COUNT_WORDS[count] ?? count} numbers. Nothing is saved until you pick one.`,
+  DATE: () => "Confirm the date Slashit read, or pick another. Nothing is saved until you choose.",
+};
+
+const ANSWER_PLACEHOLDER: Record<"AMOUNT" | "DESCRIPTION", string> = {
+  AMOUNT: "₹ amount…",
+  DESCRIPTION: "What it was for…",
+};
+
+/** `ExpenseAsk` bolds the date inside the server's sentence. */
+const withDateBold = (question: string, readDate: string | null): ReactNode => {
+  if (readDate === null) return question;
+  const dateText = formatDayShort(readDate);
+  const at = question.indexOf(dateText);
+  if (at === -1) return question;
+  return (
+    <>
+      {question.slice(0, at)}
+      <b>{dateText}</b>
+      {question.slice(at + dateText.length)}
+    </>
+  );
+};
+
+interface ExpenseQuestionCardProps extends ExpenseQuestionArgs {
+  answerDraft: string;
+  isAnswering: boolean;
+  onAnswerDraftChange: (draft: string) => void;
+  onAnswerSubmit: () => void;
+  /** A chip, "Yes, {date}" or the calendar: the answer is sent as it is. */
+  onAnswer: (answer: string) => void;
+  onDiscard: () => void;
+}
+
+/** `ExpenseAsk`, `AmountPick` and `DatePick` (FR-3 to FR-5, FR-8). */
+export const ExpenseQuestionCard = (props: ExpenseQuestionCardProps): ReactElement => {
+  const { kind, question, amountCandidates, readDate, isAnswering } = props;
+
+  return (
+    <div className={Styles.pendingCardStyles}>
+      <div className={Styles.pendingHeadStyles}>
+        <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+          <CircleQuestionMark size={13} /> One question
+        </span>
+        {isAnswering && <InlineSpinner className="ml-auto" />}
+      </div>
+      <div className={Styles.pendingBodyStyles}>
+        <div className={Styles.pendingQuestionStyles}>{withDateBold(question, readDate)}</div>
+        <div className={Styles.pendingHintStyles}>{QUESTION_HINT[kind](amountCandidates.length)}</div>
+        <QuestionAnswer {...props} />
+      </div>
+    </div>
+  );
+};
+
+const QuestionAnswer = (props: ExpenseQuestionCardProps): ReactElement => {
+  const {
+    kind,
+    amountCandidates,
+    readDate,
+    answerDraft,
+    isAnswering,
+    onAnswerDraftChange,
+    onAnswerSubmit,
+    onAnswer,
+    onDiscard,
+  } = props;
+
+  switch (kind) {
+    case "AMOUNT_CHOICE":
+      return (
+        <div className={Styles.choiceChipsRowStyles}>
+          {amountCandidates.map((paise, index) => (
+            <button
+              key={paise}
+              type="button"
+              autoFocus={index === 0}
+              disabled={isAnswering}
+              className={cn(
+                Styles.choiceChipStyles,
+                isAnswering && answerDraft === paise && Styles.choiceChipOnStyles,
+              )}
+              aria-label={spokenRupees(paise)}
+              onClick={() => onAnswer(paise)}
+            >
+              {formatRupees(paise)}
+            </button>
+          ))}
+          <Button className="ml-auto" disabled={isAnswering} onClick={onDiscard}>
+            Discard
+          </Button>
+        </div>
+      );
+    case "DATE":
+      return (
+        <DateAnswer readDate={readDate ?? todayIso()} isAnswering={isAnswering} onAnswer={onAnswer} onDiscard={onDiscard} />
+      );
+    case "AMOUNT":
+    case "DESCRIPTION":
+      return (
+        <div className={Styles.pendingAnswerRowStyles}>
+          <div className={Styles.pendingAnswerFieldStyles}>
+            <input
+              className={Styles.pendingAnswerInputStyles}
+              type="text"
+              autoFocus
+              inputMode={kind === "AMOUNT" ? "decimal" : undefined}
+              aria-label={kind === "AMOUNT" ? "Amount in rupees" : "What the expense was for"}
+              placeholder={ANSWER_PLACEHOLDER[kind]}
+              value={answerDraft}
+              disabled={isAnswering}
+              onChange={(event) => onAnswerDraftChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                onAnswerSubmit();
+              }}
+            />
+          </div>
+          <Button onClick={onDiscard} disabled={isAnswering}>
+            Discard
+          </Button>
+        </div>
+      );
+  }
+};
+
+interface DateAnswerProps {
+  readDate: string;
+  isAnswering: boolean;
+  onAnswer: (answer: string) => void;
+  onDiscard: () => void;
+}
+
+/** FR-8: "Yes, {date}", or a calendar to choose another. */
+const DateAnswer = (props: DateAnswerProps): ReactElement => {
+  const { readDate, isAnswering, onAnswer, onDiscard } = props;
+  const [isPicking, setIsPicking] = useState(false);
+  const [chosenDate, setChosenDate] = useState(readDate);
+
+  if (!isPicking) {
+    return (
+      <div className={Styles.expenseQuestionActionsStyles}>
+        <Button variant="primary" size="sm" autoFocus disabled={isAnswering} onClick={() => onAnswer(readDate)}>
+          <Check size={13} /> Yes, {formatDayShort(readDate)}
+        </Button>
+        <Button size="sm" disabled={isAnswering} onClick={() => setIsPicking(true)}>
+          <Calendar size={14} /> Pick another date
+        </Button>
+        <Button size="sm" disabled={isAnswering} onClick={onDiscard}>
+          Discard
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className={Styles.datePickRowStyles}>
+      <DatePicker value={chosenDate} today={todayIso()} onChange={setChosenDate} autoFocus />
+      <div className={Styles.datePickSideStyles}>
+        <div className={Styles.fieldLabelStyles}>Chosen date</div>
+        <div className={Styles.datePickChosenStyles}>{formatDayLong(chosenDate)}</div>
+        <div className={Styles.datePickHintStyles}>Any date works, past or future. Today is ringed.</div>
+        <div className={Styles.datePickActionsStyles}>
+          <Button variant="primary" size="sm" disabled={isAnswering} onClick={() => onAnswer(chosenDate)}>
+            Save for {formatDayShort(chosenDate)}
+          </Button>
+          <Button size="sm" disabled={isAnswering} onClick={() => setIsPicking(false)}>
+            Back
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** `CaptureMoreStates`, loading · summary. */
+export const ExpenseSummaryLoadingCard = (): ReactElement => (
+  <div className={Styles.cardStyles}>
+    <div className={Styles.cardHeadStyles}>
+      <span className={`${Styles.pillBaseStyles} ${Styles.pillWaitStyles}`}>
+        <Clock size={13} /> Adding up your expenses…
+      </span>
+    </div>
+    <div className={Styles.expenseLoadingBodyStyles}>
+      <Skeleton width="60%" />
+      <Skeleton width="40%" />
+    </div>
+  </div>
+);
+
+/** "Mon 21 Sep to Sun 27 Sep", or one day alone. */
+const rangeText = (start: string | null, end: string | null): string | null => {
+  if (start === null || end === null) return null;
+  return start === end ? formatDayShort(start) : `${formatDayShort(start)} to ${formatDayShort(end)}`;
+};
+
+interface ExpenseSummaryCardProps {
+  summary: ExpenseSummaryFieldsFragment;
+  onOpenInRecords: (summary: ExpenseSummaryFieldsFragment) => void;
+}
+
+/** `Summary` and `SummaryStates` (FR-23 to FR-26): rows largest first, a
+ * share bar each, and the total. An empty period names itself. */
+export const ExpenseSummaryCard = (props: ExpenseSummaryCardProps): ReactElement => {
+  const { summary, onOpenInRecords } = props;
+
+  if (summary.count === 0) {
+    const range = rangeText(summary.start, summary.end);
+    return (
+      <div className={Styles.cardStyles}>
+        <div className={Styles.cardHeadStyles}>
+          <span className={`${Styles.pillBaseStyles} ${Styles.pillMutedStyles}`}>
+            <CalendarRange size={12} /> No expenses recorded {summary.phrase}
+          </span>
+        </div>
+        <div className={Styles.summaryEmptyBodyStyles}>
+          {range !== null && `${range}. `}Record one with{" "}
+          <span className={Styles.summaryCommandStyles}>/add-expense</span>.
+        </div>
+      </div>
+    );
+  }
+
+  const largest = summary.totals[0]?.totalPaise ?? "0";
+  return (
+    <div className={Styles.cardStyles}>
+      <div className={Styles.cardHeadStyles}>
+        <span className={`${Styles.pillBaseStyles} ${Styles.pillDoneStyles}`}>
+          <CalendarRange size={13} /> {summary.label}
+        </span>
+        <span className={Styles.summaryCountStyles}>
+          {summary.count} {summary.count === 1 ? "expense" : "expenses"}
+        </span>
+      </div>
+      <table className="block w-full">
+        <caption className="sr-only">Totals by category, {summary.label}</caption>
+        <tbody className={cn("block", Styles.summaryRowsStyles)}>
+          {summary.totals.map((total) => (
+            <tr key={total.category} className={Styles.summaryRowStyles}>
+              <th scope="row" className="text-left font-normal">
+                {EXPENSE_CATEGORY_LABEL[total.category]}
+              </th>
+              <td>
+                <ShareBar share={shareOf(total.totalPaise, largest)} />
+              </td>
+              <td className={Styles.summaryAmountStyles}>
+                <Amount paise={total.totalPaise} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot className="block">
+          <tr className={Styles.summaryTotalStyles}>
+            <th scope="row" className="text-left font-semibold">
+              Total
+            </th>
+            <td />
+            <td className={Styles.summaryTotalAmountStyles}>
+              <Amount paise={summary.grandTotalPaise} />
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+      <div className={Styles.cardFootStyles}>
+        <span>Largest first · only your expenses are counted</span>
+        <Button size="sm" onClick={() => onOpenInRecords(summary)}>
+          Open in Records <ArrowRight size={14} />
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+/** `SummaryStates`, FR-27: the text back in the box, the list to try. */
+export const PeriodNotUnderstoodNote = (props: { periodText: string }): ReactElement => {
+  const { periodText } = props;
+  return (
+    <div role="alert" className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
+      <CircleX size={18} className="shrink-0 text-destructive" />
+      <div className={Styles.expenseNoteTextStyles}>
+        <b>Slashit did not understand “{periodText}”.</b> Try today, this week, last week, this
+        month, last month, a month such as <span className="font-mono">august</span>, or this
+        year.
+      </div>
+    </div>
+  );
+};

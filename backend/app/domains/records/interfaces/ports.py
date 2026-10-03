@@ -7,6 +7,7 @@ from typing import Protocol
 from uuid import UUID
 
 from app.domains.events.public import EventDTO
+from app.domains.expenses.public import ExpenseDTO
 from app.domains.memories.public import MemoryDTO
 from app.domains.reminders.public import ReminderDTO
 
@@ -37,6 +38,13 @@ class EventRecordsPort(Protocol):
     (epic 007, FR-26). Records orders the merged list itself."""
 
     async def list_events(self, *, user_id: UUID) -> list[EventDTO]: ...
+
+
+class ExpenseRecordsPort(Protocol):
+    """What records needs from expenses: every live expense, for the All tab
+    (epic 006, FR-19). Records orders the merged list itself."""
+
+    async def list_expenses(self, *, user_id: UUID) -> list[ExpenseDTO]: ...
 
 
 class TaskEmbeddingPort(Protocol):

@@ -36,6 +36,9 @@ KNOWN_COMMANDS: Final[tuple[str, ...]] = (
     # Epic 007, FR-1 and FR-24.
     "/add-event",
     "/events",
+    # Epic 006, FR-1 and FR-23.
+    "/add-expense",
+    "/expenses",
 )
 
 # Epic 005. Like a memory save (AD-7 below), a search is measured on its text,
@@ -168,3 +171,91 @@ EVENT_NAMED_TIME_PATTERN: Final = (
 EVENT_ALERT_QUESTION: Final = "Which alert should I keep?"
 # The answer to FR-16's question that keeps no alert.
 NO_ALERT_ANSWER: Final = "none"
+
+# Epic 006, FR-1.
+ADD_EXPENSE_COMMAND: Final = "/add-expense"
+
+# Epic 006, FR-23. Read by code, no model call (build plan AD-5).
+EXPENSES_COMMAND: Final = "/expenses"
+
+# Index §4. The model lists every number that could be the price; code keeps
+# only those typed (AD-4). Kept terse, for the latency reason at the top of
+# this file. ``date_words`` is the user's own phrase for the date, for FR-8's
+# question. Optional fields are omitted rather than typed nullable, the shape
+# every other capture schema uses with this provider. Both changes from index
+# §4 are dev log D-1.
+EXPENSE_EXTRACTION_SCHEMA: Final[dict[str, Any]] = {
+    "type": "object",
+    "properties": {
+        "amounts": {"type": "array", "items": {"type": "string"}},
+        "currency": {"type": "string"},
+        "description": {"type": "string"},
+        "category": {
+            "type": "string",
+            "enum": [
+                "food",
+                "transport",
+                "shopping",
+                "bills",
+                "health",
+                "entertainment",
+                "travel",
+                "other",
+            ],
+        },
+        "local_date": {"type": "string"},
+        "date_words": {"type": "string"},
+    },
+    "required": ["amounts", "description", "category"],
+}
+
+# The category guide is the user's own split, from the NFR-4 evaluation set
+# (tests/eval/expense_categories.json). Amounts include counts, per FR-5's
+# own example: "2 coffees 180" asks which number is the price (dev log D-4).
+EXPENSE_CATEGORY_GUIDE: Final = (
+    "Categories: food is meals, snacks, drinks and groceries. transport is "
+    "getting around within a city: cabs, autos, metro, fuel, parking. travel "
+    "is a trip away: trains, buses or flights between cities, hotels, and "
+    "cabs taken on the trip. bills is rent, utilities, phone, internet, "
+    "insurance and subscriptions such as Netflix. health is medicine, doctors, "
+    "tests and gyms. entertainment is movies, events, games and books. "
+    "shopping is clothes, gadgets and things for the home. other is services "
+    "and fees: haircuts, laundry, courier, bank and ATM charges, stamp paper, "
+    "and anything unsure."
+)
+
+EXPENSE_EXTRACTION_INSTRUCTION: Final = (
+    "Read one spend in Indian rupees. amounts: every number written in the "
+    "text that could be the price, as typed, counts included; skip only dates "
+    "and times. currency: an ISO code only if the text names one, else omit. "
+    "description: what was bought, in the user's own words, without the amount "
+    "or the date; empty if the text does not say. local_date: the spend's date "
+    "as YYYY-MM-DD, omitted for today; a day with no month is the most recent "
+    "such day not after today. date_words: the words that gave the date, if "
+    f"any. {EXPENSE_CATEGORY_GUIDE}"
+)
+
+# Build plan Q5: a description given later costs one more call, to read its
+# category. A failure saves as Other (FR-10).
+EXPENSE_CATEGORY_SCHEMA: Final[dict[str, Any]] = {
+    "type": "object",
+    "properties": {
+        "category": EXPENSE_EXTRACTION_SCHEMA["properties"]["category"],
+    },
+    "required": ["category"],
+}
+
+EXPENSE_CATEGORY_INSTRUCTION: Final = (
+    f"The input says what a spend was for. Pick its category. {EXPENSE_CATEGORY_GUIDE}"
+)
+
+# Design §8, FR-3 to FR-5 and FR-8.
+EXPENSE_AMOUNT_QUESTION: Final = "How much was it?"
+EXPENSE_AMOUNT_RETRY: Final = "Enter an amount such as 850 or 1,200.50"
+EXPENSE_DESCRIPTION_QUESTION: Final = "What was the expense for?"
+EXPENSE_AMOUNT_CHOICE_QUESTION: Final = "Which number is the amount?"
+EXPENSE_DATE_QUESTION: Final = (
+    "{phrase} reads as {date}, which is after today. Save it for that date?"
+)
+# When the model gave no phrase for the date it read.
+EXPENSE_DATE_PHRASE_FALLBACK: Final = "Your date"

@@ -11,6 +11,7 @@ from app.domains.records.interactors.dtos import ListTasksInputDTO
 from app.domains.records.interactors.list_tasks import ListTasksInteractor
 from app.domains.records.interfaces.dtos import TaskDTO
 from tests.fakes.fake_event_ports import FakeEventRecordsPort
+from tests.fakes.fake_expense_port import FakeExpenseRecordsPort, make_expense
 from tests.fakes.fake_memory_port import FakeMemoryRecordsPort
 from tests.fakes.fake_reminder_records_port import FakeReminderRecordsPort
 from tests.fakes.fake_task_repository import FakeTaskRepository
@@ -42,6 +43,7 @@ async def test_kind_filter_tasks_returns_every_row() -> None:
     interactor = ListTasksInteractor(
         event_records=FakeEventRecordsPort(),
         memory_records=FakeMemoryRecordsPort(),
+        expense_records=FakeExpenseRecordsPort(),
         task_repository=repository,
         reminder_records=FakeReminderRecordsPort(),
     )
@@ -80,6 +82,7 @@ async def test_sorting_by_due_at_puts_null_last_ascending() -> None:
     interactor = ListTasksInteractor(
         event_records=FakeEventRecordsPort(),
         memory_records=FakeMemoryRecordsPort(),
+        expense_records=FakeExpenseRecordsPort(),
         task_repository=repository,
         reminder_records=FakeReminderRecordsPort(),
     )
@@ -140,6 +143,7 @@ async def test_the_all_tab_filter_includes_memories() -> None:
         memory_records=FakeMemoryRecordsPort(memories=[memory]),
         task_repository=await _seeded_repository(user_id=user_id),
         reminder_records=FakeReminderRecordsPort(),
+        expense_records=FakeExpenseRecordsPort(),
     )
 
     for kind_filter in (None, "ALL"):
@@ -153,3 +157,35 @@ async def test_the_all_tab_filter_includes_memories() -> None:
         )
 
         assert memory in records, kind_filter
+
+
+async def test_the_all_tab_includes_expenses_and_no_other_tab_does() -> None:
+    """C-20, epic 006 FR-19: an expense is a row in All, with its amount for
+    the status column, and never a task or a reminder."""
+    user_id = uuid.uuid4()
+    expense = make_expense(user_id=user_id)
+    interactor = ListTasksInteractor(
+        memory_records=FakeMemoryRecordsPort(),
+        task_repository=await _seeded_repository(user_id=user_id),
+        reminder_records=FakeReminderRecordsPort(),
+        event_records=FakeEventRecordsPort(),
+        expense_records=FakeExpenseRecordsPort(expenses=[expense]),
+    )
+
+    for kind_filter, expected in (
+        (None, True),
+        ("ALL", True),
+        ("TASKS", False),
+        ("REMINDERS", False),
+    ):
+        for sort_by in ("CREATED_AT", "DUE_AT"):
+            records = await interactor.list_tasks(
+                dto=ListTasksInputDTO(
+                    user_id=user_id,
+                    kind_filter=kind_filter,
+                    sort_by=sort_by,
+                    sort_desc=True,
+                )
+            )
+
+            assert (expense in records) is expected, (kind_filter, sort_by)

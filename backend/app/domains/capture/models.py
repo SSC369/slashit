@@ -1,9 +1,9 @@
 """SQLAlchemy tables for capture. Nothing else lives here."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
-from sqlalchemy import ARRAY, DateTime, Enum, Integer, Text, Uuid
+from sqlalchemy import ARRAY, BigInteger, Date, DateTime, Enum, Integer, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models import Base
@@ -18,6 +18,11 @@ MISSING_FIELDS = (
     # Epic 007, migration 0038.
     "event_date",
     "event_alert_choice",
+    # Epic 006, migration 0040.
+    "expense_amount",
+    "expense_description",
+    "expense_amount_choice",
+    "expense_date",
 )
 CAPTURE_TURN_OUTCOMES = (
     "task_created",
@@ -34,8 +39,21 @@ CAPTURE_TURN_OUTCOMES = (
     # Epic 007, migration 0038.
     "event_created",
     "events_listed",
+    # Epic 006, migration 0040.
+    "expense_saved",
+    "expenses_summarised",
 )
 MEMORY_CATEGORIES = ("personal", "people", "professional", "life")
+EXPENSE_CATEGORIES = (
+    "food",
+    "transport",
+    "shopping",
+    "bills",
+    "health",
+    "entertainment",
+    "travel",
+    "other",
+)
 
 
 class PendingCapture(Base):
@@ -60,6 +78,14 @@ class PendingCapture(Base):
         Enum(*MEMORY_CATEGORIES, name="memory_category", create_type=False)
     )
     conflicting_memory_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(Uuid))
+    # Epic 006, migration 0040: an expense question's draft, typed (AD-6).
+    expense_amount_paise: Mapped[int | None] = mapped_column(BigInteger)
+    expense_description: Mapped[str | None] = mapped_column(Text)
+    expense_category: Mapped[str | None] = mapped_column(
+        Enum(*EXPENSE_CATEGORIES, name="expense_category", create_type=False)
+    )
+    expense_spent_on: Mapped[date | None] = mapped_column(Date)
+    amount_candidates: Mapped[list[int] | None] = mapped_column(ARRAY(BigInteger))
 
 
 class CaptureTurn(Base):
@@ -82,6 +108,8 @@ class CaptureTurn(Base):
     resulting_memory_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 007, migration 0038. No foreign key, as for resulting_task_id.
     resulting_event_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Epic 006, migration 0040. No foreign key, as for resulting_task_id.
+    resulting_expense_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     # Epic 004, migration 0028. Set by the forget scrub, the one UPDATE this
     # table permits (AD-3); a check constraint keeps a scrubbed row wordless.
     forgotten_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

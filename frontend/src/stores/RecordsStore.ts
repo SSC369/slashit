@@ -2,14 +2,16 @@ import { makeAutoObservable } from "mobx";
 
 import type { RecordItem } from "../api/queries/GetRecords/responseHandler";
 import type { EventFieldsFragment } from "../fragments/EventFields.generated";
+import type { ExpenseFieldsFragment } from "../fragments/ExpenseFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { TaskFieldsFragment } from "../fragments/TaskFields.generated";
 import type { EventsStoreModel } from "./EventsStore";
+import type { ExpensesStoreModel } from "./ExpensesStore";
 import type { MemoriesStoreModel } from "./MemoriesStore";
 import type { RemindersStoreModel } from "./RemindersStore";
 
-export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS" | "MEMORIES" | "EVENTS";
+export type RecordsKindFilter = "ALL" | "TASKS" | "REMINDERS" | "MEMORIES" | "EVENTS" | "EXPENSES";
 export type RecordsSortField = "CREATED_AT" | "DUE_AT";
 /** Epic 005, FR-23: a search lists best match first, or the same matches by date. */
 export type RecordsSearchSortMode = "BEST_MATCH" | "DATE";
@@ -27,7 +29,8 @@ export type RecordRow =
   | { kind: "TASK"; task: TaskFieldsFragment }
   | { kind: "REMINDER"; reminder: ReminderFieldsFragment }
   | { kind: "MEMORY"; memory: MemoryFieldsFragment }
-  | { kind: "EVENT"; event: EventFieldsFragment };
+  | { kind: "EVENT"; event: EventFieldsFragment }
+  | { kind: "EXPENSE"; expense: ExpenseFieldsFragment };
 
 const createdAtOf = (row: RecordRow): string => {
   switch (row.kind) {
@@ -39,6 +42,8 @@ const createdAtOf = (row: RecordRow): string => {
       return row.memory.createdAt;
     case "EVENT":
       return row.event.createdAt;
+    case "EXPENSE":
+      return row.expense.createdAt;
   }
 };
 
@@ -48,7 +53,7 @@ export interface RecordRef {
 }
 
 export class RecordsStoreModel {
-  /** Tasks by id. Reminders, memories and events live in their own stores, never here. */
+  /** Tasks by id. Reminders, memories, events and expenses live in their own stores, never here. */
   records: Map<string, TaskFieldsFragment> = new Map();
   order: RecordRef[] = [];
   kindFilter: RecordsKindFilter = "ALL";
@@ -68,18 +73,24 @@ export class RecordsStoreModel {
   private readonly remindersStore: RemindersStoreModel;
   private readonly memoriesStore: MemoriesStoreModel;
   private readonly eventsStore: EventsStoreModel;
+  private readonly expensesStore: ExpensesStoreModel;
 
   constructor(
     remindersStore: RemindersStoreModel,
     memoriesStore: MemoriesStoreModel,
     eventsStore: EventsStoreModel,
+    expensesStore: ExpensesStoreModel,
   ) {
     this.remindersStore = remindersStore;
     this.memoriesStore = memoriesStore;
     this.eventsStore = eventsStore;
-    makeAutoObservable<RecordsStoreModel, "remindersStore" | "memoriesStore" | "eventsStore">(
+    this.expensesStore = expensesStore;
+    makeAutoObservable<
+      RecordsStoreModel,
+      "remindersStore" | "memoriesStore" | "eventsStore" | "expensesStore"
+    >(
       this,
-      { remindersStore: false, memoriesStore: false, eventsStore: false },
+      { remindersStore: false, memoriesStore: false, eventsStore: false, expensesStore: false },
       { autoBind: true },
     );
   }
@@ -104,6 +115,9 @@ export class RecordsStoreModel {
       } else if (ref.kind === "EVENT") {
         const event = this.eventsStore.get(ref.id);
         if (event !== null) rows.push({ kind: "EVENT", event });
+      } else if (ref.kind === "EXPENSE") {
+        const expense = this.expensesStore.get(ref.id);
+        if (expense !== null) rows.push({ kind: "EXPENSE", expense });
       } else {
         const reminder = this.remindersStore.get(ref.id);
         if (reminder !== null) rows.push({ kind: "REMINDER", reminder });
@@ -117,8 +131,8 @@ export class RecordsStoreModel {
     this.order = items.map((item) => this.upsertItem(item));
   }
 
-  /** Puts a record where it lives: tasks here, reminders, memories and
-   * events in their own stores. Returns the reference an ordered list keeps. */
+  /** Puts a record where it lives: tasks here, reminders, memories, events
+   * and expenses in their own stores. Returns the reference an ordered list keeps. */
   upsertItem(item: RecordItem): RecordRef {
     if (item.__typename === "Task") {
       this.records.set(item.id, item);
@@ -131,6 +145,10 @@ export class RecordsStoreModel {
     if (item.__typename === "Event") {
       this.eventsStore.upsert(item);
       return { kind: "EVENT", id: item.id };
+    }
+    if (item.__typename === "Expense") {
+      this.expensesStore.upsert(item);
+      return { kind: "EXPENSE", id: item.id };
     }
     this.remindersStore.upsert(item);
     return { kind: "REMINDER", id: item.id };
@@ -211,7 +229,8 @@ export class RecordsStoreModel {
     remindersStore: RemindersStoreModel,
     memoriesStore: MemoriesStoreModel,
     eventsStore: EventsStoreModel,
+    expensesStore: ExpensesStoreModel,
   ): RecordsStoreModel {
-    return new RecordsStoreModel(remindersStore, memoriesStore, eventsStore);
+    return new RecordsStoreModel(remindersStore, memoriesStore, eventsStore, expensesStore);
   }
 }

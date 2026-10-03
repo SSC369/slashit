@@ -8,6 +8,8 @@ import type { RecordRow } from "../../../stores/RecordsStore";
 import { cn } from "../../../utils/cn";
 import { formatShortDate } from "../../../utils/formatDate";
 import { formatEventStart } from "../../../utils/formatEvent";
+import { formatDayShort } from "../../../utils/localDate";
+import { formatRupees, spokenRupees } from "../../../utils/money";
 import * as Styles from "./styles";
 
 interface RecordTableProps {
@@ -70,6 +72,7 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
   const hasReminders = records.some((row) => row.kind === "REMINDER");
   const hasMemories = records.some((row) => row.kind === "MEMORY");
   const hasEvents = records.some((row) => row.kind === "EVENT");
+  const hasExpenses = records.some((row) => row.kind === "EXPENSE");
 
   return (
     <div className={Styles.cardStyles}>
@@ -99,6 +102,9 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
             if (row.kind === "EVENT") {
               return <EventRow key={row.event.id} row={row} onOpenRecord={onOpenRecord} />;
             }
+            if (row.kind === "EXPENSE") {
+              return <ExpenseRow key={row.expense.id} row={row} onOpenRecord={onOpenRecord} />;
+            }
             return <ReminderRow key={row.reminder.id} row={row} onOpenRecord={onOpenRecord} />;
           })}
         </tbody>
@@ -112,6 +118,8 @@ const RecordTable = (props: RecordTableProps): ReactElement => {
           {footRight ??
             (hasEvents
               ? "Events carry a diamond marker"
+              : hasExpenses
+              ? "An expense shows its amount where other records show a status"
               : hasMemories
               ? "A memory shows its category where a task shows its status"
               : hasReminders
@@ -236,6 +244,34 @@ const EventRow = (props: EventRowProps): ReactElement => {
       <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{formatEventStart(event)}</td>
       <td className={Styles.tdStyles}>
         <EventStatusPill status={event.eventStatus} />
+      </td>
+    </tr>
+  );
+};
+
+interface ExpenseRowProps {
+  row: Extract<RecordRow, { kind: "EXPENSE" }>;
+  onOpenRecord: (row: RecordRow) => void;
+}
+
+/** 006 `RecordsAll` (FR-19): the day it was spent, and the amount as status. */
+const ExpenseRow = (props: ExpenseRowProps): ReactElement => {
+  const { row, onOpenRecord } = props;
+  const { expense } = row;
+  return (
+    <tr className={Styles.rowStyles} onClick={() => onOpenRecord(row)}>
+      <td className={Styles.tdStyles}>
+        <span className={Styles.typeTagStyles}>
+          <span className={Styles.typeDotExpenseStyles} />
+          Expense
+        </span>
+      </td>
+      <td className={cn(Styles.tdStyles, Styles.titleCellStyles)}>{expense.description}</td>
+      <td className={cn(Styles.tdStyles, Styles.dateCellStyles)}>{formatDayShort(expense.spentOn)}</td>
+      <td className={Styles.tdStyles}>
+        <span className={Styles.amountStyles} aria-label={spokenRupees(expense.amountPaise)}>
+          {formatRupees(expense.amountPaise)}
+        </span>
       </td>
     </tr>
   );

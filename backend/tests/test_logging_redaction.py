@@ -111,3 +111,24 @@ def test_search_and_record_text_is_blanked_by_key() -> None:
     assert result["total_ms"] == 812
     assert result["group_count"] == 3
     assert result["hit"] == {"title": REDACTED, "task_id": "9f1a"}
+
+
+def test_expense_description_and_amount_are_blanked_by_key() -> None:
+    """C-18 of epic 006's sub-plan 4.1, NFR-7, AD-9: a spend's words and its
+    amount never reach a log. Ids and timings still do."""
+    event = {
+        "event": "expenses.saved",
+        "description": "therapy session",
+        "amount": "₹3,500",
+        "amount_paise": 350_000,
+        "expense": {"amount_paise": 350_000, "expense_id": "7c2e"},
+        "save_ms": 5400,
+    }
+
+    result = blank_user_text(None, "info", event)
+
+    assert "therapy" not in str(result)
+    assert "3,500" not in str(result)
+    assert "350000" not in str(result)
+    assert result["expense"] == {"amount_paise": REDACTED, "expense_id": "7c2e"}
+    assert result["save_ms"] == 5400

@@ -1,8 +1,11 @@
 import { makeAutoObservable } from "mobx";
 
-import type { MemoryCategory, SecretKind } from "../../types.generated";
+import type { ExpenseRefusalReason, MemoryCategory, SecretKind } from "../../types.generated";
 import type { EventAlertChoice } from "../constants/eventConstants";
+import type { ExpenseQuestionArgs } from "../constants/expenseConstants";
 import type { EventFieldsFragment } from "../fragments/EventFields.generated";
+import type { ExpenseFieldsFragment } from "../fragments/ExpenseFields.generated";
+import type { ExpenseSummaryFieldsFragment } from "../fragments/ExpenseSummaryFields.generated";
 import type { MemoryFieldsFragment } from "../fragments/MemoryFields.generated";
 import type { ReminderFieldsFragment } from "../fragments/ReminderFields.generated";
 import type { SearchResultsFieldsFragment } from "../fragments/SearchResultsFields.generated";
@@ -71,6 +74,25 @@ export type CaptureTurn =
   | { id: string; said: string; status: "searchResults"; results: SearchResultsFieldsFragment }
   | { id: string; said: string; status: "searchTooLong"; length: number; limit: number }
   | { id: string; said: string; status: "memoryModelDown" }
+  /** Epic 006, `Main` and `AmountPick`. */
+  | { id: string; said: string; status: "expenseSaved"; expense: ExpenseFieldsFragment }
+  /** `ExpenseAsk`, `AmountPick`, `DatePick`: one question at a time (FR-15). */
+  | ({ id: string; said: string; status: "expenseQuestion"; answerDraft: string } & ExpenseQuestionArgs)
+  /** `CaptureStates`, FR-6 and FR-13. */
+  | {
+      id: string;
+      said: string;
+      status: "expenseRefused";
+      reason: Exclude<ExpenseRefusalReason, "PERIOD_NOT_UNDERSTOOD">;
+      length: number | null;
+    }
+  /** `CaptureStates`, FR-14. */
+  | { id: string; said: string; status: "expenseModelDown" }
+  /** `Summary` and `SummaryStates`, FR-23 to FR-26. Held only while the page
+   * is open; history reruns the line. */
+  | { id: string; said: string; status: "expenseSummary"; summary: ExpenseSummaryFieldsFragment }
+  /** `SummaryStates`, FR-27. */
+  | { id: string; said: string; status: "periodNotUnderstood"; periodText: string }
   | {
       id: string;
       said: string;
@@ -109,7 +131,10 @@ const scrubTurn = (turn: CaptureTurn, isGone: (memoryId: string) => boolean): Ca
 
 /** A turn whose question still waits on the user. */
 export const isWaiting = (turn: CaptureTurn): boolean =>
-  turn.status === "pending" || turn.status === "memoryConflict" || turn.status === "eventAlertChoice";
+  turn.status === "pending" ||
+  turn.status === "memoryConflict" ||
+  turn.status === "eventAlertChoice" ||
+  turn.status === "expenseQuestion";
 
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
@@ -144,7 +169,7 @@ export class CaptureStoreModel {
 
   setAnswerDraft(id: string, answerDraft: string): void {
     const turn = this.turns.get(id);
-    if (!turn || turn.status !== "pending") return;
+    if (!turn || (turn.status !== "pending" && turn.status !== "expenseQuestion")) return;
     this.turns.set(id, { ...turn, answerDraft });
   }
 

@@ -9,6 +9,9 @@ import type { RecordRow } from "../../../stores/RecordsStore";
 import { cn } from "../../../utils/cn";
 import { formatShortDate } from "../../../utils/formatDate";
 import { formatEventStart } from "../../../utils/formatEvent";
+import { formatDayShort } from "../../../utils/localDate";
+import { formatRupees } from "../../../utils/money";
+import { recordId } from "../../../utils/recordPath";
 import * as Styles from "./styles";
 
 const SKELETON_ROW_COUNT = 3;
@@ -81,7 +84,7 @@ const RelatedBody = (props: RelatedRecordsProps): ReactElement => {
       return (
         <div>
           {rows.map((row, index) => (
-            <RelatedRow key={rowId(row)} row={row} onOpen={() => onOpenRow(row, index + 1)} />
+            <RelatedRow key={recordId(row)} row={row} onOpen={() => onOpenRow(row, index + 1)} />
           ))}
         </div>
       );
@@ -89,19 +92,6 @@ const RelatedBody = (props: RelatedRecordsProps): ReactElement => {
       const unhandled: never = state;
       throw new Error(`Unhandled related state: ${String(unhandled)}`);
     }
-  }
-};
-
-const rowId = (row: RecordRow): string => {
-  switch (row.kind) {
-    case "TASK":
-      return row.task.id;
-    case "REMINDER":
-      return row.reminder.id;
-    case "MEMORY":
-      return row.memory.id;
-    case "EVENT":
-      return row.event.id;
   }
 };
 
@@ -179,6 +169,20 @@ const RelatedCells = (props: { row: RecordRow }): ReactElement => {
           <span className={Styles.relatedDateStyles}>{formatEventStart(row.event)}</span>
           <span className={Styles.relatedStatusStyles}>
             <EventStatusPill status={row.event.eventStatus} />
+          </span>
+        </>
+      );
+    case "EXPENSE":
+      return (
+        <>
+          <span className={Styles.relatedTypeStyles}>
+            <span className={Styles.typeDotExpenseStyles} />
+            Expense
+          </span>
+          <span className={Styles.relatedTitleStyles}>{row.expense.description}</span>
+          <span className={Styles.relatedDateStyles}>{formatDayShort(row.expense.spentOn)}</span>
+          <span className={cn(Styles.relatedStatusStyles, Styles.amountStyles)}>
+            {formatRupees(row.expense.amountPaise)}
           </span>
         </>
       );

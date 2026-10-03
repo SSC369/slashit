@@ -1,0 +1,11 @@
+fragment ExpenseFields on Expense {
+  id
+  amountPaise
+  description
+  category
+  spentOn
+  origin
+  originalInput
+  createdAt
+  updatedAt
+}

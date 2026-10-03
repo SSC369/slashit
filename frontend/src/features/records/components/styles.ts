@@ -183,3 +183,43 @@ export const eventDetailFootStyles =
 export const eventDetailInputStyles = "font-mono";
 export const pillAlertStyles = "border-accent-wash bg-accent-wash text-accent";
 export const eventNoteStyles = "mt-[18px] flex gap-2.5 rounded-[10px] border border-accent-wash bg-accent-wash px-4 py-3.5 text-[13px] text-foreground";
+
+// Expenses (006 design §6): `.dot.exp`, `.amt`, `RecordsExpenses`, `ExpenseDetail`, `ExpenseEdit`
+export const typeDotExpenseStyles = "h-1.5 w-1.5 shrink-0 rotate-45 rounded-[2px] bg-success";
+export const amountStyles = "whitespace-nowrap font-mono tabular-nums";
+export const amountHeadStyles = "text-right";
+export const amountCellStyles = "text-right font-mono tabular-nums whitespace-nowrap";
+export const expenseDescriptionCellStyles = "font-medium text-foreground";
+export const expenseDetailAmountStyles = "font-serif text-[40px] leading-[1.1] tabular-nums text-foreground";
+export const expenseDetailDescriptionStyles = "mt-1 text-base font-medium text-foreground";
+export const expenseEditGridStyles = "grid grid-cols-[200px_1fr] gap-4";
+export const amountControlPrefixStyles = "mr-1.5 font-mono text-foreground-secondary";
+export const amountControlInputStyles = "w-full border-0 bg-transparent font-mono text-sm tabular-nums text-foreground outline-none";
+export const dateControlStyles = "w-[260px] justify-between";
+export const dateControlButtonStyles = "flex w-full items-center justify-between text-left";
+export const datePopoverStyles = "absolute z-30 mt-1.5";
+export const dateFieldStyles = "relative w-fit";
+export const deleteButtonStyles = "text-destructive";
+export const emptyExampleStyles = "mt-3.5 font-mono text-[13px] text-foreground-tertiary";
+export const expenseEditErrorsStyles = "-mt-2 mb-[18px] flex flex-col gap-1";
+// `DetailStates`: the red border with a red-wash ring.
+export const expenseControlErrorStyles = "border-destructive ring-[3px] ring-destructive-wash";
+
+// Period picker (`.select`) and summary band (`.band`), 006 sub-plan 4.2
+export const periodSelectStyles =
+  "inline-flex h-8 items-center gap-2 rounded-md border border-border-strong bg-card px-[11px] text-[12.5px] font-medium text-foreground";
+export const periodMenuStyles = "scroll max-h-[360px] w-[220px]";
+export const periodOptionStyles =
+  "flex w-full items-center justify-between px-3.5 py-2 text-left text-[13px] text-foreground hover:bg-background";
+export const periodOptionOnStyles = "font-semibold text-accent";
+export const bandStyles = "mb-4 flex items-stretch overflow-hidden rounded-lg border border-border bg-card";
+export const bandTotalStyles = "flex w-[210px] shrink-0 flex-col gap-0.5 border-r border-border px-[18px] py-3.5";
+export const bandTotalAmountStyles = "text-2xl font-medium tracking-[-0.01em] text-foreground";
+export const bandCountStyles = "text-xs text-foreground-tertiary";
+export const bandCellsStyles = "grid flex-1 grid-cols-4 gap-px bg-border";
+export const bandCellStyles = "flex flex-col gap-[5px] bg-card px-3.5 py-2.5";
+export const bandCellTopStyles = "flex justify-between gap-2 text-[12.5px] text-foreground-secondary";
+export const bandCellAmountStyles = "text-[13.5px] text-foreground";
+export const emptyPeriodStyles = "rounded-lg border border-border bg-card p-[26px] text-center";
+export const emptyPeriodTitleStyles = "font-semibold text-foreground";
+export const emptyPeriodBodyStyles = "mt-1.5 text-[13px] text-foreground-secondary";

@@ -4,6 +4,7 @@ import { useRef, type ReactElement } from "react";
 import InlineSpinner from "../../../components/InlineSpinner";
 import Button from "../../../design-system/components/Button";
 import { EVENT_DATE_HINT, EVENT_DATE_QUICK_ANSWERS } from "../../../constants/eventConstants";
+import type { ExpenseSummaryFieldsFragment } from "../../../fragments/ExpenseSummaryFields.generated";
 import type { CaptureTurn } from "../../../stores/CaptureStore";
 import type { ConflictAnswer, RecordType } from "../../../../types.generated";
 import { formatShortDate as formatDueDate } from "../../../utils/formatDate";
@@ -24,6 +25,16 @@ import {
   EventSavedCard,
   EventSavingCard,
 } from "./EventCards";
+import {
+  ExpenseLoadingCard,
+  ExpenseModelDownNote,
+  ExpenseQuestionCard,
+  ExpenseRefusedNote,
+  ExpenseSavedCard,
+  ExpenseSummaryCard,
+  ExpenseSummaryLoadingCard,
+  PeriodNotUnderstoodNote,
+} from "./ExpenseCards";
 import { ReminderCreatedCard, ReminderListCard } from "./ReminderCards";
 import {
   SearchLoadingCard,
@@ -49,6 +60,9 @@ interface TurnCardProps {
   onEditMemory: (id: string) => void;
   onOpenMemory: (id: string) => void;
   onOpenMemories: () => void;
+  onEditExpense: (id: string) => void;
+  onOpenExpense: (id: string) => void;
+  onOpenExpenseSummary: (summary: ExpenseSummaryFieldsFragment) => void;
   isResolving?: boolean;
   onConflictAnswer: (id: string, answer: ConflictAnswer) => void;
   onConflictDefer: (id: string, deferred: boolean) => void;
@@ -76,6 +90,12 @@ const MEMORY_READ_COMMANDS = new Set(["/memories"]);
 /** Epic 007: an event save and the upcoming list each draw their own loading. */
 const ADD_EVENT_COMMAND = "/add-event";
 const EVENTS_COMMAND = "/events";
+
+/** Epic 006: an expense save has its own loading copy. */
+const EXPENSE_SAVE_COMMAND = "/add-expense";
+
+/** Epic 006 FR-23: a summary adds up, so its loading card says so. */
+const EXPENSE_SUMMARY_COMMAND = "/expenses";
 
 /** Epic 005: a search reads records, so its loading card says so. */
 const SEARCH_COMMAND = "/search";
@@ -122,6 +142,9 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
     onEditMemory,
     onOpenMemory,
     onOpenMemories,
+    onEditExpense,
+    onOpenExpense,
+    onOpenExpenseSummary,
     isResolving = false,
     onConflictAnswer,
     onConflictDefer,
@@ -141,6 +164,8 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
       if (MEMORY_READ_COMMANDS.has(commandName(turn.said))) return <PlainLoadingCard />;
       if (isAddEvent) return <EventSavingCard />;
       if (commandName(turn.said) === EVENTS_COMMAND) return <EventListLoadingCard />;
+      if (commandName(turn.said) === EXPENSE_SAVE_COMMAND) return <ExpenseLoadingCard />;
+      if (commandName(turn.said) === EXPENSE_SUMMARY_COMMAND) return <ExpenseSummaryLoadingCard />;
       if (commandName(turn.said) === SEARCH_COMMAND) {
         const searchText = turn.said.trim().slice(SEARCH_COMMAND.length);
         return <SearchLoadingCard isQuestion={isSearchQuestion(searchText)} />;
@@ -313,6 +338,40 @@ const TurnBody = (props: TurnCardProps): ReactElement => {
 
     case "memoryModelDown":
       return <MemoryModelDownNote onRetry={() => onRetry(turn.said)} />;
+
+    case "expenseSaved":
+      return (
+        <ExpenseSavedCard expense={turn.expense} onEditExpense={onEditExpense} onOpenExpense={onOpenExpense} />
+      );
+
+    case "expenseQuestion":
+      return (
+        <ExpenseQuestionCard
+          pendingCaptureId={turn.pendingCaptureId}
+          kind={turn.kind}
+          question={turn.question}
+          amountCandidates={turn.amountCandidates}
+          readDate={turn.readDate}
+          answerDraft={turn.answerDraft}
+          isAnswering={isAnswering}
+          onAnswerDraftChange={(draft) => onAnswerDraftChange(turn.id, draft)}
+          onAnswerSubmit={() => onAnswerSubmit(turn.id)}
+          onAnswer={(answer) => onQuickAnswer(turn.id, answer)}
+          onDiscard={() => onDiscardPending(turn.id)}
+        />
+      );
+
+    case "expenseRefused":
+      return <ExpenseRefusedNote reason={turn.reason} length={turn.length} />;
+
+    case "expenseModelDown":
+      return <ExpenseModelDownNote />;
+
+    case "expenseSummary":
+      return <ExpenseSummaryCard summary={turn.summary} onOpenInRecords={onOpenExpenseSummary} />;
+
+    case "periodNotUnderstood":
+      return <PeriodNotUnderstoodNote periodText={turn.periodText} />;
 
     case "memoryConflict":
       return (

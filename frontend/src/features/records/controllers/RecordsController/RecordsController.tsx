@@ -14,10 +14,12 @@ import { recordPath } from "../../../../utils/recordPath";
 import type { RecordRow, RecordsKindFilter } from "../../../../stores/RecordsStore";
 import PageTopbar from "../../../../components/PageTopbar";
 import EmptyRecords from "../../components/EmptyRecords";
+import ExpensePeriodSelect from "../../components/ExpensePeriodSelect";
 import ReminderListNotice from "../../components/ReminderListNotice";
 import RecordTable from "../../components/RecordTable";
 import * as RecordsStyles from "../../components/styles";
 import EventsController from "../EventsController/EventsController";
+import ExpensesController from "../ExpensesController/ExpensesController";
 import MemoriesController from "../MemoriesController/MemoriesController";
 import RecordsSearchController from "../RecordsSearchController/RecordsSearchController";
 import RemindersController from "../RemindersController/RemindersController";
@@ -32,6 +34,7 @@ const TABS: { filter: RecordsKindFilter; label: string }[] = [
   { filter: "REMINDERS", label: "Reminders" },
   { filter: "MEMORIES", label: "Memories" },
   { filter: "EVENTS", label: "Events" },
+  { filter: "EXPENSES", label: "Expenses" },
 ];
 
 interface RecordsControllerProps {
@@ -52,8 +55,11 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
   const isEventsTab = kindFilter === "EVENTS";
   // Epic 005, FR-22: any text in the box moves every tab onto search's own
   // matching; the tab lists below serve only the unsearched view. Events are
-  // not searchable until epic 007's slice 2 (FR-30), so their tab ignores it.
-  const isSearching = trimmedSearch !== "" && !isEventsTab;
+  // not searchable until epic 007's slice 2 (FR-30), and expenses until epic
+  // 006's slice 3, so text left in the box from another tab does not apply
+  // on either tab.
+  const isExpensesTab = kindFilter === "EXPENSES";
+  const isSearching = trimmedSearch !== "" && !isEventsTab && !isExpensesTab;
 
   useEffect(() => {
     if (initialKindFilter !== undefined) store.records.setKindFilter(initialKindFilter);
@@ -71,7 +77,7 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
   const isRemindersTab = kindFilter === "REMINDERS";
   const isMemoriesTab = kindFilter === "MEMORIES";
   // These tabs load their own queries; the records query serves All and Tasks.
-  const hasOwnQuery = isRemindersTab || isMemoriesTab || isEventsTab;
+  const hasOwnQuery = isRemindersTab || isMemoriesTab || isEventsTab || isExpensesTab;
 
   // A tab, search or sort change makes the current `apiStatus` stale until a
   // response for the new filter lands. Without this, switching tabs shows a
@@ -174,7 +180,14 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
               ))}
             </div>
             <div className={RecordsStyles.toolbarRightStyles}>
-              {!isEventsTab && (
+              {isExpensesTab && (
+                <ExpensePeriodSelect
+                  periods={store.expenses.periods}
+                  selected={store.expenses.selectedPeriod}
+                  onSelect={store.expenses.selectPeriod}
+                />
+              )}
+              {!isEventsTab && !isExpensesTab && (
                 <div className={RecordsStyles.searchBoxStyles}>
                   <input
                     className={RecordsStyles.searchInputStyles}
@@ -202,6 +215,8 @@ const RecordsController = (props: RecordsControllerProps): ReactElement => {
             <MemoriesController />
           ) : isEventsTab ? (
             <EventsController />
+          ) : isExpensesTab ? (
+            <ExpensesController />
           ) : isTrulyEmpty ? (
             <ReminderListNotice
               icon={<ClipboardList size={24} />}

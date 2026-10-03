@@ -1,0 +1,11 @@
+mutation DeleteExpense($id: ID!) {
+  deleteExpense(id: $id) {
+    __typename
+    ... on ExpenseDeleted {
+      id
+    }
+    ... on ExpenseNotFound {
+      message
+    }
+  }
+}
