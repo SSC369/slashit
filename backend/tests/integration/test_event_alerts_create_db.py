@@ -112,7 +112,32 @@ async def test_a_passed_lead_is_named_and_dropped_from_the_event(
     ):
         stored_leads = await scoped.scalar(EVENT_LEADS, {"id": event.id})
         rows = (await scoped.execute(ALERT_ROWS, {"event_id": event.id})).all()
+        analytics = (
+            await scoped.execute(
+                text(
+                    "SELECT event_type::text, properties FROM events "
+                    "WHERE user_id = :user_id AND event_type IN "
+                    "('event_created', 'event_alert_not_set') ORDER BY event_type"
+                ),
+                {"user_id": user_a},
+            )
+        ).all()
     assert [alert.text for alert in event.alerts_not_set] == ["2 weeks before"]
     assert [alert.reason for alert in event.alerts_not_set] == ["passed"]
     assert stored_leads == [60]
     assert len(rows) == 1
+    # T-2.8, C-19: stored, and counts and booleans only (T6).
+    assert [(row.event_type, row.properties) for row in analytics] == [
+        ("event_alert_not_set", {"lead_minutes": 20160, "is_over_cap": False}),
+        (
+            "event_created",
+            {
+                "all_day": False,
+                "has_end": False,
+                "has_location": False,
+                "yearly": False,
+                "has_alert": True,
+                "alert_count": 1,
+            },
+        ),
+    ]

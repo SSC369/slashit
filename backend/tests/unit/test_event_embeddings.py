@@ -95,6 +95,7 @@ class World:
             user_clock=self.clock,
             alert_arming=fake_alert_arming(repository=self.repository),
             embed_queue=self.queue,
+            analytics=FakeEventAnalyticsPort(),
             now_provider=lambda: NOW,
         ).update_event(
             dto=UpdateEventInputDTO(

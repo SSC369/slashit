@@ -33,6 +33,7 @@ from app.domains.events.interfaces.ports import (
 )
 from app.domains.events.interfaces.repositories import EventRepository
 from app.domains.events.services.alert_arming import ArmedEvent, EventAlertArming
+from app.domains.events.services.event_analytics import record_alerts_not_set
 from app.domains.events.services.presenter import present_event
 from app.domains.events.services.schedule import (
     LocalSchedule,
@@ -123,6 +124,11 @@ class CreateEventInteractor:
         )
         event = present_event(stored=armed.stored, clock=clock, now=now)
         await self._record_event_created(event=event)
+        await record_alerts_not_set(
+            analytics=self.analytics,
+            user_id=dto.user_id,
+            alerts_not_set=armed.alerts_not_set,
+        )
         # FR-30: searchable by meaning once the job runs (005 AD-7).
         await self.embed_queue.queue_event_embed(
             user_id=dto.user_id, event_id=stored.id, delay_seconds=0
@@ -166,6 +172,7 @@ class CreateEventInteractor:
                     "yearly": event.schedule.repeat_yearly,
                     "has_alert": bool(event.alerts),
                 },
+                alert_count=len(event.alerts),
             )
         except Exception:
             # Broad on purpose: analytics must never fail a capture.

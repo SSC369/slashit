@@ -1085,6 +1085,9 @@ def build_update_event_interactor(context: Context) -> UpdateEventInteractor:
         user_clock=_build_event_user_clock_port(context=context),
         alert_arming=_build_event_alert_arming(context=context),
         embed_queue=ProcrastinateEventEmbedQueue(),
+        analytics=EventAnalyticsAdapter(
+            record_event_interactor=_build_record_event_interactor(context=context)
+        ),
         now_provider=_utc_now,
     )
 

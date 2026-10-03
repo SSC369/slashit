@@ -41,11 +41,31 @@ class FakeEventUserClockPort:
 class FakeEventAnalyticsPort:
     def __init__(self) -> None:
         self.recorded: list[dict[str, bool]] = []
+        self.alert_counts: list[int] = []
+        self.edits: list[dict[str, int | bool]] = []
+        self.alerts_not_set: list[tuple[int, bool]] = []
 
     async def record_event_created(
-        self, *, user_id: UUID, field_presence: dict[str, bool]
+        self, *, user_id: UUID, field_presence: dict[str, bool], alert_count: int
     ) -> None:
         self.recorded.append(dict(field_presence))
+        self.alert_counts.append(alert_count)
+
+    async def record_event_edited(
+        self,
+        *,
+        user_id: UUID,
+        minutes_since_created: int,
+        changed_fields: dict[str, bool],
+    ) -> None:
+        self.edits.append(
+            {**changed_fields, "minutes_since_created": minutes_since_created}
+        )
+
+    async def record_alert_not_set(
+        self, *, user_id: UUID, lead_minutes: int, is_over_cap: bool
+    ) -> None:
+        self.alerts_not_set.append((lead_minutes, is_over_cap))
 
 
 class FakeEventPort:

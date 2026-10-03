@@ -25,9 +25,17 @@ from app.domains.events.interfaces.dtos import (
     StoredEventDTO,
     UserClockDTO,
 )
-from app.domains.events.interfaces.ports import EventEmbedQueue, UserClockPort
+from app.domains.events.interfaces.ports import (
+    EventAnalyticsPort,
+    EventEmbedQueue,
+    UserClockPort,
+)
 from app.domains.events.interfaces.repositories import EventRepository
 from app.domains.events.services.alert_arming import ArmedEvent, EventAlertArming
+from app.domains.events.services.event_analytics import (
+    record_alerts_not_set,
+    record_event_edited,
+)
 from app.domains.events.services.presenter import present_event
 from app.domains.events.services.schedule import (
     LocalSchedule,
@@ -44,12 +52,14 @@ class UpdateEventInteractor:
         user_clock: UserClockPort,
         alert_arming: EventAlertArming,
         embed_queue: EventEmbedQueue,
+        analytics: EventAnalyticsPort,
         now_provider: Callable[[], datetime],
     ) -> None:
         self.event_repository = event_repository
         self.user_clock = user_clock
         self.alert_arming = alert_arming
         self.embed_queue = embed_queue
+        self.analytics = analytics
         self.now_provider = now_provider
 
     async def update_event(self, *, dto: UpdateEventInputDTO) -> EventUpdatedDTO:
@@ -76,6 +86,14 @@ class UpdateEventInteractor:
         )
         armed = await self._rearm_if_pending(updated=updated, clock=clock, now=now)
         await self._queue_embed_if_words_changed(previous=previous, updated=updated)
+        await record_event_edited(
+            analytics=self.analytics, previous=previous, updated=updated, now=now
+        )
+        await record_alerts_not_set(
+            analytics=self.analytics,
+            user_id=dto.user_id,
+            alerts_not_set=armed.alerts_not_set,
+        )
         return EventUpdatedDTO(
             event=present_event(stored=armed.stored, clock=clock, now=now),
             alerts_not_set=armed.alerts_not_set,

@@ -29,6 +29,9 @@ EventType = Literal[
     "expense_amount_edited",
     "expense_category_edited",
     "expense_deleted",
+    # Epic 007, migration 0042.
+    "event_edited",
+    "event_alert_not_set",
 ]
 
 

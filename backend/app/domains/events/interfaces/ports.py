@@ -28,8 +28,26 @@ class EventAnalyticsPort(Protocol):
     text (T6)."""
 
     async def record_event_created(
-        self, *, user_id: UUID, field_presence: dict[str, bool]
+        self, *, user_id: UUID, field_presence: dict[str, bool], alert_count: int
     ) -> None: ...
+
+    async def record_event_edited(
+        self,
+        *,
+        user_id: UUID,
+        minutes_since_created: int,
+        changed_fields: dict[str, bool],
+    ) -> None:
+        """PRD §8 and G2: which parts an edit changed, and how soon after
+        the event was made. Booleans and a count only (T6)."""
+        ...
+
+    async def record_alert_not_set(
+        self, *, user_id: UUID, lead_minutes: int, is_over_cap: bool
+    ) -> None:
+        """FR-19 and FR-33, per alert: its lead, and whether the cap or a
+        passed time stopped it."""
+        ...
 
 
 class EventAlertsPort(Protocol):

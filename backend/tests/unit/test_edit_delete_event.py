@@ -91,6 +91,7 @@ class World:
             user_clock=self.clock,
             alert_arming=self._arming(),
             embed_queue=FakeEventEmbedQueue(),
+            analytics=FakeEventAnalyticsPort(),
             now_provider=lambda: NOW,
         )
 
