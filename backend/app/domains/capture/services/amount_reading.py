@@ -105,3 +105,19 @@ def _to_paise(*, number: str, unit: str | None) -> int | None:
     if paise <= 0 or paise != paise.to_integral_value():
         return None
     return int(paise)
+
+
+def format_rupees(*, paise: int) -> str:
+    """Indian grouping, as the frontend draws it: 18000 is "₹180", 12000050 is
+    "₹1,20,000.50". For what the log keeps of an answer, not for arithmetic."""
+    rupees, remainder = divmod(paise, _PAISE_PER_RUPEE)
+    digits = str(rupees)
+    if len(digits) > 3:
+        head, last_three = digits[:-3], digits[-3:]
+        pairs: list[str] = []
+        while len(head) > 2:
+            pairs.insert(0, head[-2:])
+            head = head[:-2]
+        digits = ",".join([head, *pairs, last_three])
+    fraction = f".{remainder:02d}" if remainder else ""
+    return f"₹{digits}{fraction}"

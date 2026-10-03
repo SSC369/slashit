@@ -161,7 +161,7 @@ flowchart LR
 
 | Change | Kind | Token or component | Why existing one does not fit |
 |---|---|---|---|
-| Expense dot (`.dot.exp`) | added | component | Each type has its own dot. Green diamond, distinct from the task square and the reminder and memory circles |
+| Expense marker (`.dot.exp`) | added | component | Each type has its own marker. A ₹ glyph in the success green, 12 px, distinct from 007's event diamond and the task square and reminder and memory circles. Changed from a green diamond on 2026-10-03, see the change log |
 | Amount (`.amt`, `.num`) | added | component | Mono, tabular figures, right aligned. Prose text cannot align a column of amounts |
 | Summary rows (`.sum`, `.sumrow`, `.sumtotal`) | added | component | 004's lookup rows hold text, not a value and a proportion |
 | Share bar (`.bar`) | added | component | No existing element shows a proportion |
@@ -215,3 +215,4 @@ None. The four direction questions were answered before drafting.
 | 2026-10-02 | Created. 21 artboards across Capture, Records and Dark theme pages, generated from 005's stylesheet. Four direction questions answered first, all recommended. Canvas published | PRD approved, user asked to proceed | pending |
 | 2026-10-02 | Future date now confirmed or replaced from a calendar: `ExpenseAsk` redrawn, `DatePick` added, `DetailStates` drops the future-date error for a too-long description. Weekday names corrected on every artboard. Calendar added as a delta | User asked for the resolved date to be confirmed, with a custom date picker | user |
 | 2026-10-02 | Approved | User: "fine, proceed with next" | user |
+| 2026-10-03 | Expense marker: green diamond replaced by a ₹ glyph, since 007's event marker is also a green diamond and the two met in the All tab. New copy for FR-2's ceiling: "That amount is too large to save. Check it for an extra zero.", on the capture refusal note and the edit form's amount error, in the existing refusal and field-error styles. Canvas artboards not redrawn; the marker and copy are code-level deltas | Merge of 006 and 007 on `main`; PRD FR-2 change. Decisions 1A and 3A | user, 2026-10-03: "go with your recommendation" |

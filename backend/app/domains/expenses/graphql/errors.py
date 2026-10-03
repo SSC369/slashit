@@ -5,6 +5,7 @@ and 8.
 """
 
 from enum import StrEnum
+from uuid import UUID
 
 import strawberry
 
@@ -26,6 +27,15 @@ class ExpenseNotFoundError(DomainError):
         super().__init__("This expense no longer exists.")
 
 
+def parse_expense_id(id_: strawberry.ID) -> UUID:
+    """A hand-typed URL such as /records/expenses/abc names no expense, so it
+    reads as one that does not exist, not as a server error (dev log E-1)."""
+    try:
+        return UUID(str(id_))
+    except ValueError as error:
+        raise ExpenseNotFoundError() from error
+
+
 @strawberry.enum
 class ExpenseField(StrEnum):
     AMOUNT = "amount"
@@ -37,6 +47,8 @@ class ExpenseInvalidReason(StrEnum):
     NOT_POSITIVE = "not_positive"
     EMPTY = "empty"
     TOO_LONG = "too_long"
+    # FR-2 as amended 2026-10-03: past the storage ceiling (dev log E-2).
+    TOO_LARGE = "too_large"
 
 
 @strawberry.type
@@ -68,6 +80,8 @@ class ExpenseInvalidError(DomainError):
 def _invalid_message(*, reason: ExpenseInvalidReason, length: int | None) -> str:
     if reason == ExpenseInvalidReason.NOT_POSITIVE:
         return "Enter an amount above ₹0."
+    if reason == ExpenseInvalidReason.TOO_LARGE:
+        return "That amount is too large to save. Check it for an extra zero."
     if reason == ExpenseInvalidReason.EMPTY:
         return "Say what the expense was for."
     return (

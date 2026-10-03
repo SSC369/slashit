@@ -83,7 +83,7 @@ user drops.
 | id | Requirement | Priority | Story |
 |---|---|---|---|
 | FR-1 | `/add-expense <text>` saves an expense with amount, description, category and date taken from the text. It appears in command discovery | must | US-1 |
-| FR-2 | The amount is a positive rupee value with up to two decimal places. `₹850`, `850`, `₹1,200`, `₹1,20,000`, `Rs 500` and `1.2k` are all read. A bare number is rupees. There is no upper limit | must | US-1 |
+| FR-2 | The amount is a positive rupee value with up to two decimal places. `₹850`, `850`, `₹1,200`, `₹1,20,000`, `Rs 500` and `1.2k` are all read. A bare number is rupees. There is no upper limit below the storage ceiling, about ₹92,000 lakh crore; an amount past it is refused, "That amount is too large to save", and nothing is saved | must | US-1 |
 | FR-3 | Text with no amount asks "How much was it?", following 001's FR-8 | must | US-2 |
 | FR-4 | Text with no description asks "What was the expense for?" | must | US-2 |
 | FR-5 | Text with more than one candidate number, such as "2 coffees 180", asks which is the amount, offering each number as a choice | must | US-2 |
@@ -214,3 +214,4 @@ Instrumented from launch, reported weekly, no targets set. See section 3.
 | 2026-10-02 | Q1 answered: amount accuracy over 98% | User answered | user |
 | 2026-10-02 | Approved | User: "approved, go with next" | user |
 | 2026-10-02 | FR-8 rewritten: a future date is confirmed or replaced from a calendar, no longer refused. FR-21 allows any date on edit. Stale: design, drafted, updated in the same change | Epic Q5 revised by the user | user, 2026-10-02 |
+| 2026-10-03 | FR-2: "no upper limit" now reads "no upper limit below the storage ceiling", with the refusal for an amount past it. Stale: design gains the refusal copy and 4.1 §6 gains its rows, both updated in the same change; build plan unaffected | Dev log E-2: a typo past the database's ceiling failed as a raw error. Decision 1A | user, 2026-10-03: "go with your recommendation" |

@@ -18,6 +18,7 @@ from app.core.deps import (
     build_resolve_memory_conflict_interactor,
     build_submit_capture_interactor,
 )
+from app.domains.capture.constants import EXPENSE_AMOUNT_TOO_LARGE
 from app.domains.capture.graphql.types import (
     EventAlertChoice,
     EventAlertChoiceAsked,
@@ -328,6 +329,8 @@ def _expense_refusal_message(*, refusal: ExpenseRefusedDTO) -> str:
             "Slashit records rupees only for now. Enter the amount in ₹ and it "
             "will save."
         )
+    if refusal.reason == ExpenseRefusalReason.AMOUNT_TOO_LARGE:
+        return EXPENSE_AMOUNT_TOO_LARGE
     if refusal.reason == ExpenseRefusalReason.PERIOD_NOT_UNDERSTOOD:
         return (
             f"Slashit did not understand “{refusal.period_text}”. Try today, this "

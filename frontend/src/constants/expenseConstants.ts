@@ -3,6 +3,14 @@ import type { ExpenseCategory, ExpenseQuestionKind, ExpenseRefusalReason } from 
 /** Mirrors backend/app/domains/expenses/constants.py's MAX_DESCRIPTION_LENGTH (FR-13). */
 export const MAX_DESCRIPTION_LENGTH = 200;
 
+/** Mirrors backend capture/constants.py's EXPENSE_CHIP_ANSWER_PREFIX (dev log
+ * E-5): a chip answers FR-5's question with this and the candidate's paise, so
+ * digits typed anywhere are always read as rupees. */
+export const EXPENSE_CHIP_ANSWER_PREFIX = "chip:";
+
+/** One chip's answer: "chip:18000" for ₹180. */
+export const chipAnswer = (paise: string): string => `${EXPENSE_CHIP_ANSWER_PREFIX}${paise}`;
+
 /** FR-9's fixed eight, in the order the PRD lists them and the chips draw them. */
 export const EXPENSE_CATEGORIES: readonly ExpenseCategory[] = [
   "FOOD",

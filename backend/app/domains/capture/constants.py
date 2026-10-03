@@ -54,7 +54,8 @@ MEMORY_SAVE_COMMANDS: Final[tuple[str, ...]] = ("/remember", "/add-memory")
 # Epic 004, AD-7. A fact's 500-character limit (FR-4) is checked by memories on
 # the fact itself, and answered with a drawn state, so a memory command's whole
 # line may run past MAX_INPUT_LENGTH. This outer guard still protects the
-# gateway from an unbounded line.
+# gateway from an unbounded line. Epic 006 gives `/add-expense` the same guard,
+# so FR-13's long-description refusal answers a long line (dev log E-3).
 MAX_MEMORY_LINE_LENGTH: Final = 1000
 
 # FR-3. The one question an empty `/remember` asks.
@@ -253,7 +254,16 @@ EXPENSE_CATEGORY_INSTRUCTION: Final = (
 EXPENSE_AMOUNT_QUESTION: Final = "How much was it?"
 EXPENSE_AMOUNT_RETRY: Final = "Enter an amount such as 850 or 1,200.50"
 EXPENSE_DESCRIPTION_QUESTION: Final = "What was the expense for?"
+# FR-2 as amended 2026-10-03 (dev log E-2): the line's refusal, and the
+# question asked again when an answer is past the ceiling.
+EXPENSE_AMOUNT_TOO_LARGE: Final = (
+    "That amount is too large to save. Check it for an extra zero."
+)
 EXPENSE_AMOUNT_CHOICE_QUESTION: Final = "Which number is the amount?"
+# Dev log E-5, user decision 2026-10-03: a chip answers FR-5's question as this
+# prefix and the candidate's paise, so typed digits are always rupees. Mirrored
+# by the frontend's EXPENSE_CHIP_ANSWER_PREFIX.
+EXPENSE_CHIP_ANSWER_PREFIX: Final = "chip:"
 EXPENSE_DATE_QUESTION: Final = (
     "{phrase} reads as {date}, which is after today. Save it for that date?"
 )

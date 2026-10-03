@@ -201,7 +201,7 @@ the user to correct.
 | Set | Size | File | Pass bar |
 |---|---|---|---|
 | Categories: description and expected category, including ambiguous spends | 63 | `backend/tests/eval/expense_categories.json` | over 85%, NFR-4 |
-| Amounts: full `/add-expense` line, expected candidates kept, expected question or amount | 50 | `backend/tests/eval/expense_amounts.json` | over 98%, NFR-5 |
+| Amounts: full `/add-expense` line, expected candidates kept, expected question or amount | 100 (50 approved 2026-10-02, 50 approved 2026-10-03) | `backend/tests/eval/expense_amounts.json` | over 98%, NFR-5 |
 
 Both run as a live test, marked like `test_capture_live.py`, never in CI. The
 live run happens in slice 1 (T-1.14). These two JSON files are fixtures, not
@@ -227,3 +227,5 @@ code, and are the only repository files written before approval.
 | 2026-10-02 | Approved | User: "approved, commit and start building slice 1" | user |
 | 2026-10-02 | §4 GraphQL gains `expensePeriods` and `ExpensePeriod`, and `ExpenseSummary` gains `phrase`. Re-opens sub-plan 4.2 only, which is drafted against it; 4.1 and 4.3 are unaffected | User decision 3A: the server resolves the picker's ranges so FR-28 holds by construction | user, 2026-10-02, with 4.2 |
 | 2026-10-03 | Migrations renumbered `0037`–`0039` to `0039_expenses`, `0040_capture_expense`, `0041_expense_events`, chained after 007's `0038_capture_events`. Names only; no migration's content changed. Nothing downstream is stale | Epic 007 reached `main` first with `0037_calendar_events` and `0038_capture_events`. Dev log D-18 | user, 2026-10-03: "pull feat/006-expenses into main" |
+| 2026-10-03 | §6: the amount set grows from 50 to 100 cases, so "over 98%" allows one miss rather than none. Pass bar unchanged. Cases 51 to 100 drafted by Claude, awaiting the user's approval | Runs 4 to 8 showed one wrong case in 50 fails NFR-5 at random. Decision 5A | user, 2026-10-03: "go with your recommendation" |
+| 2026-10-03 | §6: cases 51 to 100 approved | User: "2a" | user, 2026-10-03 |

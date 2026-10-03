@@ -2,6 +2,7 @@ import type { KeyboardEvent, ReactElement } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
 import EventMarker from "../../../components/EventMarker";
+import ExpenseMarker from "../../../components/ExpenseMarker";
 import EventStatusPill from "../../../components/EventStatusPill";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import Button from "../../../design-system/components/Button";
@@ -176,7 +177,7 @@ const RelatedCells = (props: { row: RecordRow }): ReactElement => {
       return (
         <>
           <span className={Styles.relatedTypeStyles}>
-            <span className={Styles.typeDotExpenseStyles} />
+            <ExpenseMarker />
             Expense
           </span>
           <span className={Styles.relatedTitleStyles}>{row.expense.description}</span>

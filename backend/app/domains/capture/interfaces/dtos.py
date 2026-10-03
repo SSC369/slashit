@@ -49,6 +49,8 @@ class ExpenseRefusalReason(StrEnum):
     FOREIGN_CURRENCY = "foreign_currency"
     DESCRIPTION_TOO_LONG = "description_too_long"
     PERIOD_NOT_UNDERSTOOD = "period_not_understood"
+    # FR-2 as amended 2026-10-03: past the storage ceiling (dev log E-2).
+    AMOUNT_TOO_LARGE = "amount_too_large"
 
 
 @dataclass(frozen=True)

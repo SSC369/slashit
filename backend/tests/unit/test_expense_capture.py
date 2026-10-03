@@ -211,6 +211,21 @@ async def test_an_amount_answer_that_is_not_an_amount_asks_again() -> None:
     assert harness.expenses.saved == []
 
 
+async def test_an_amount_answer_past_the_ceiling_asks_again() -> None:
+    """FR-2 as amended 2026-10-03 (dev log E-2): the question stays open with
+    the too-large copy, and nothing reaches the database."""
+    harness = Harness(results=[line(amounts=[], description="dinner")])
+    question = await harness.type_line("/add-expense dinner")
+
+    again = await harness.reply(question, "1" + "0" * 20)
+
+    assert isinstance(again, ExpenseQuestionAskedDTO)
+    assert again.question == (
+        "That amount is too large to save. Check it for an extra zero."
+    )
+    assert harness.expenses.saved == []
+
+
 async def test_no_description_asks_and_a_second_call_reads_the_category() -> None:
     """C-7, FR-4, build plan Q5."""
     harness = Harness(
@@ -251,7 +266,8 @@ async def test_a_late_description_saves_as_other_when_the_model_fails() -> None:
 
 
 async def test_two_numbers_ask_which_and_the_chip_saves_it() -> None:
-    """C-8, FR-5: one chip per number, sent back as paise."""
+    """C-8, FR-5: one chip per number, sent back as a marked candidate (dev
+    log E-5). The history keeps the amount the chip showed."""
     harness = Harness(results=[line(amounts=["2", "180"], description="2 coffees")])
 
     question = await harness.type_line("/add-expense 2 coffees 180")
@@ -261,11 +277,34 @@ async def test_two_numbers_ask_which_and_the_chip_saves_it() -> None:
     assert question.amount_candidates == (200, 18_000)
     assert harness.analytics.expense_capture_events == [("expense_amount_asked", True)]
 
-    saved = await harness.reply(question, "18000")
+    saved = await harness.reply(question, "chip:18000")
 
     assert isinstance(saved, ExpenseDTO)
     assert saved.amount_paise == 18_000
     assert saved.description == "2 coffees"
+    assert harness.turns.rows[-1].answer_text == "₹180"
+
+
+async def test_typed_digits_equal_to_a_candidates_paise_are_rupees() -> None:
+    """Dev log E-5: "18000" typed is ₹18,000, never the ₹180 chip, whose paise
+    happen to be the same digits."""
+    harness = Harness(results=[line(amounts=["2", "180"], description="2 coffees")])
+    question = await harness.type_line("/add-expense 2 coffees 180")
+
+    saved = await harness.reply(question, "18000")
+
+    assert isinstance(saved, ExpenseDTO)
+    assert saved.amount_paise == 1_800_000
+
+
+async def test_a_marker_that_names_no_candidate_is_not_a_chip() -> None:
+    harness = Harness(results=[line(amounts=["2", "180"], description="2 coffees")])
+    question = await harness.type_line("/add-expense 2 coffees 180")
+
+    again = await harness.reply(question, "chip:999")
+
+    assert isinstance(again, ExpenseQuestionAskedDTO)
+    assert harness.expenses.saved == []
 
 
 async def test_a_typed_answer_to_the_choice_is_read_as_rupees() -> None:

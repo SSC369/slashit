@@ -185,7 +185,6 @@ export const pillAlertStyles = "border-accent-wash bg-accent-wash text-accent";
 export const eventNoteStyles = "mt-[18px] flex gap-2.5 rounded-[10px] border border-accent-wash bg-accent-wash px-4 py-3.5 text-[13px] text-foreground";
 
 // Expenses (006 design §6): `.dot.exp`, `.amt`, `RecordsExpenses`, `ExpenseDetail`, `ExpenseEdit`
-export const typeDotExpenseStyles = "h-1.5 w-1.5 shrink-0 rotate-45 rounded-[2px] bg-success";
 export const amountStyles = "whitespace-nowrap font-mono tabular-nums";
 export const amountHeadStyles = "text-right";
 export const amountCellStyles = "text-right font-mono tabular-nums whitespace-nowrap";

@@ -46,6 +46,7 @@ from app.domains.capture.services.expense_capture import (
     ExpenseCaptureOutcome,
     ExpenseCaptureService,
     expense_question_asked,
+    readable_answer,
 )
 from app.domains.capture.services.reminder_capture import (
     ReminderCaptureOutcome,
@@ -394,19 +395,23 @@ class AnswerPendingCaptureInteractor:
                     else None
                 ),
             )
+        # The log keeps a chip as the amount it shows, not its marker (E-5).
+        logged_answer = readable_answer(
+            answer=answer_text, candidates=pending_capture.expense_draft.candidates
+        )
         if isinstance(outcome, ExpenseAsk):
             return await self._ask_next_expense_question(
                 user_id=user_id,
                 pending_capture=pending_capture,
                 ask=outcome,
-                answer_text=answer_text,
+                answer_text=logged_answer,
             )
         if isinstance(outcome, ExpenseDTO):
             await self._record_expense_saved(
                 user_id=user_id,
                 pending_capture=pending_capture,
                 expense=outcome,
-                answer_text=answer_text,
+                answer_text=logged_answer,
             )
         # A refusal or a model failure keeps the question open; neither is
         # reached by a saved expense.

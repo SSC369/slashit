@@ -2,6 +2,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import CategoryTag from "../../../components/CategoryTag";
 import EventMarker from "../../../components/EventMarker";
+import ExpenseMarker from "../../../components/ExpenseMarker";
 import EventStatusPill from "../../../components/EventStatusPill";
 import ReminderStatusPill from "../../../components/ReminderStatusPill";
 import type { RecordRow } from "../../../stores/RecordsStore";
@@ -262,7 +263,7 @@ const ExpenseRow = (props: ExpenseRowProps): ReactElement => {
     <tr className={Styles.rowStyles} onClick={() => onOpenRecord(row)}>
       <td className={Styles.tdStyles}>
         <span className={Styles.typeTagStyles}>
-          <span className={Styles.typeDotExpenseStyles} />
+          <ExpenseMarker />
           Expense
         </span>
       </td>

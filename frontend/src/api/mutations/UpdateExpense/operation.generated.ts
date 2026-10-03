@@ -23,6 +23,7 @@ export type ExpenseField =
 export type ExpenseInvalidReason =
   | 'EMPTY'
   | 'NOT_POSITIVE'
+  | 'TOO_LARGE'
   | 'TOO_LONG';
 
 export type UpdateExpenseInput = {

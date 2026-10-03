@@ -64,6 +64,13 @@ evaluations (004 category accuracy, 005 search quality). Five are in
 from `email_queue.enqueue_email`. The baseline had one of them; the same file
 on a clean `main` checkout fails six, so the count moves with the environment,
 not with this branch. Owner: 003's test harness, not 006.
+| E-1 | 4.1 | Malformed id reads as `ExpenseNotFound` | done, 2026-10-03 | `parse_expense_id` in `expenses/graphql/errors.py`, used by `expense`, `updateExpense`, `deleteExpense`. The same `UUID(str(id_))` pattern in memories, reminders, records and search is not changed here: see Notes |
+| E-2 | 4.1 | Amounts past the storage ceiling refused | done, 2026-10-03 | `MAX_AMOUNT_PAISE` (bigint). Line: `ExpenseRefused(AMOUNT_TOO_LARGE)`; answer: the question again with the too-large copy; edit: `ExpenseInvalid(TOO_LARGE)`. PRD FR-2 change record. Decision 1A |
+| E-3 | 4.1 | Long `/add-expense` line gets FR-13's refusal | done, 2026-10-03 | `/add-expense` joins memory and search under the 1,000 outer guard |
+| E-4 | 4.1 | Edit form counts characters, not UTF-16 units | done, 2026-10-03 | `[...text].length`; test with 150 emoji |
+| E-5 | 4.1 | Chip answers carry a marker | done, 2026-10-03 | Decision 2A. See D-21 |
+| — | 4.1 | Expense marker is a ₹ glyph | done, 2026-10-03 | Decision 3A. See D-22 and the design change record |
+| — | 4.1 | NFR-5 amount set grows to 100 cases | done, 2026-10-03 | Decision 5A. Cases 51 to 100 approved by the user the same day. Live run owed: needs a provider key |
 
 ## In progress
 
@@ -113,12 +120,7 @@ one wrong case in 50 fails the target. NFR-4's misses repeat across runs:
 
 | # | Sub-plan | Task | Blocked on |
 |---|---|---|---|
-| E-1 | 4.1 | Fix: a malformed id (`/records/expenses/abc`) raises `badly formed hexadecimal UUID string` in `expense`, `updateExpense` and `deleteExpense`; it should read as `ExpenseNotFound`. The same `UUID(str(id_))` pattern is in memories, reminders, records and search | Nothing. Test: `test_a_malformed_id_reads_as_not_found` |
-| E-2 | 4.1 | Fix: an amount past `bigint` (about 9.2 × 10^18 paise) reaches PostgreSQL and fails as a raw `DataError`, on save and on edit. Refuse it as a typed result instead; FR-2's "no limit" needs a stated storage ceiling, user to confirm | User: the ceiling's wording. Test: `test_an_amount_past_the_storage_limit_is_refused_not_a_server_error` |
-| E-3 | 4.1 | Fix: an `/add-expense` line over 001's 500-character cap raises `capture input exceeds 500 characters`, shown raw, where FR-13 promises the typed long-description refusal. Give `/add-expense` the 1,000 outer guard memory and search use, so FR-13 judges the description | Nothing. Test: `test_a_long_expense_line_is_refused_as_a_long_description` |
-| E-4 | 4.1 | Fix: the edit form counts a description in UTF-16 units (`"😀".length` is 2), the server in characters, so 101 emoji are blocked in the browser though the server accepts 200. Count with `[...text].length` | Nothing. The server side passes `test_a_description_is_measured_in_characters_not_bytes` |
-| E-5 | 4.1 | Decide: answering the amount-choice question by API with digits equal to a candidate's paise, such as `18000` meaning ₹18,000, saves the candidate, ₹180. The browser sends only chips, so no user reaches it today | User: keep, or make chips send a marker |
-| E-6 | 4.1, 4.2 | Finish the edge-case pass: frontend tests, then a browser pass for long descriptions in every view, very large amounts in card, band and detail, all eight categories in the band and the card, a malformed and a deleted detail URL, back navigation after delete, the edit form's odd inputs (`.5`, `1,2,3`, empty), the calendar across a year, Escape on the period menu, two questions waiting at once, and reload with a question open | E-1 to E-4 first, so the pass sees the fixes |
+| E-6 | 4.1, 4.2 | Finish the edge-case pass: frontend tests, then a browser pass for long descriptions in every view, very large amounts in card, band and detail, all eight categories in the band and the card, a malformed and a deleted detail URL, back navigation after delete, the edit form's odd inputs (`.5`, `1,2,3`, empty), the calendar across a year, Escape on the period menu, two questions waiting at once, and reload with a question open ; and, decision 4A, the band label that wraps at 210 px and the new-user empty-state copy from the slice 2 browser pass | Nothing: E-1 to E-4 are done |
 | — | 4.1 | NFR-2 at p95 over a real sample | Six live model calls in T-1.15 took 1.6 s to 3.3 s; not enough for a p95 |
 | — | 4.1 | Update `index.md`'s 006 row | End of slice 1 |
 | — | 4.2 | Draft sub-plan 4.2, summaries, then build it | Slice 1 |
@@ -153,7 +155,7 @@ when the session ended; the rest is E-6.
 `backend/tests/integration/test_expense_edge_cases.py` is new and runs against
 local PostgreSQL with only the model faked. Ten of its sixteen cases pass; the
 six failures are E-1 (four ids), E-2 and E-3 above. They are left failing on
-purpose until fixed.
+purpose until fixed. All sixteen pass from 2026-10-03, after the E-1 to E-3 fixes.
 
 | Passes | Case |
 |---|---|
@@ -173,6 +175,20 @@ purpose until fixed.
 | `RecordsExpenses` | The band's label "Spent · October 2026 so far" wraps to two lines in its 210 px cell | Open, minor |
 | `ExpensesStates` | A new user on this month sees "No expenses recorded this month", not "No expenses yet"; the example command shows on All time | The tab knows only the picked period's count. Open, minor |
 | `SummaryStates` | The summary card's history row reruns the line, as a search's does | No artboard draws it; follows 005 |
+
+## Decisions, 2026-10-03
+
+Asked as multiple choice; the user took every recommendation ("go with your
+recommendation").
+
+| # | Question | Decision |
+|---|---|---|
+| 1 | E-2: amounts past the storage ceiling | A. Refuse with "That amount is too large to save"; FR-2 amended |
+| 2 | E-5: typed digits equal to a chip's paise | A. Chips send a marker; typed digits are always rupees |
+| 3 | Expense marker looks like 007's event diamond | A. A ₹ glyph; design change record |
+| 4 | Band label wrap, new-user empty-state copy | A. Fix both inside E-6 |
+| 5 | NFR-5 flaky at 50 cases | A. Grow the set to 100, keep "over 98%" |
+| 6 | Order of work | A. E-1 to E-4, then E-6, then draft 4.3 |
 
 ## Deviations from the plan
 
@@ -200,6 +216,8 @@ None of these is approved yet.
 | D-18 | 2026-10-03 | Index: migrations `0037_expenses`, `0038_capture_expense`, `0039_expense_events`, after `0036_event_properties` | `0039_expenses`, `0040_capture_expense`, `0041_expense_events`, after 007's `0038_capture_events` | 007 reached `main` first with `0037` and `0038`. Every change on both sides only adds enum values and columns, so the chain is re-pointed with no content change. One head, checked with `alembic heads`. Change records on the build plan, the index and 4.1 |
 | D-19 | 2026-10-03 | Index §1: all three slices reach `main` together, since 005's FR-11 wants a new record type searchable | Slices 1 and 2 merged into `main` from `feat/006-expenses`, before sub-plan 4.3 exists. Expenses are not searchable on `main` until slice 3 lands | User, 2026-10-03: "pull feat/006-expenses into main", after being told it left §1. 006 stays unshipped until slice 3; 005's FR-11 is unmet for expenses until then |
 | D-20 | 2026-10-03 | 4.1 file map: `features/records/utils/recordPath.ts` | Folded into 007's `src/utils/recordPath.ts`, which gains `EXPENSE` and `recordId`, with its `never` check on both | Both epics added a `recordPath` in different places; one module keeps frontend rule 3's exhaustiveness check. Merge-only changes besides: the Records search box is hidden on both the Events and Expenses tabs, and tests that build the capture and records interactors pass both epics' ports |
+| D-21 | 2026-10-03 | 4.1 §5: a chip sends the candidate's paise | A chip sends `chip:<paise>`, accepted only for a listed candidate; bare digits are rupees. The turn logs the chip as the amount it showed (`₹180`), not the marker; before this, history showed a chip answer as raw paise, "Answered: 18000" | Decision 2A (E-5). `format_rupees` added to `amount_reading.py` for the log |
+| D-22 | 2026-10-03 | Design §6 `.dot.exp`, a green diamond, drawn as a styled `span` | `src/components/ExpenseMarker.tsx`, lucide's `IndianRupee` at 12 px in `text-success`, beside 007's `EventMarker`; `typeDotExpenseStyles` removed | Decision 3A. Design change record |
 
 ## Deferred
 
@@ -226,3 +244,13 @@ None of these is approved yet.
 - `strawberry.scalar` on a class is deprecated and fails `mypy`; a custom
   scalar is a `NewType` mapped through `StrawberryConfig.scalar_map` in
   `graphql/schema.py`.
+
+- The `UUID(str(id_))` pattern E-1 fixed in expenses also sits in memories,
+  reminders, records and search: a malformed id there is still a raw error.
+  App-wide, so it is a platform follow-up beside the unmasked-errors item in
+  Deferred, not 006's to change.
+
+- A fresh database cannot run `alembic upgrade head` in one go: an earlier
+  migration adds `memory_forgotten` to an enum and uses it in the same
+  transaction. Upgrading one revision at a time works. Found 2026-10-03 while
+  standing up a local database; existing databases are unaffected.

@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import structlog
 
-from app.domains.expenses.constants import MAX_DESCRIPTION_LENGTH
+from app.domains.expenses.constants import MAX_AMOUNT_PAISE, MAX_DESCRIPTION_LENGTH
 from app.domains.expenses.graphql.errors import (
     ExpenseField,
     ExpenseInvalidError,
@@ -67,6 +67,10 @@ class UpdateExpenseInteractor:
         if amount_paise is not None and amount_paise <= 0:
             raise ExpenseInvalidError(
                 field=ExpenseField.AMOUNT, reason=ExpenseInvalidReason.NOT_POSITIVE
+            )
+        if amount_paise is not None and amount_paise > MAX_AMOUNT_PAISE:
+            raise ExpenseInvalidError(
+                field=ExpenseField.AMOUNT, reason=ExpenseInvalidReason.TOO_LARGE
             )
 
     def _validate_description(self, *, description: str | None) -> None:

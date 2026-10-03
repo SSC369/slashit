@@ -34,6 +34,7 @@ export type ExpenseQuestionKind =
   | 'DESCRIPTION';
 
 export type ExpenseRefusalReason =
+  | 'AMOUNT_TOO_LARGE'
   | 'DESCRIPTION_TOO_LONG'
   | 'FOREIGN_CURRENCY'
   | 'PERIOD_NOT_UNDERSTOOD';

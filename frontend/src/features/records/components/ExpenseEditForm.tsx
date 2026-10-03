@@ -50,7 +50,9 @@ const ExpenseEditForm = (props: ExpenseEditFormProps): ReactElement => {
   const { draft, serverErrors, banner, isSaving, isOffline, onChange, onSave, onCancel } = props;
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const descriptionLength = draft.description.trim().length;
+  // In characters, as the server counts (FR-13): `"😀".length` is 2 UTF-16
+  // units but one character (dev log E-4).
+  const descriptionLength = [...draft.description.trim()].length;
   const isAmountValid = parseRupees(draft.amountText) !== null;
   const isOverLimit = descriptionLength > MAX_DESCRIPTION_LENGTH;
   const amountError = draft.amountText.trim() !== "" && !isAmountValid ? AMOUNT_ERROR : serverErrors.amount;

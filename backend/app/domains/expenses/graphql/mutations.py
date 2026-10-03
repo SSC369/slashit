@@ -11,7 +11,11 @@ from app.core.deps import (
     build_delete_expense_interactor,
     build_update_expense_interactor,
 )
-from app.domains.expenses.graphql.errors import ExpenseInvalid, ExpenseNotFound
+from app.domains.expenses.graphql.errors import (
+    ExpenseInvalid,
+    ExpenseNotFound,
+    parse_expense_id,
+)
 from app.domains.expenses.graphql.inputs import UpdateExpenseInput
 from app.domains.expenses.graphql.types import ExpenseDeleted
 from app.domains.expenses.interactors.dtos import (
@@ -51,7 +55,7 @@ class ExpenseMutations:
         expense = await interactor.update_expense(
             dto=UpdateExpenseInputDTO(
                 user_id=user_id,
-                expense_id=UUID(str(id_)),
+                expense_id=parse_expense_id(id_),
                 changes=ExpenseChanges(
                     amount_paise=input_.amount_paise,
                     description=input_.description,
@@ -73,6 +77,6 @@ class ExpenseMutations:
         user_id = cast(UUID, context.user_id)
         interactor = build_delete_expense_interactor(context)
         await interactor.delete_expense(
-            dto=DeleteExpenseInputDTO(user_id=user_id, expense_id=UUID(str(id_)))
+            dto=DeleteExpenseInputDTO(user_id=user_id, expense_id=parse_expense_id(id_))
         )
         return cast(DeleteExpenseResult, ExpenseDeleted(id=id_))

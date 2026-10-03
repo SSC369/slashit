@@ -192,6 +192,7 @@ enum ExpenseInvalidReason {
   NOT_POSITIVE
   EMPTY
   TOO_LONG
+  TOO_LARGE
 }
 
 type ExpenseNotFound {
@@ -236,6 +237,7 @@ enum ExpenseRefusalReason {
   FOREIGN_CURRENCY
   DESCRIPTION_TOO_LONG
   PERIOD_NOT_UNDERSTOOD
+  AMOUNT_TOO_LARGE
 }
 
 type ExpenseRefused {

@@ -21,8 +21,10 @@ from app.domains.capture.constants import (
     EXPENSE_AMOUNT_CHOICE_QUESTION,
     EXPENSE_AMOUNT_QUESTION,
     EXPENSE_AMOUNT_RETRY,
+    EXPENSE_AMOUNT_TOO_LARGE,
     EXPENSE_CATEGORY_INSTRUCTION,
     EXPENSE_CATEGORY_SCHEMA,
+    EXPENSE_CHIP_ANSWER_PREFIX,
     EXPENSE_DATE_PHRASE_FALLBACK,
     EXPENSE_DATE_QUESTION,
     EXPENSE_DESCRIPTION_QUESTION,
@@ -44,11 +46,13 @@ from app.domains.capture.interfaces.ports import (
     LocalClockPort,
 )
 from app.domains.capture.services.amount_reading import (
+    format_rupees,
     keep_candidates,
     names_foreign_currency,
     normalise_amount,
 )
 from app.domains.expenses.public import (
+    MAX_AMOUNT_PAISE,
     MAX_DESCRIPTION_LENGTH,
     ExpenseCategory,
     ExpenseDTO,
@@ -149,6 +153,8 @@ class ExpenseCaptureService:
         draft = _read_draft(
             extracted_fields=extracted_fields, text=argument_text, today=today
         )
+        if _is_past_ceiling(draft=draft):
+            return ExpenseRefusedDTO(reason=ExpenseRefusalReason.AMOUNT_TOO_LARGE)
         if draft.description and len(draft.description) > MAX_DESCRIPTION_LENGTH:
             return ExpenseRefusedDTO(
                 reason=ExpenseRefusalReason.DESCRIPTION_TOO_LONG,
@@ -362,12 +368,12 @@ def expense_question_asked(
 def _answer_amount(
     *, kind: ExpenseQuestionKind, draft: ExpenseDraft, answer: str
 ) -> ExpenseDraft | ExpenseAnswerRejected:
-    """FR-3 and FR-5. A chip sends one of the candidates as paise; a typed
-    answer is read as rupees, as in the line itself."""
+    """FR-3 and FR-5. A chip sends a marked candidate (dev log E-5); anything
+    typed is read as rupees, as in the line itself."""
     text = answer.strip()
-    is_chip = text.isdigit() and int(text) in draft.candidates
-    if kind == ExpenseQuestionKind.AMOUNT_CHOICE and is_chip:
-        return replace(draft, amount_paise=int(text), candidates=())
+    chosen = chip_paise(answer=text, candidates=draft.candidates)
+    if kind == ExpenseQuestionKind.AMOUNT_CHOICE and chosen is not None:
+        return replace(draft, amount_paise=chosen, candidates=())
     amount_paise = normalise_amount(raw=text)
     if amount_paise is None:
         retry = (
@@ -376,7 +382,33 @@ def _answer_amount(
             else EXPENSE_AMOUNT_CHOICE_QUESTION
         )
         return ExpenseAnswerRejected(question=retry)
+    if amount_paise > MAX_AMOUNT_PAISE:
+        return ExpenseAnswerRejected(question=EXPENSE_AMOUNT_TOO_LARGE)
     return replace(draft, amount_paise=amount_paise, candidates=())
+
+
+def chip_paise(*, answer: str, candidates: tuple[int, ...]) -> int | None:
+    """The candidate a chip answer names, or None for a typed answer or a
+    marker that names no candidate."""
+    marker, separator, digits = answer.strip().partition(EXPENSE_CHIP_ANSWER_PREFIX)
+    if marker or not separator or not digits.isdigit():
+        return None
+    paise = int(digits)
+    return paise if paise in candidates else None
+
+
+def readable_answer(*, answer: str, candidates: tuple[int, ...]) -> str:
+    """What the turn log keeps of an answer: a chip as the amount it shows,
+    "₹180", never its marker; anything typed as typed."""
+    paise = chip_paise(answer=answer, candidates=candidates)
+    return answer if paise is None else format_rupees(paise=paise)
+
+
+def _is_past_ceiling(*, draft: ExpenseDraft) -> bool:
+    """FR-2 as amended 2026-10-03: any amount read past the storage ceiling
+    refuses the line, so a typo never reaches the database (dev log E-2)."""
+    amounts = (*draft.candidates, draft.amount_paise or 0)
+    return any(amount > MAX_AMOUNT_PAISE for amount in amounts)
 
 
 def _complete_fields(*, draft: ExpenseDraft) -> ExpenseFields | None:

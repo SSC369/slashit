@@ -58,6 +58,8 @@ export const statusPillHappeningStyles = "border-accent-wash bg-accent-wash text
 export const statusPillPastStyles = "border-border-strong bg-past-wash text-foreground-tertiary";
 export const alertPillStyles = "border-accent-wash bg-accent-wash text-accent";
 export const eventMarkerStyles = "inline-block h-[7px] w-[7px] shrink-0 rotate-45 rounded-[2px] bg-success";
+// Expense marker (006 design change 2026-10-03): a ₹ glyph, told apart from the event diamond by shape.
+export const expenseMarkerStyles = "shrink-0 text-success";
 
 // Calendar (006 design §6, `.cal`): Monday first, today ringed, chosen day filled.
 export const calendarStyles = "w-[300px] shrink-0 rounded-lg border border-border-strong bg-card p-3";

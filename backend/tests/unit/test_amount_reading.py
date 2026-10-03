@@ -3,6 +3,7 @@
 import pytest
 
 from app.domains.capture.services.amount_reading import (
+    format_rupees,
     keep_candidates,
     names_foreign_currency,
     normalise_amount,
@@ -83,3 +84,18 @@ def test_names_foreign_currency_is_true_for_another_currency(text: str) -> None:
 def test_names_foreign_currency_is_false_for_rupees(text: str) -> None:
     """C-3."""
     assert names_foreign_currency(text=text) is False
+
+
+@pytest.mark.parametrize(
+    ("paise", "shown"),
+    [
+        (18_000, "₹180"),
+        (85_050, "₹850.50"),
+        (12_000_000, "₹1,20,000"),
+        (100, "₹1"),
+        (5, "₹0.05"),
+        (10**16, "₹10,00,00,00,00,00,000"),
+    ],
+)
+def test_format_rupees_groups_as_the_frontend_does(paise: int, shown: str) -> None:
+    assert format_rupees(paise=paise) == shown

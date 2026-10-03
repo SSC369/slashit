@@ -13,7 +13,7 @@ from app.core.deps import (
     build_list_expense_periods_interactor,
     build_list_expenses_interactor,
 )
-from app.domains.expenses.graphql.errors import ExpenseNotFound
+from app.domains.expenses.graphql.errors import ExpenseNotFound, parse_expense_id
 from app.domains.expenses.graphql.inputs import ExpensesFilterInput
 from app.domains.expenses.interactors.dtos import (
     GetExpenseInputDTO,
@@ -69,7 +69,7 @@ class ExpenseQueries:
         user_id = cast(UUID, context.user_id)
         interactor = build_get_expense_interactor(context)
         expense = await interactor.get_expense(
-            dto=GetExpenseInputDTO(user_id=user_id, expense_id=UUID(str(id_)))
+            dto=GetExpenseInputDTO(user_id=user_id, expense_id=parse_expense_id(id_))
         )
         return cast(ExpenseResult, expense_dto_to_type(expense=expense))
 

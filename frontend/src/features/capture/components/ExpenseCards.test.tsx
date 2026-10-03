@@ -63,6 +63,12 @@ describe("Expense capture cards, F-1 of sub-plan 4.1", () => {
     );
   });
 
+  it("refuses an amount past the storage ceiling (FR-2, dev log E-2)", () => {
+    render(<ExpenseRefusedNote reason="AMOUNT_TOO_LARGE" length={null} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("That amount is too large to save.");
+  });
+
   it("says the model is down without saving (FR-14)", () => {
     render(<ExpenseModelDownNote />);
 
@@ -94,7 +100,7 @@ describe("Expense capture cards, F-1 of sub-plan 4.1", () => {
     expect(screen.getByPlaceholderText("What it was for…")).toBeInTheDocument();
   });
 
-  it("offers one chip per number and sends the paise picked (FR-5)", () => {
+  it("offers one chip per number and sends the one picked, marked (FR-5, dev log E-5)", () => {
     const onAnswer = vi.fn();
     render(
       <ExpenseQuestionCard
@@ -109,7 +115,7 @@ describe("Expense capture cards, F-1 of sub-plan 4.1", () => {
     expect(screen.getByText("Your text has two numbers. Nothing is saved until you pick one.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "2 rupees" })).toHaveFocus();
     fireEvent.click(screen.getByRole("button", { name: "180 rupees" }));
-    expect(onAnswer).toHaveBeenCalledWith("18000");
+    expect(onAnswer).toHaveBeenCalledWith("chip:18000");
   });
 
   it("confirms the date read, or picks another from the calendar (FR-8)", () => {

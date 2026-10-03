@@ -47,6 +47,13 @@ describe("ExpenseEditForm, F-5 of sub-plan 4.1", () => {
     expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
   });
 
+  it("counts a description in characters, as the server does (dev log E-4)", () => {
+    renderForm({ description: "😀".repeat(150) });
+
+    expect(screen.getByText("150 / 200")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
   it("chooses any date from the calendar, future included (FR-21)", () => {
     const onChange = vi.fn();
     renderForm({}, onChange);

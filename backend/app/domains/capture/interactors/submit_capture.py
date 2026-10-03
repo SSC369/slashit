@@ -262,10 +262,11 @@ class SubmitCaptureInteractor:
 
     def _validate_line_length(self, *, text: str) -> None:
         """AD-7: a memory save's fact is measured by memories, which answers
-        an over-long fact with a drawn state (FR-4). Every other line keeps
-        001's 500-character cap."""
+        an over-long fact with a drawn state (FR-4). An expense line is the
+        same: FR-13 judges its description (006 dev log E-3). Every other
+        line keeps 001's 500-character cap."""
         command_name, _ = self._split_command(text=text)
-        if command_name in MEMORY_SAVE_COMMANDS or command_name == SEARCH_COMMAND:
+        if command_name in (*MEMORY_SAVE_COMMANDS, SEARCH_COMMAND, ADD_EXPENSE_COMMAND):
             return
         if len(text) > MAX_INPUT_LENGTH:
             raise ValueError(f"capture input exceeds {MAX_INPUT_LENGTH} characters")

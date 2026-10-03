@@ -20,6 +20,7 @@ import Button from "../../../design-system/components/Button";
 import {
   EXPENSE_CATEGORY_LABEL,
   MAX_DESCRIPTION_LENGTH,
+  chipAnswer,
   type ExpenseQuestionArgs,
 } from "../../../constants/expenseConstants";
 import type { ExpenseFieldsFragment } from "../../../fragments/ExpenseFields.generated";
@@ -112,28 +113,47 @@ interface ExpenseRefusedNoteProps {
   length: number | null;
 }
 
+const refusalCopy = (reason: ExpenseRefusedNoteProps["reason"], length: number | null): ReactElement => {
+  switch (reason) {
+    case "FOREIGN_CURRENCY":
+      return (
+        <>
+          <b>Slashit records rupees only for now.</b> Enter the amount in ₹ and it will save. Your text is
+          still in the box.
+        </>
+      );
+    case "DESCRIPTION_TOO_LONG":
+      return (
+        <>
+          <b>
+            That description is {length ?? "over " + MAX_DESCRIPTION_LENGTH} characters. It can be up to{" "}
+            {MAX_DESCRIPTION_LENGTH}.
+          </b>{" "}
+          Your text is still in the box, so you can shorten it.
+        </>
+      );
+    // FR-2 as amended 2026-10-03: past the storage ceiling (dev log E-2).
+    case "AMOUNT_TOO_LARGE":
+      return (
+        <>
+          <b>That amount is too large to save.</b> Check it for an extra zero. Your text is still in the
+          box.
+        </>
+      );
+    default: {
+      const unhandled: never = reason;
+      throw new Error(`Unhandled expense refusal: ${String(unhandled)}`);
+    }
+  }
+};
+
 /** `CaptureStates`, FR-6 and FR-13: refused, the text back in the box. */
 export const ExpenseRefusedNote = (props: ExpenseRefusedNoteProps): ReactElement => {
   const { reason, length } = props;
   return (
     <div role="alert" className={`${Styles.noteBaseStyles} ${Styles.noteErrStyles}`}>
       <CircleX size={18} className="shrink-0 text-destructive" />
-      <div className={Styles.expenseNoteTextStyles}>
-        {reason === "FOREIGN_CURRENCY" ? (
-          <>
-            <b>Slashit records rupees only for now.</b> Enter the amount in ₹ and it will save. Your
-            text is still in the box.
-          </>
-        ) : (
-          <>
-            <b>
-              That description is {length ?? "over " + MAX_DESCRIPTION_LENGTH} characters. It can be up
-              to {MAX_DESCRIPTION_LENGTH}.
-            </b>{" "}
-            Your text is still in the box, so you can shorten it.
-          </>
-        )}
-      </div>
+      <div className={Styles.expenseNoteTextStyles}>{refusalCopy(reason, length)}</div>
     </div>
   );
 };
@@ -235,10 +255,10 @@ const QuestionAnswer = (props: ExpenseQuestionCardProps): ReactElement => {
               disabled={isAnswering}
               className={cn(
                 Styles.choiceChipStyles,
-                isAnswering && answerDraft === paise && Styles.choiceChipOnStyles,
+                isAnswering && answerDraft === chipAnswer(paise) && Styles.choiceChipOnStyles,
               )}
               aria-label={spokenRupees(paise)}
-              onClick={() => onAnswer(paise)}
+              onClick={() => onAnswer(chipAnswer(paise))}
             >
               {formatRupees(paise)}
             </button>
