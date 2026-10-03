@@ -6,7 +6,7 @@ stage: 0
 status: approved
 owner: user
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-03
 approved_on: 2026-10-02
 supersedes: null
 ---
@@ -60,22 +60,22 @@ A new record type, the event, captured with `/add-event Mom's birthday October 1
 and listed soonest first with `/events`. An event has a title, a date, an optional
 start time, an optional end, an optional location, and an optional description. With no time it is
 all-day. It can repeat yearly, for birthdays and anniversaries. The capture line
-can ask for an alert, as in "remind me 1 day before", which sets a reminder tied
-to the event through 003's notification layer. Like every record, it appears in
+can ask for alerts, as in "remind me 1 week and 1 day before", each of which sets
+a reminder tied to the event through 003's notification layer. Like every record, it appears in
 Records with its own filter and can be edited and deleted.
 
 ## Requirements in detail
 
 | Area | What it has to do | Why it matters | Notes |
 |---|---|---|---|
-| Capture | `/add-event` pulls a title, date, optional time, optional end, optional location, optional yearly repeat and optional alert out of one line | P1: one line in, a record out | Same interpretation path as 001's task due dates and 003's `/remind` |
+| Capture | `/add-event` pulls a title, date, optional time, optional end, optional location, optional yearly repeat and any number of alerts out of one line | P1: one line in, a record out | Same interpretation path as 001's task due dates and 003's `/remind` |
 | No date | Ask one question, per the confirmation model | An event without a date is a note | "Dentist" alone is ambiguous; "dentist Friday 4pm" is not |
 | Past date | "October 12" said on October 20 needs a rule | Silently filing it in the past hides it from `/events` | The next occurrence, echoed in the confirmation, per Q1 |
 | All-day vs timed | No time means all-day; a time makes it timed | Birthdays have no time, appointments do | All-day events belong to a local date, not an instant. They must not drift a day after a timezone change |
 | End | Optional end time ("3 to 5 PM") or end date ("Oct 12 to Oct 15") | Trips and blocks of time | An end before the start means the next day, echoed back, per Q2 |
 | Location | An optional place, as in "at Apollo Hospital" | Where to be, searchable on its own | Added per Q6, beyond the source. Free text, no maps or place lookup |
 | Yearly repeat | "every year", or a birthday or anniversary phrase, repeats on the same date | The main recurring event the source names | Feb 29 follows 003's FR-8 rule: Feb 28 in other years. Edits apply to the series, as in 003 |
-| Alert | "remind me 1 day before" creates a reminder that fires that long before the event | Seeing an event ahead is not enough for a birthday gift | Reuses 003's delivery, channels and caps. One alert per event, per Q5. Moving the event moves the alert; deleting it deletes the alert, per Q3 |
+| Alerts | "remind me 1 day before" creates a reminder that fires that long before the event. An event carries any number of alerts, each with its own lead | Seeing an event ahead is not enough for a birthday gift; a gift needs a week, the call needs the morning | Reuses 003's delivery, channels and caps. No cap per event, per Q5 as reversed. Moving the event moves every alert; deleting it deletes them all, per Q3 |
 | `/events` | Lists upcoming events, soonest first, a yearly event at its next occurrence | The source's "upcoming events" | Past events leave this list and stay in Records marked past, per Q4 |
 | Records | An Events filter, events under All, and record detail with every field, next occurrence, alert, origin and creation time | "If Slashit can record it, the user can see it" | Grows 001's approved Records design |
 | Edit and delete | Change any field; delete with confirmation, soft-deleted per `product.md` §4 | P4 | Deleting a yearly event deletes the series |
@@ -99,6 +99,8 @@ Records with its own filter and can be edited and deleted.
   capture makes them choose.
 - All-day events are a new time kind. Every earlier date in Slashit is an instant
   or a due date; a local date that must not shift with timezone is a new rule.
+- Any number of alerts per event, with no cap of its own, lets one event spend
+  much of 003's 100 active reminders. The shared cap still bounds the total.
 - Tying a reminder to an event couples 007 to 003. Moving or deleting the event
   must keep the alert consistent, which is a cross-type rule nothing has had yet.
 - Yearly repeat duplicates part of 003's recurrence. Sharing the logic is cheaper
@@ -147,7 +149,7 @@ All six answered by the user on 2026-10-02. Q1 to Q5 as recommended; Q6 chose th
 | ~~Q2~~ | End before start, as in "11 PM to 1 AM"? | **Ends the next day, echoed back** | PRD | user |
 | ~~Q3~~ | What happens to the alert when its event changes? | **Moves with the event; deleted with it** | PRD, build plan | user |
 | ~~Q4~~ | Where do past events go? | **Leave `/events`, stay in Records with a past marker** | PRD | user |
-| ~~Q5~~ | Can one event carry more than one alert? | **One alert in V1** | PRD | user |
+| ~~Q5~~ | Can one event carry more than one alert? | **One alert in V1.** Reversed by the user on 2026-10-02, during slice 1's build: **any number of alerts, no cap per event** (dev log X-1) | PRD | user |
 | ~~Q6~~ | Location field? Not in the source | **Optional location field**, not the recommended option | PRD | user |
 
 ## What this is not
@@ -166,3 +168,4 @@ All six answered by the user on 2026-10-02. Q1 to Q5 as recommended; Q6 chose th
 | 2026-10-02 | Created, with the user's four scoping answers recorded | User asked to start 007 in parallel with 006 | user |
 | 2026-10-02 | Q1 to Q6 answered and closed; requirement notes updated; optional location added | User answered all six | user |
 | 2026-10-02 | Approved | User: "Approve, write the PRD" | user |
+| 2026-10-03 | Q5 reversed: any number of alerts per event, no cap per event. What this feature is, the Alerts row and Cons updated. Stale: PRD, design, build plan, implementation plan index and 4.1, in that order. Slice 1's built "which alert?" question becomes a deviation once the PRD change is approved | User decided X-1 on 2026-10-02: "allow any number of alerts". Change approved 2026-10-03 | user |
